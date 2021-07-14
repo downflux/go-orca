@@ -40,6 +40,15 @@ func TestDot(t *testing.T) {
 	}
 }
 
+func TestDeterminant(t *testing.T) {
+	v := V{1, 1}
+	u := V{2, 3}
+	want := float64(1)
+	if got := Determinant(v, u); got != want {
+		t.Errorf("Determinant() = %v, want = %v", got, want)
+	}
+}
+
 func TestOrthogonal(t *testing.T) {
 	v := V{-1, 1}
 	u := V{1, 1}
