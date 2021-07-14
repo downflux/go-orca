@@ -1,7 +1,7 @@
 package vo
 
 import (
-	"github.com/downflux/orca/vector/vector"
+	"github.com/downflux/orca/vector"
 )
 
 type Agent interface {

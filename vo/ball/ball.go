@@ -8,8 +8,10 @@ package ball
 import (
 	"math"
 
-	"github.com/downflux/orca/vector/vector"
-	"github.com/downflux/orca/vo/vo"
+	"github.com/downflux/orca/vector"
+	"github.com/downflux/orca/vo"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type Direction int
@@ -24,8 +26,8 @@ const (
 )
 
 type VO struct {
-	a vo.Agent
-	b vo.Agent
+	a   vo.Agent
+	b   vo.Agent
 	tau float64
 }
 
@@ -35,11 +37,11 @@ func New(a, b vo.Agent, tau float64) *VO { return &VO{a: a, b: b, tau: tau} }
 func (vo VO) ORCA() vector.V { return vector.V{} }
 
 // r calculates the combined radius between the two Agent objects.
-func (vo VO) r() float64 { return a.R() + b.R() }
+func (vo VO) r() float64 { return vo.a.R() + vo.b.R() }
 
 // l calculates the length of the tangent line segment from the start of p to the
 // edge of the circle of radius r.
-func (vo VO) l() float64 { return math.Sqrt(vo.p().MagnitudeSquared() - vo.r() ** 2) }
+func (vo VO) l() float64 { return math.Sqrt(vector.SquaredMagnitude(vo.p()) - math.Pow(vo.r(), 2)) }
 
 // p calculates the relative position of b from agent a.
 func (vo VO) p() vector.V { return vector.Sub(vo.b.P(), vo.a.P()) }
@@ -54,12 +56,12 @@ func (vo VO) w() vector.V { return vector.Sub(vo.b.V(), vector.Sub(vo.a.V(), vo.
 // Returns:
 //   Angle in radians between 0 and π; w is bound by 𝛽 if -𝛽 < 𝜃 < 𝛽.
 func (vo VO) beta() (float64, error) {
-	if vo.r() ** 2 > vo.p().SquaredMagnitude() {
+	if math.Pow(vo.r(), 2) > vector.SquaredMagnitude(vo.p()) {
 		return 0, status.Error(codes.OutOfRange, "cannot find the tangent VO angle of colliding balls")
 	}
 
 	// Domain error when Acos({x | x > 1}).
-	return math.Acos(vo.r() / vo.p().Magnitude()), nil
+	return math.Acos(vo.r() / vector.Magnitude(vo.p())), nil
 }
 
 // theta returns the angle between w and -p; this can be compared to theta to
@@ -73,12 +75,12 @@ func (vo VO) beta() (float64, error) {
 // Returns:
 //   Angle in radians between 0 and 2π between w and -p.
 func (vo VO) theta() (float64, error) {
-	if vo.w().MagnitudeSquared() == 0 || vo.p().MagnitudeSquared() == 0 {
+	if vector.SquaredMagnitude(vo.w()) == 0 || vector.SquaredMagnitude(vo.p()) == 0 {
 		return 0, status.Error(codes.OutOfRange, "cannot find the incident angle between w and p for 0-length vectors")
 	}
 
-	theta := math.Acos(vector.Dot(vo.w(), vector.Scale(-1, vo.p()) / (vo.w().Magnitude() * vo.p().Magnitude()))
-	orientation := vector.Determinant(vo.w(), vector.Scale(-1, vo.p()) / (vo.p().Magnitude() * vo.p().Magnitude()) > 0
+	theta := math.Acos(vector.Dot(vo.w(), vector.Scale(-1, vo.p())) / (vector.Magnitude(vo.w()) * vector.Magnitude(vo.p())))
+	orientation := vector.Determinant(vo.w(), vector.Scale(-1, vo.p()))/(vector.Magnitude(vo.p())*vector.Magnitude(vo.p())) > 0
 
 	if !orientation {
 		theta += math.Pi
@@ -100,11 +102,11 @@ func (vo VO) check() Direction {
 		return Collision
 	}
 
-	if theta < beta || math.Abs(2 * math.Pi - theta) < beta {
+	if theta < beta || math.Abs(2*math.Pi-theta) < beta {
 		return Circle
 	}
 
-	if vo.theta() < math.Pi
+	if theta < math.Pi {
 		return Left
 	}
 
