@@ -138,3 +138,25 @@ func BenchmarkVO(b *testing.B) {
 		)).check()
 	}
 }
+
+func BenchmarkVOReferenceParallel(b *testing.B) {
+	b.RunParallel(func (pb *testing.PB) {
+		for pb.Next() {
+			(Reference{
+				a: Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())},
+				b: Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())},
+			}).check()
+		}
+	})
+}
+
+func BenchmarkVOParallel(b *testing.B) {
+	b.RunParallel(func (pb *testing.PB) {
+		for pb.Next() {
+			(*New(
+				Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())},
+				Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())},
+			)).check()
+		}
+	})
+}
