@@ -56,7 +56,7 @@ func (vo VO) w() vector.V { return vector.Sub(vector.Sub(vo.a.V(), vo.b.V()), vo
 // Returns:
 //   Angle in radians between 0 and π; w is bound by 𝛽 if -𝛽 < 𝜃 < 𝛽.
 func (vo VO) beta() (float64, error) {
-	if math.Pow(vo.r(), 2) > vector.SquaredMagnitude(vo.p()) {
+	if math.Pow(vo.r(), 2) >= vector.SquaredMagnitude(vo.p()) {
 		return 0, status.Error(codes.OutOfRange, "cannot find the tangent VO angle of colliding balls")
 	}
 
@@ -72,6 +72,10 @@ func (vo VO) beta() (float64, error) {
 // 1.   w • p   = ||w|| ||p|| cos(𝜃), and
 // 2. ||w x p|| = ||w|| ||p|| sin(𝜃)
 //
+// vo.p() is defined as vo.b.P() - vo.a.P(); however, we want 𝜃 = 0 when w is
+// pointing towards the origin -- that is, opposite the direction of p.
+// Therefore, we flip p in our calculations here.
+//
 // Returns:
 //   Angle in radians between 0 and 2π between w and -p.
 func (vo VO) theta() (float64, error) {
@@ -79,11 +83,24 @@ func (vo VO) theta() (float64, error) {
 		return 0, status.Error(codes.OutOfRange, "cannot find the incident angle between w and p for 0-length vectors")
 	}
 
+	// w • p
+	dotWP := vector.Dot(vo.w(), vector.Scale(-1, vo.p()))
+
+	// ||w x p||
+	crossWP := vector.Determinant(vo.w(), vector.Scale(-1, vo.p()))
+
+	// ||w|| ||p||
+	wp := vector.Magnitude(vo.w()) * vector.Magnitude(vector.Scale(-1, vo.p()))
+
 	// cos(𝜃) = cos(-𝜃) -- we don't know if 𝜃 lies to the "left" or "right" of 0.
-	theta := math.Acos(vector.Dot(vo.w(), vector.Scale(-1, vo.p())) / (vector.Magnitude(vo.w()) * vector.Magnitude(vector.Scale(-1, vo.p()))))
+	//
+	// Occasionally due to rounding errors, domain here is slightly larger
+	// than 1; other bounding issues are prevented with the check on |w| and
+	// |p| above, and we are safe to cap the domain here.
+	theta := math.Acos(math.Min(1, dotWP/wp))
 
 	// Use sin(𝜃) = -sin(-𝜃) to check the orientation of 𝜃.
-	orientation := vector.Determinant(vo.w(), vector.Scale(-1, vo.p()))/(vector.Magnitude(vo.w())*vector.Magnitude(vector.Scale(-1, vo.p()))) > 0
+	orientation := crossWP/wp > 0
 	if !orientation {
 		// 𝜃 < 0; shift by 2π radians.
 		theta = 2*math.Pi - theta
@@ -93,16 +110,16 @@ func (vo VO) theta() (float64, error) {
 
 // check returns the indicated edge of the truncated VO that is closest to w.
 func (vo VO) check() Direction {
-	theta, err := vo.theta()
-	// Retain parity with RVO2 behavior.
-	if err != nil {
-		return Right
-	}
-
 	beta, err := vo.beta()
 	// Retain parity with RVO2 behavior.
 	if err != nil {
 		return Collision
+	}
+
+	theta, err := vo.theta()
+	// Retain parity with RVO2 behavior.
+	if err != nil {
+		return Right
 	}
 
 	if theta < beta || math.Abs(2*math.Pi-theta) < beta {

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
-	"strings"
 	"testing"
 
 	"github.com/downflux/orca/vector"
@@ -67,12 +66,14 @@ func TestVOReferenceDirection(t *testing.T) {
 	}
 }
 
-func random() float64 { return math.Floor(rand.Float64()*200 - 100) }
+// r returns a random int between [-100, 100).
+func r() float64 { return rand.Float64()*200 - 100 }
 
 // TestVODirectionConformance tests that agent-agent VOs will return u in the
 // correct direction using the reference implementation as a sanity check.
 func TestVODirectionConformance(t *testing.T) {
-	nTests := 100
+	const nTests = 1000
+	const tolerance = 1e-10
 
 	type testConfig struct {
 		name string
@@ -97,32 +98,25 @@ func TestVODirectionConformance(t *testing.T) {
 
 		testConfigs = append(testConfigs, testConfig{
 			name: fmt.Sprintf("TestRandom-%v", i),
-			a:    Agent{p: *vector.New(random(), random()), v: *vector.New(random(), random()), r: math.Abs(random())},
-			b:    Agent{p: *vector.New(random(), random()), v: *vector.New(random(), random()), r: math.Abs(random())},
+			a:    Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())},
+			b:    Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())},
 		})
 	}
 
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
 			want := (Reference{a: c.a, b: c.b}).check()
+
 			v := *New(c.a, c.b)
 			if got := v.check(); got != want {
-				beta, betaErr := v.beta()
-				theta, thetaErr := v.theta()
-				t.Error(strings.Join([]string{
-					fmt.Sprintf("check() = %v, want = %v", got, want),
-					fmt.Sprintf("\ta.R() = %v", c.a.R()),
-					fmt.Sprintf("\ta.P() = %v", c.a.P()),
-					fmt.Sprintf("\ta.V() = %v", c.a.V()),
-					fmt.Sprintf("\tb.R() = %v", c.b.R()),
-					fmt.Sprintf("\tb.P() = %v", c.b.P()),
-					fmt.Sprintf("\tb.V() = %v", c.b.V()),
-					fmt.Sprintf("\tvo.r() = %v", v.r()),
-					fmt.Sprintf("\tvo.p() = %v", v.p()),
-					fmt.Sprintf("\tvo.w() = %v", v.w()),
-					fmt.Sprintf("\tvo.beta() = %v (%v°), %v", beta, beta*180/math.Pi, betaErr),
-					fmt.Sprintf("\tvo.theta() = %v (%v°), %v", theta, theta*180/math.Pi, thetaErr),
-				}, "\n"))
+				beta, _ := v.beta()
+				theta, _ := v.theta()
+
+				// Disregard rounding errors around where 𝜃 ~ 𝛽.
+				if got == Circle && (math.Abs(beta-theta) > tolerance || math.Abs(2*math.Pi-theta-beta) > tolerance) {
+					return
+				}
+				t.Errorf("check() = %v, want = %v", got, want)
 			}
 		})
 	}
