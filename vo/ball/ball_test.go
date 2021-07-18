@@ -95,7 +95,6 @@ func TestVODirectionConformance(t *testing.T) {
 	}
 
 	for i := 0; i < nTests; i++ {
-
 		testConfigs = append(testConfigs, testConfig{
 			name: fmt.Sprintf("TestRandom-%v", i),
 			a:    Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())},
@@ -119,5 +118,23 @@ func TestVODirectionConformance(t *testing.T) {
 				t.Errorf("check() = %v, want = %v", got, want)
 			}
 		})
+	}
+}
+
+func BenchmarkVOReference(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		(Reference{
+			a: Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())},
+			b: Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())},
+		}).check()
+	}
+}
+
+func BenchmarkVO(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		(*New(
+			Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())},
+			Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())},
+		)).check()
 	}
 }
