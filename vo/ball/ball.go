@@ -29,25 +29,51 @@ type VO struct {
 	a   vo.Agent
 	b   vo.Agent
 	tau float64 // Minimum timestep is unimplemented.
+
+	// We calculated fields at init time.
+	pIsCached bool
+	wIsCached bool
+	rIsCached bool
+	pCache    vector.V
+	wCache    vector.V
+	rCache    float64
 }
 
 func New(a, b vo.Agent) *VO { return &VO{a: a, b: b} }
 
 // TODO(minkezhang): Implement.
-func (vo VO) ORCA() vector.V { return vector.V{} }
+func (vo *VO) ORCA() vector.V { return vector.V{} }
 
 // r calculates the combined radius between the two Agent objects.
-func (vo VO) r() float64 { return vo.a.R() + vo.b.R() }
+func (vo *VO) r() float64 {
+	if !vo.rIsCached {
+		vo.rIsCached = true
+		vo.rCache = vo.a.R() + vo.b.R()
+	}
+	return vo.rCache
+}
 
 // l calculates the length of the tangent line segment from the start of p to the
 // edge of the circle of radius r.
-func (vo VO) l() float64 { return math.Sqrt(vector.SquaredMagnitude(vo.p()) - math.Pow(vo.r(), 2)) }
+func (vo *VO) l() float64 { return math.Sqrt(vector.SquaredMagnitude(vo.p()) - math.Pow(vo.r(), 2)) }
 
 // p calculates the relative position of b from agent a.
-func (vo VO) p() vector.V { return vector.Sub(vo.b.P(), vo.a.P()) }
+func (vo *VO) p() vector.V {
+	if !vo.pIsCached {
+		vo.pIsCached = true
+		vo.pCache = vector.Sub(vo.b.P(), vo.a.P())
+	}
+	return vo.pCache
+}
 
 // w calculates the relative velocity between a and b, centered on the combined circle.
-func (vo VO) w() vector.V { return vector.Sub(vector.Sub(vo.a.V(), vo.b.V()), vo.p()) }
+func (vo *VO) w() vector.V {
+	if !vo.wIsCached {
+		vo.wIsCached = true
+		vo.wCache = vector.Sub(vector.Sub(vo.a.V(), vo.b.V()), vo.p())
+	}
+	return vo.wCache
+}
 
 // beta returns the complementary angle between l and p, i.e. the angle
 // boundaries at which u should be directed towards the circular bottom of the
@@ -55,7 +81,7 @@ func (vo VO) w() vector.V { return vector.Sub(vector.Sub(vo.a.V(), vo.b.V()), vo
 //
 // Returns:
 //   Angle in radians between 0 and π; w is bound by 𝛽 if -𝛽 < 𝜃 < 𝛽.
-func (vo VO) beta() (float64, error) {
+func (vo *VO) beta() (float64, error) {
 	if math.Pow(vo.r(), 2) >= vector.SquaredMagnitude(vo.p()) {
 		return 0, status.Error(codes.OutOfRange, "cannot find the tangent VO angle of colliding balls")
 	}
@@ -78,19 +104,21 @@ func (vo VO) beta() (float64, error) {
 //
 // Returns:
 //   Angle in radians between 0 and 2π between w and -p.
-func (vo VO) theta() (float64, error) {
+func (vo *VO) theta() (float64, error) {
 	if vector.SquaredMagnitude(vo.w()) == 0 || vector.SquaredMagnitude(vo.p()) == 0 {
 		return 0, status.Error(codes.OutOfRange, "cannot find the incident angle between w and p for 0-length vectors")
 	}
 
+	p := vector.Scale(-1, vo.p())
+
 	// w • p
-	dotWP := vector.Dot(vo.w(), vector.Scale(-1, vo.p()))
+	dotWP := vector.Dot(vo.w(), p)
 
 	// ||w x p||
-	crossWP := vector.Determinant(vo.w(), vector.Scale(-1, vo.p()))
+	crossWP := vector.Determinant(vo.w(), p)
 
 	// ||w|| ||p||
-	wp := vector.Magnitude(vo.w()) * vector.Magnitude(vector.Scale(-1, vo.p()))
+	wp := vector.Magnitude(vo.w()) * vector.Magnitude(p)
 
 	// cos(𝜃) = cos(-𝜃) -- we don't know if 𝜃 lies to the "left" or "right" of 0.
 	//
@@ -109,7 +137,7 @@ func (vo VO) theta() (float64, error) {
 }
 
 // check returns the indicated edge of the truncated VO that is closest to w.
-func (vo VO) check() Direction {
+func (vo *VO) check() Direction {
 	beta, err := vo.beta()
 	// Retain parity with RVO2 behavior.
 	if err != nil {

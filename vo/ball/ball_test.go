@@ -12,7 +12,7 @@ import (
 
 var (
 	_ vo.Agent = Agent{}
-	_ vo.VO    = VO{}
+	_ vo.VO    = &VO{}
 	_ vo.VO    = Reference{}
 )
 
@@ -106,7 +106,7 @@ func TestVODirectionConformance(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			want := (Reference{a: c.a, b: c.b}).check()
 
-			v := *New(c.a, c.b)
+			v := New(c.a, c.b)
 			if got := v.check(); got != want {
 				beta, _ := v.beta()
 				theta, _ := v.theta()
@@ -135,7 +135,7 @@ func BenchmarkVOReference(t *testing.B) {
 func BenchmarkVO(t *testing.B) {
 	a := Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())}
 	b := Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())}
-	v := *New(a, b)
+	v := New(a, b)
 
 	t.ResetTimer()
 	for i := 0; i < t.N; i++ {
