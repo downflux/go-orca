@@ -121,42 +121,24 @@ func TestVODirectionConformance(t *testing.T) {
 	}
 }
 
-func BenchmarkVOReference(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		(Reference{
-			a: Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())},
-			b: Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())},
-		}).check()
+func BenchmarkVOReference(t *testing.B) {
+	a := Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())}
+	b := Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())}
+	v := Reference{a: a, b: b}
+
+	t.ResetTimer()
+	for i := 0; i < t.N; i++ {
+		v.check()
 	}
 }
 
-func BenchmarkVO(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		(*New(
-			Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())},
-			Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())},
-		)).check()
+func BenchmarkVO(t *testing.B) {
+	a := Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())}
+	b := Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())}
+	v := *New(a, b)
+
+	t.ResetTimer()
+	for i := 0; i < t.N; i++ {
+		v.check()
 	}
-}
-
-func BenchmarkVOReferenceParallel(b *testing.B) {
-	b.RunParallel(func (pb *testing.PB) {
-		for pb.Next() {
-			(Reference{
-				a: Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())},
-				b: Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())},
-			}).check()
-		}
-	})
-}
-
-func BenchmarkVOParallel(b *testing.B) {
-	b.RunParallel(func (pb *testing.PB) {
-		for pb.Next() {
-			(*New(
-				Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())},
-				Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())},
-			)).check()
-		}
-	})
 }

@@ -13,3 +13,18 @@ go version
 ```
 go test ./... -bench . -cpu 1,2,4,8
 ```
+
+### Profiling
+
+```
+go test -v github.com/downflux/orca/vo/ball -count=1 \
+  -cpuprofile cpu.out \
+  -run BenchmarkVO \
+  -bench '^BenchmarkVO$'
+go tool pprof cpu.out
+```
+
+```
+(pprof) top10
+...
+```
