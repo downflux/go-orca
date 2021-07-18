@@ -157,21 +157,24 @@ def _test(ap, bp, ra, rb, va, vb):
   vo_check = vo.check(va, vb)
   voc_check = voc.check(va, vb)
 
+  check = {
+      'VOC': voc,
+      f'VOC.w({va}, {vb}': voc.w(va, vb),
+      f'VOC.check({va}, {vb})': voc.check(va, vb),
+
+      'VO': vo,
+      f'VO.l()': vo.l(),
+      f'VO.beta()': f'{vo.beta()} ({vo.beta() * 180 / math.pi}°)',
+
+      f'VO.w({va}, {vb})': vo.w(va, vb),
+      f'VO.wp': vo.w(va, vb).dot(vo.p().scale(-1)),
+      f'VO.theta({va}, {vb})': f'{vo.theta(va, vb)} ({vo.theta(va, vb) * 180 / math.pi}°)',
+      f'VO.check({va}, {vb})': vo.check(va, vb),
+  }
+
   if vo_check != voc_check:
     raise AssertionError(
-        f'{voc_check} != {vo_check}\n' +  pprint.pformat({
-            'VOC': voc,
-            f'VOC.w({va}, {vb}': voc.w(va, vb),
-            f'VOC.check({va}, {vb})': voc.check(va, vb),
-
-            'VO': vo,
-            f'VO.l()': vo.l(),
-            f'VO.beta()': vo.beta(),
-
-            f'VO.w({va}, {vb}': vo.w(va, vb),
-            f'VO.theta({va}, {vb}': vo.theta(va, vb),
-            f'VO.check({va}, {vb})': vo.check(va, vb),
-        }, indent=4, sort_dicts=False)
+        f'{voc_check} != {vo_check}\n' + pprint.pformat(check, indent=4, sort_dicts=False)
     )
 
 if __name__ == '__main__':

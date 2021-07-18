@@ -14,24 +14,24 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type Direction int
+type Direction string
 
 const (
-	Left Direction = iota
-	Right
-	Circle
+	Left   Direction = "LEFT"
+	Right            = "RIGHT"
+	Circle           = "CIRCLE"
 
 	// TODO(minkezhang): Handle this case gracefully.
-	Collision
+	Collision = "COLLISION"
 )
 
 type VO struct {
 	a   vo.Agent
 	b   vo.Agent
-	tau float64
+	tau float64 // Minimum timestep is unimplemented.
 }
 
-func New(a, b vo.Agent, tau float64) *VO { return &VO{a: a, b: b, tau: tau} }
+func New(a, b vo.Agent) *VO { return &VO{a: a, b: b} }
 
 // TODO(minkezhang): Implement.
 func (vo VO) ORCA() vector.V { return vector.V{} }
@@ -47,7 +47,7 @@ func (vo VO) l() float64 { return math.Sqrt(vector.SquaredMagnitude(vo.p()) - ma
 func (vo VO) p() vector.V { return vector.Sub(vo.b.P(), vo.a.P()) }
 
 // w calculates the relative velocity between a and b, centered on the combined circle.
-func (vo VO) w() vector.V { return vector.Sub(vo.b.V(), vector.Sub(vo.a.V(), vo.p())) }
+func (vo VO) w() vector.V { return vector.Sub(vector.Sub(vo.a.V(), vo.b.V()), vo.p()) }
 
 // beta returns the complementary angle between l and p, i.e. the angle
 // boundaries at which u should be directed towards the circular bottom of the
@@ -79,11 +79,14 @@ func (vo VO) theta() (float64, error) {
 		return 0, status.Error(codes.OutOfRange, "cannot find the incident angle between w and p for 0-length vectors")
 	}
 
-	theta := math.Acos(vector.Dot(vo.w(), vector.Scale(-1, vo.p())) / (vector.Magnitude(vo.w()) * vector.Magnitude(vo.p())))
-	orientation := vector.Determinant(vo.w(), vector.Scale(-1, vo.p()))/(vector.Magnitude(vo.p())*vector.Magnitude(vo.p())) > 0
+	// cos(𝜃) = cos(-𝜃) -- we don't know if 𝜃 lies to the "left" or "right" of 0.
+	theta := math.Acos(vector.Dot(vo.w(), vector.Scale(-1, vo.p())) / (vector.Magnitude(vo.w()) * vector.Magnitude(vector.Scale(-1, vo.p()))))
 
+	// Use sin(𝜃) = -sin(-𝜃) to check the orientation of 𝜃.
+	orientation := vector.Determinant(vo.w(), vector.Scale(-1, vo.p()))/(vector.Magnitude(vo.w())*vector.Magnitude(vector.Scale(-1, vo.p()))) > 0
 	if !orientation {
-		theta += math.Pi
+		// 𝜃 < 0; shift by 2π radians.
+		theta = 2*math.Pi - theta
 	}
 	return theta, nil
 }
