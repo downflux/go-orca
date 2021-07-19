@@ -18,9 +18,9 @@ go test ./... -bench . -cpu 1,2,4,8
 
 ```
 go test -v github.com/downflux/orca/vo/ball -count=1 \
-  -cpuprofile cpu.out \
-  -run BenchmarkVO \
-  -bench '^BenchmarkVO$'
+  -run '^BenchmarkVO$' \
+  -bench '^BenchmarkVO$' \
+  -cpuprofile cpu.out
 go tool pprof cpu.out
 ```
 

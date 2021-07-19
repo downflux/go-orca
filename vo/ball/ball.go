@@ -2,10 +2,24 @@
 // that is, an object which tests for what velocies are permissible by A to
 // choose that will not hit B.
 //
+// Geometrically, a truncated VO is a rounded cone, i.e. the "bottom" of the
+// cone is bounded by a circle (the "truncation circle").
+//
+// The radius of this truncation circle is proportional to the combined radii of
+// the agents, and inversely proportional to a scaling factor 𝜏; as we increase
+// 𝜏, the shape of VO approaches that of an untruncated cone, and the amount of
+// "forbidden" velocities for the agents increases.
+//
+// We interpret the scaling factor 𝜏 as the simulation lookahead time -- as 𝜏
+// increases, agents are more responsive to each other at larger distances;
+// however, if 𝜏 is too large, agent movements stop resembling "reasonable"
+// human behavior and may veer off-course too early.
+//
 // TODO(minkezhang): Add design doc link.
 package ball
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/downflux/orca/vector"
@@ -13,6 +27,24 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+const (
+	minimumTimeStep = 1000000
+)
+
+// TODO(minkezhang): Move to separate shared package.
+type Error struct {
+	StatusCode codes.Code
+	message    string
+}
+
+func (e Error) Error() string {
+	return fmt.Sprintf("%v: %v", e.StatusCode, e.message)
+}
+
+func Errorf(status codes.Code, f string, args ...interface{}) *Error {
+	return &Error{StatusCode: status, message: fmt.Sprintf(f, args...)}
+}
 
 type Direction string
 
@@ -26,11 +58,19 @@ const (
 )
 
 type VO struct {
-	a   vo.Agent
-	b   vo.Agent
-	tau float64 // Minimum timestep is unimplemented.
+	a vo.Agent
+	b vo.Agent
 
-	// We calculated fields at init time.
+	// tau is a scalar determining the bottom vertex of the truncated VO;
+	// large 𝜏 forces the bottom of the VO closer to the origin. When tau is
+	// infinite, the VO generated is a cone with a point vertex.
+	//
+	// Note 𝜏 should be roughly on the scale of the input velocities and
+	// agent sizes, i.e. if agents are moving at a scale of 100 m/s and are
+	// of size meters, we should set 𝜏 to ~1 (vs. 1e10).
+	tau float64
+
+	// We cache some fields to make things zoom-zoom.
 	pIsCached bool
 	wIsCached bool
 	rIsCached bool
@@ -39,34 +79,40 @@ type VO struct {
 	rCache    float64
 }
 
-func New(a, b vo.Agent) *VO { return &VO{a: a, b: b} }
+func New(a, b vo.Agent, tau float64) (*VO, error) {
+	if tau <= 0 {
+		return nil, status.Errorf(codes.OutOfRange, "invalid minimum lookahead time step")
+	}
+	return &VO{a: a, b: b, tau: tau}, nil
+}
 
 // TODO(minkezhang): Implement.
 func (vo *VO) ORCA() vector.V { return vector.V{} }
 
-// r calculates the combined radius between the two Agent objects.
+// r calculates the radius of the truncation circle.
 func (vo *VO) r() float64 {
 	if !vo.rIsCached {
 		vo.rIsCached = true
-		vo.rCache = vo.a.R() + vo.b.R()
+		vo.rCache = (vo.a.R() + vo.b.R()) / vo.tau
 	}
 	return vo.rCache
 }
 
 // l calculates the length of the tangent line segment from the start of p to the
-// edge of the circle of radius r.
+// edge of the truncation circle.
 func (vo *VO) l() float64 { return math.Sqrt(vector.SquaredMagnitude(vo.p()) - math.Pow(vo.r(), 2)) }
 
-// p calculates the relative position of b from agent a.
+// p calculates the center of the truncation circle. Geometrically, this is the
+// relative position of b from a, scaled by 𝜏.
 func (vo *VO) p() vector.V {
 	if !vo.pIsCached {
 		vo.pIsCached = true
-		vo.pCache = vector.Sub(vo.b.P(), vo.a.P())
+		vo.pCache = vector.Scale(1/vo.tau, vector.Sub(vo.b.P(), vo.a.P()))
 	}
 	return vo.pCache
 }
 
-// w calculates the relative velocity between a and b, centered on the combined circle.
+// w calculates the relative velocity between a and b, centered on the truncation circle.
 func (vo *VO) w() vector.V {
 	if !vo.wIsCached {
 		vo.wIsCached = true
@@ -82,16 +128,22 @@ func (vo *VO) w() vector.V {
 // Returns:
 //   Angle in radians between 0 and π; w is bound by 𝛽 if -𝛽 < 𝜃 < 𝛽.
 func (vo *VO) beta() (float64, error) {
+	// Check for collisions between agents -- i.e. the combined radii
+	// should be greater than the distance between the agents.
+	//
+	// Note that r and p are both scaled by 𝜏 here, and as such, cancels
+	// out, giving us the straightforward conclusion that we should be able
+	// to detect collisions independent of the lookahead time.
 	if math.Pow(vo.r(), 2) >= vector.SquaredMagnitude(vo.p()) {
-		return 0, status.Error(codes.OutOfRange, "cannot find the tangent VO angle of colliding balls")
+		return 0, status.Errorf(codes.OutOfRange, "cannot find the tangent VO angle of colliding agents")
 	}
 
 	// Domain error when Acos({x | x > 1}).
 	return math.Acos(vo.r() / vector.Magnitude(vo.p())), nil
 }
 
-// theta returns the angle between w and -p; this can be compared to theta to
-// determine which edge of the truncated VO is closest to w.
+// theta returns the angle between w and p; this can be compared to 𝛽 to
+// determine which "edge" of the truncated VO is closest to w.
 //
 // Note that
 //
@@ -106,7 +158,7 @@ func (vo *VO) beta() (float64, error) {
 //   Angle in radians between 0 and 2π between w and -p.
 func (vo *VO) theta() (float64, error) {
 	if vector.SquaredMagnitude(vo.w()) == 0 || vector.SquaredMagnitude(vo.p()) == 0 {
-		return 0, status.Error(codes.OutOfRange, "cannot find the incident angle between w and p for 0-length vectors")
+		return 0, Errorf(codes.OutOfRange, "cannot find the incident angle between w and p for 0-length vectors")
 	}
 
 	p := vector.Scale(-1, vo.p())

@@ -29,13 +29,14 @@ func (a Agent) R() float64  { return a.r }
 // Reference implements the official RVO2 spec. See
 // https://gamma.cs.unc.edu/RVO2/ for more information.
 type Reference struct {
-	a vo.Agent
-	b vo.Agent
+	a   vo.Agent
+	b   vo.Agent
+	tau float64
 }
 
 func (v Reference) ORCA() vector.V { return vector.V{} }
-func (v Reference) r() float64     { return v.a.R() + v.b.R() }
-func (v Reference) p() vector.V    { return vector.Sub(v.b.P(), v.a.P()) }
+func (v Reference) r() float64     { return (v.a.R() + v.b.R()) / v.tau }
+func (v Reference) p() vector.V    { return vector.Scale(1/v.tau, vector.Sub(v.b.P(), v.a.P())) }
 func (v Reference) w() vector.V    { return vector.Sub(vector.Sub(v.a.V(), v.b.V()), v.p()) }
 func (v Reference) check() Direction {
 	if vector.SquaredMagnitude(v.p()) <= math.Pow(v.r(), 2) {
@@ -59,10 +60,19 @@ func (v Reference) check() Direction {
 func TestVOReferenceDirection(t *testing.T) {
 	a := Agent{p: *vector.New(0, 0), v: *vector.New(0, 0), r: 1}
 	b := Agent{p: *vector.New(0, 5), v: *vector.New(1, -1), r: 2}
-	want := Direction(Circle)
 
-	if got := (Reference{a: a, b: b}).check(); got != want {
-		t.Errorf("check() = %v, want = %v", got, want)
+	testConfigs := []struct {
+		name string
+		tau  float64
+		want Direction
+	}{
+		{name: "NormalScale", tau: 1, want: Circle},
+		{name: "NormalScale", tau: 3, want: Left},
+	}
+	for _, c := range testConfigs {
+		if got := (Reference{a: a, b: b, tau: c.tau}).check(); got != c.want {
+			t.Errorf("check() = %v, want = %v", got, c.want)
+		}
 	}
 }
 
@@ -79,6 +89,7 @@ func TestVODirectionConformance(t *testing.T) {
 		name string
 		a    vo.Agent
 		b    vo.Agent
+		tau  float64
 	}
 
 	testConfigs := []testConfig{
@@ -86,11 +97,19 @@ func TestVODirectionConformance(t *testing.T) {
 			name: "TestSimpleCase",
 			a:    Agent{p: *vector.New(0, 0), v: *vector.New(0, 0), r: 1},
 			b:    Agent{p: *vector.New(0, 5), v: *vector.New(1, -1), r: 2},
+			tau:  1,
+		},
+		{
+			name: "TestSimpleCaseLargeTimeStep",
+			a:    Agent{p: *vector.New(0, 0), v: *vector.New(0, 0), r: 1},
+			b:    Agent{p: *vector.New(0, 5), v: *vector.New(1, -1), r: 2},
+			tau:  3,
 		},
 		{
 			name: "TestCollision",
 			a:    Agent{p: *vector.New(0, 0), v: *vector.New(0, 0), r: 1},
 			b:    Agent{p: *vector.New(0, 3), v: *vector.New(1, -1), r: 2},
+			tau:  1,
 		},
 	}
 
@@ -99,14 +118,18 @@ func TestVODirectionConformance(t *testing.T) {
 			name: fmt.Sprintf("TestRandom-%v", i),
 			a:    Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())},
 			b:    Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())},
+			tau:  math.Abs(r()) + tolerance,
 		})
 	}
 
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
-			want := (Reference{a: c.a, b: c.b}).check()
+			want := (Reference{a: c.a, b: c.b, tau: float64(c.tau)}).check()
 
-			v := New(c.a, c.b)
+			v, err := New(c.a, c.b, c.tau)
+			if err != nil {
+				t.Fatalf("New() returned a non-nil error: %v", err)
+			}
 			if got := v.check(); got != want {
 				beta, _ := v.beta()
 				theta, _ := v.theta()
@@ -124,7 +147,7 @@ func TestVODirectionConformance(t *testing.T) {
 func BenchmarkVOReference(t *testing.B) {
 	a := Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())}
 	b := Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())}
-	v := Reference{a: a, b: b}
+	v := Reference{a: a, b: b, tau: 1}
 
 	t.ResetTimer()
 	for i := 0; i < t.N; i++ {
@@ -135,7 +158,7 @@ func BenchmarkVOReference(t *testing.B) {
 func BenchmarkVO(t *testing.B) {
 	a := Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())}
 	b := Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())}
-	v := New(a, b)
+	v, _ := New(a, b, 1)
 
 	t.ResetTimer()
 	for i := 0; i < t.N; i++ {
