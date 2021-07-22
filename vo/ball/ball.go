@@ -56,14 +56,16 @@ type VO struct {
 	tau float64
 
 	// We cache some fields to make things zoom-zoom.
-	pIsCached bool
-	wIsCached bool
-	rIsCached bool
+	pIsCached    bool
+	wIsCached    bool
+	rIsCached    bool
+	lIsCached    bool
 	betaIsCached bool
-	pCache    vector.V
-	wCache    vector.V
-	rCache    float64
-	betaCache float64
+	pCache       vector.V
+	wCache       vector.V
+	lCache       vector.V
+	rCache       float64
+	betaCache    float64
 }
 
 func New(a, b vo.Agent, tau float64) (*VO, error) {
@@ -77,13 +79,13 @@ func New(a, b vo.Agent, tau float64) (*VO, error) {
 func (vo *VO) ORCA() vector.V {
 	switch d := vo.check(); d {
 	case Circle:
-		return vector.Scale(vo.r() / vector.Magnitude(vo.w()) - 1, vo.w())
+		return vector.Scale(vo.r()/vector.Magnitude(vo.w())-1, vo.w())
 	case Collision:
 		w := vector.Sub(
 			vector.Sub(vo.a.V(), vo.b.V()),
-			vector.Scale(1 / maxTimeResolution, vector.Sub(vo.b.P(), vo.a.P())),
+			vector.Scale(1/maxTimeResolution, vector.Sub(vo.b.P(), vo.a.P())),
 		)
-		return vector.Scale((vo.a.R() + vo.b.R()) / maxTimeResolution / vector.Magnitude(w) - 1, w)
+		return vector.Scale((vo.a.R()+vo.b.R())/maxTimeResolution/vector.Magnitude(w)-1, w)
 	case Left:
 	case Right:
 	}
@@ -107,12 +109,16 @@ func (vo *VO) r() float64 {
 //
 // TODO(minkezhang): Add tests for this.
 func (vo *VO) l() vector.V {
-	p := vector.Magnitude(vo.p())
-	l := math.Sqrt(vector.SquaredMagnitude(vo.p()) - math.Pow(vo.r(), 2))
-	return vector.Scale(l, vector.Unit(*vector.New(
-		vo.p().X() * vo.r() - vo.p().Y() * p,
-		vo.p().X() * p + vo.p().Y() * vo.r(),
-	)))
+	if !vo.lIsCached {
+		vo.lIsCached = true
+		p := vector.Magnitude(vo.p())
+		l := math.Sqrt(vector.SquaredMagnitude(vo.p()) - math.Pow(vo.r(), 2))
+		vo.lCache = vector.Scale(l, vector.Unit(*vector.New(
+			vo.p().X()*vo.r()-vo.p().Y()*p,
+			vo.p().X()*p+vo.p().Y()*vo.r(),
+		)))
+	}
+	return vo.lCache
 }
 
 // p calculates the center of the truncation circle. Geometrically, this is the
