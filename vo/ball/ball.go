@@ -99,9 +99,21 @@ func (vo *VO) r() float64 {
 	return vo.rCache
 }
 
-// l calculates the length of the tangent line segment from the start of p to the
-// edge of the truncation circle.
-func (vo *VO) l() float64 { return math.Sqrt(vector.SquaredMagnitude(vo.p()) - math.Pow(vo.r(), 2)) }
+// l calculates the right vector of the tangent line segment from the start of p
+// to the edge of the truncation circle.
+//
+// N.B.: The direction of l can be calculated by rotating p about the origin by
+// π / 2 - 𝛽 , and scaling up via ||p|| ** 2 = ||l|| ** 2 + r ** 2.
+//
+// TODO(minkezhang): Add tests for this.
+func (vo *VO) l() vector.V {
+	p := vector.Magnitude(vo.p())
+	l := math.Sqrt(vector.SquaredMagnitude(vo.p()) - math.Pow(vo.r(), 2))
+	return vector.Scale(l, vector.Unit(*vector.New(
+		vo.p().X() * vo.r() - vo.p().Y() * p,
+		vo.p().X() * p + vo.p().Y() * vo.r(),
+	)))
+}
 
 // p calculates the center of the truncation circle. Geometrically, this is the
 // relative position of b from a, scaled by 𝜏.
@@ -161,7 +173,7 @@ func (vo *VO) beta() (float64, error) {
 // Therefore, we flip p in our calculations here.
 //
 // Returns:
-//   Angle in radians between 0 and 2π between w and -p.
+//   Angle in radians between 0 and 2π, between w and -p.
 func (vo *VO) theta() (float64, error) {
 	if vector.SquaredMagnitude(vo.w()) == 0 || vector.SquaredMagnitude(vo.p()) == 0 {
 		return 0, status.Errorf(codes.OutOfRange, "cannot find the incident angle between w and p for 0-length vectors")
