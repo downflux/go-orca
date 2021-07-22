@@ -104,8 +104,17 @@ func (vo *VO) r() float64 {
 // l calculates the right vector of the tangent line segment from the start of p
 // to the edge of the truncation circle.
 //
-// N.B.: The direction of l can be calculated by rotating p about the origin by
-// π / 2 - 𝛽 , and scaling up via ||p|| ** 2 = ||l|| ** 2 + r ** 2.
+// N.B.: The direction of ℓ can be calculated by rotating p about the origin by
+// 𝛼 := π / 2 - 𝛽 , and scaling up via ||p|| ** 2 = ||ℓ|| ** 2 + r ** 2.
+//
+// Note that ℓ, p, and a third leg with length r form a right triangle. Because
+// of this, We know cos(𝛼) = r / ||p|| and sin(𝛼) = ||ℓ|| / ||p||. These can be
+// substituted directly to the rotation matrix:
+//
+// ℓ ~ V{ x: p.x * cos(𝛼) - p.y * sin(𝛼),
+//        y: p.x * sin(𝛼) + p.y * cos(𝛼) }
+//
+// See design doc for more information.
 //
 // TODO(minkezhang): Add tests for this.
 func (vo *VO) l() vector.V {
