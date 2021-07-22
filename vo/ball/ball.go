@@ -19,7 +19,6 @@
 package ball
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/downflux/orca/vector"
@@ -29,22 +28,8 @@ import (
 )
 
 const (
-	minimumTimeStep = 1000000
+	maxTimeResolution = 100
 )
-
-// TODO(minkezhang): Move to separate shared package.
-type Error struct {
-	StatusCode codes.Code
-	message    string
-}
-
-func (e Error) Error() string {
-	return fmt.Sprintf("%v: %v", e.StatusCode, e.message)
-}
-
-func Errorf(status codes.Code, f string, args ...interface{}) *Error {
-	return &Error{StatusCode: status, message: fmt.Sprintf(f, args...)}
-}
 
 type Direction string
 
@@ -74,9 +59,11 @@ type VO struct {
 	pIsCached bool
 	wIsCached bool
 	rIsCached bool
+	betaIsCached bool
 	pCache    vector.V
 	wCache    vector.V
 	rCache    float64
+	betaCache float64
 }
 
 func New(a, b vo.Agent, tau float64) (*VO, error) {
@@ -87,7 +74,21 @@ func New(a, b vo.Agent, tau float64) (*VO, error) {
 }
 
 // TODO(minkezhang): Implement.
-func (vo *VO) ORCA() vector.V { return vector.V{} }
+func (vo *VO) ORCA() vector.V {
+	switch d := vo.check(); d {
+	case Circle:
+		return vector.Scale(vo.r() / vector.Magnitude(vo.w()) - 1, vo.w())
+	case Collision:
+		w := vector.Sub(
+			vector.Sub(vo.a.V(), vo.b.V()),
+			vector.Scale(1 / maxTimeResolution, vector.Sub(vo.b.P(), vo.a.P())),
+		)
+		return vector.Scale((vo.a.R() + vo.b.R()) / maxTimeResolution / vector.Magnitude(w) - 1, w)
+	case Left:
+	case Right:
+	}
+	return vector.V{}
+}
 
 // r calculates the radius of the truncation circle.
 func (vo *VO) r() float64 {
@@ -138,8 +139,13 @@ func (vo *VO) beta() (float64, error) {
 		return 0, status.Errorf(codes.OutOfRange, "cannot find the tangent VO angle of colliding agents")
 	}
 
-	// Domain error when Acos({x | x > 1}).
-	return math.Acos(vo.r() / vector.Magnitude(vo.p())), nil
+	if !vo.betaIsCached {
+		vo.betaIsCached = true
+		// Domain error when Acos({x | x > 1}).
+		vo.betaCache = math.Acos(vo.r() / vector.Magnitude(vo.p()))
+	}
+
+	return vo.betaCache, nil
 }
 
 // theta returns the angle between w and p; this can be compared to 𝛽 to
@@ -158,7 +164,7 @@ func (vo *VO) beta() (float64, error) {
 //   Angle in radians between 0 and 2π between w and -p.
 func (vo *VO) theta() (float64, error) {
 	if vector.SquaredMagnitude(vo.w()) == 0 || vector.SquaredMagnitude(vo.p()) == 0 {
-		return 0, Errorf(codes.OutOfRange, "cannot find the incident angle between w and p for 0-length vectors")
+		return 0, status.Errorf(codes.OutOfRange, "cannot find the incident angle between w and p for 0-length vectors")
 	}
 
 	p := vector.Scale(-1, vo.p())

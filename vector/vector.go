@@ -23,3 +23,9 @@ func IsOrthogonal(v, u V) bool     { return Dot(v, u) == 0 }
 func SquaredMagnitude(a V) float64 { return Dot(a, a) }
 func Magnitude(a V) float64        { return math.Sqrt(SquaredMagnitude(a)) }
 func Unit(a V) V                   { return Scale(1/Magnitude(a), a) }
+func Rotate(theta float64, v V) V {
+	return V{
+		x: v.x*math.Cos(theta) - v.y*math.Sin(theta),
+		y: v.x*math.Sin(theta) + v.y*math.Cos(theta),
+	}
+}
