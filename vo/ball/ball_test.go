@@ -8,6 +8,8 @@ import (
 
 	"github.com/downflux/orca/vector"
 	"github.com/downflux/orca/vo"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 var (
@@ -34,10 +36,12 @@ type Reference struct {
 	tau float64
 }
 
-func (v Reference) ORCA() vector.V { return vector.V{} }
-func (v Reference) r() float64     { return (v.a.R() + v.b.R()) / v.tau }
-func (v Reference) p() vector.V    { return vector.Scale(1/v.tau, vector.Sub(v.b.P(), v.a.P())) }
-func (v Reference) w() vector.V    { return vector.Sub(vector.Sub(v.a.V(), v.b.V()), v.p()) }
+func (v Reference) ORCA() (vector.V, error) {
+	return vector.V{}, status.Error(codes.Unimplemented, "unimplemented function")
+}
+func (v Reference) r() float64  { return (v.a.R() + v.b.R()) / v.tau }
+func (v Reference) p() vector.V { return vector.Scale(1/v.tau, vector.Sub(v.b.P(), v.a.P())) }
+func (v Reference) w() vector.V { return vector.Sub(vector.Sub(v.a.V(), v.b.V()), v.p()) }
 func (v Reference) check() Direction {
 	if vector.SquaredMagnitude(v.p()) <= math.Pow(v.r(), 2) {
 		return Collision
@@ -144,24 +148,37 @@ func TestVODirectionConformance(t *testing.T) {
 	}
 }
 
-func BenchmarkVOReference(t *testing.B) {
-	a := Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())}
-	b := Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())}
-	v := Reference{a: a, b: b, tau: 1}
-
-	t.ResetTimer()
-	for i := 0; i < t.N; i++ {
-		v.check()
+func BenchmarkCheck(t *testing.B) {
+	type checker interface {
+		check() Direction
 	}
-}
 
-func BenchmarkVO(t *testing.B) {
-	a := Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())}
-	b := Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())}
-	v, _ := New(a, b, 1)
+	testConfigs := []struct {
+		name        string
+		constructor func(a, b vo.Agent) checker
+	}{
+		{
+			name:        "VOReference",
+			constructor: func(a, b vo.Agent) checker { return Reference{a: a, b: b, tau: 1} },
+		},
+		{
+			name: "VO",
+			constructor: func(a, b vo.Agent) checker {
+				v, _ := New(a, b, 1)
+				return v
+			},
+		},
+	}
+	for _, c := range testConfigs {
+		t.Run(c.name, func(t *testing.B) {
+			a := Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())}
+			b := Agent{p: *vector.New(r(), r()), v: *vector.New(r(), r()), r: math.Abs(r())}
+			v := c.constructor(a, b)
 
-	t.ResetTimer()
-	for i := 0; i < t.N; i++ {
-		v.check()
+			t.ResetTimer()
+			for i := 0; i < t.N; i++ {
+				v.check()
+			}
+		})
 	}
 }
