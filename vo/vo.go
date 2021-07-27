@@ -11,5 +11,5 @@ type Agent interface {
 }
 
 type VO interface {
-	ORCA() vector.V
+	ORCA() (vector.V, error)
 }
