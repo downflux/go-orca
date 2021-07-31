@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	maxTimeResolution = 100
+	minTauScalar = 1 / 1000
 )
 
 type Direction string
@@ -60,10 +60,12 @@ type VO struct {
 	wIsCached    bool
 	rIsCached    bool
 	lIsCached    bool
+	vIsCached    bool
 	betaIsCached bool
 	pCache       vector.V
 	wCache       vector.V
 	lCache       vector.V
+	vCache       vector.V
 	rCache       float64
 	betaCache    float64
 }
@@ -76,20 +78,25 @@ func New(a, b vo.Agent, tau float64) (*VO, error) {
 }
 
 // TODO(minkezhang): Implement.
-func (vo *VO) ORCA() vector.V {
+func (vo *VO) ORCA() (vector.V, error) {
 	switch d := vo.check(); d {
 	case Circle:
-		return vector.Scale(vo.r()/vector.Magnitude(vo.w())-1, vo.w())
+		return vector.Scale(vo.r()/vector.Magnitude(vo.w())-1, vo.w()), nil
 	case Collision:
+		minTau := vo.tau * minTauScalar
 		w := vector.Sub(
 			vector.Sub(vo.a.V(), vo.b.V()),
-			vector.Scale(1/maxTimeResolution, vector.Sub(vo.b.P(), vo.a.P())),
+			vector.Scale(minTau, vector.Sub(vo.b.P(), vo.a.P())),
 		)
-		return vector.Scale((vo.a.R()+vo.b.R())/maxTimeResolution/vector.Magnitude(w)-1, w)
+		return vector.Scale((vo.a.R()+vo.b.R())/minTau/vector.Magnitude(w)-1, w), nil
 	case Left:
+		return vector.Sub(vector.Scale(vector.Dot(vo.v(), vo.l()), vo.l()), vo.v()), nil
 	case Right:
+		l := *vector.New(-vo.l().X(), vo.l().Y())
+		return vector.Sub(vector.Scale(vector.Dot(vo.v(), l), l), vo.v()), nil
+	default:
+		return vector.V{}, status.Errorf(codes.Internal, "invalid VO projection %v", d)
 	}
-	return vector.V{}
 }
 
 // r calculates the radius of the truncation circle.
@@ -140,11 +147,20 @@ func (vo *VO) p() vector.V {
 	return vo.pCache
 }
 
+// v calculates the relative velocity between a and b.
+func (vo *VO) v() vector.V {
+	if !vo.vIsCached {
+		vo.vIsCached = true
+		vo.vCache = vector.Sub(vo.a.V(), vo.b.V())
+	}
+	return vo.vCache
+}
+
 // w calculates the relative velocity between a and b, centered on the truncation circle.
 func (vo *VO) w() vector.V {
 	if !vo.wIsCached {
 		vo.wIsCached = true
-		vo.wCache = vector.Sub(vector.Sub(vo.a.V(), vo.b.V()), vo.p())
+		vo.wCache = vector.Sub(vo.v(), vo.p())
 	}
 	return vo.wCache
 }

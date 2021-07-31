@@ -37,11 +37,31 @@ type Reference struct {
 }
 
 func (v Reference) ORCA() (vector.V, error) {
+	switch d := v.check(); d {
+	case Circle:
+		return vector.Scale(v.r() / v.tau - vector.Magnitude(v.w()), v.w()), nil
+	case Collision:
+		return vector.Scale(v.r() * minTauScalar - vector.Magnitude(v.w()), v.w()), nil
+	case Left:
+		return vector.Sub(vector.Scale(vector.Dot(v.v(), v.l()), v.l()), v.v()), nil
+	case Right:
+		l := *vector.New(-v.l().X(), v.l().Y())
+		return vector.Sub(vector.Scale(vector.Dot(v.v(), l), l), v.v()), nil
+	}
 	return vector.V{}, status.Error(codes.Unimplemented, "unimplemented function")
 }
 func (v Reference) r() float64  { return (v.a.R() + v.b.R()) / v.tau }
 func (v Reference) p() vector.V { return vector.Scale(1/v.tau, vector.Sub(v.b.P(), v.a.P())) }
-func (v Reference) w() vector.V { return vector.Sub(vector.Sub(v.a.V(), v.b.V()), v.p()) }
+func (v Reference) w() vector.V { return vector.Sub(v.v(), v.p()) }
+func (v Reference) v() vector.V { return vector.Sub(v.a.V(), v.b.V()) }
+func (v Reference) l() vector.V {
+	l := math.Sqrt(vector.SquaredMagnitude(v.p()) - math.Pow(v.r(), 2))
+	return *vector.New(
+		v.p().X() * l - v.p().Y() * v.r(),
+		v.p().X() * v.r() + v.p().Y() * l,
+	)
+}
+
 func (v Reference) check() Direction {
 	if vector.SquaredMagnitude(v.p()) <= math.Pow(v.r(), 2) {
 		return Collision
@@ -71,7 +91,7 @@ func TestVOReferenceDirection(t *testing.T) {
 		want Direction
 	}{
 		{name: "NormalScale", tau: 1, want: Circle},
-		{name: "NormalScale", tau: 3, want: Left},
+		{name: "NormalScaleLargeTau", tau: 3, want: Left},
 	}
 	for _, c := range testConfigs {
 		if got := (Reference{a: a, b: b, tau: c.tau}).check(); got != c.want {
@@ -80,8 +100,35 @@ func TestVOReferenceDirection(t *testing.T) {
 	}
 }
 
+func TestVOReferenceORCA(t *testing.T) {
+	a := Agent{p: *vector.New(0, 0), v: *vector.New(0, 0), r: 1}
+	b := Agent{p: *vector.New(0, 5), v: *vector.New(1, -1), r: 2}
+
+	testConfigs := []struct {
+		name string
+		tau  float64
+		want vector.V
+	}{
+		{name: "NormalScale", tau: 1},
+		{name: "NormalScaleLargeTau", tau: 3},
+	}
+	for _, c := range testConfigs {
+		v, _ := New(a, b, c.tau)
+		fmt.Println(v.ORCA())
+		if got, err := (Reference{a: a, b: b, tau: c.tau}).ORCA(); err != nil || got != c.want {
+			t.Errorf("check() = %v, %v, want = %v, %v", got, err, c.want, nil)
+		}
+	}
+}
+
 // r returns a random int between [-100, 100).
 func r() float64 { return rand.Float64()*200 - 100 }
+
+// within checks that two numeric values are within a small range of one
+// another.
+func within(got float64, want float64, tolerance float64) bool {
+	return math.Abs(got - want) < tolerance
+}
 
 // TestVODirectionConformance tests that agent-agent VOs will return u in the
 // correct direction using the reference implementation as a sanity check.
@@ -139,7 +186,7 @@ func TestVODirectionConformance(t *testing.T) {
 				theta, _ := v.theta()
 
 				// Disregard rounding errors around where 𝜃 ~ 𝛽.
-				if got == Circle && (math.Abs(beta-theta) > tolerance || math.Abs(2*math.Pi-theta-beta) > tolerance) {
+				if got == Circle && (!within(beta, theta, tolerance) || !within(2 * math.Pi - theta, beta, tolerance)) {
 					return
 				}
 				t.Errorf("check() = %v, want = %v", got, want)
@@ -148,6 +195,8 @@ func TestVODirectionConformance(t *testing.T) {
 	}
 }
 
+// BenchmarkCheck compares the relative performance of VO.check() bewteen the
+// official RVO2 spec vs. the custom implementation provided.
 func BenchmarkCheck(t *testing.B) {
 	type checker interface {
 		check() Direction
