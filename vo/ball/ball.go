@@ -28,18 +28,16 @@ import (
 )
 
 const (
-	minTauScalar = 1 / 1000
+	minTau = 1e-3
 )
 
 type Direction string
 
 const (
-	Left   Direction = "LEFT"
-	Right            = "RIGHT"
-	Circle           = "CIRCLE"
-
-	// TODO(minkezhang): Handle this case gracefully.
-	Collision = "COLLISION"
+	Left      Direction = "LEFT"
+	Right               = "RIGHT"
+	Circle              = "CIRCLE"
+	Collision           = "COLLISION"
 )
 
 type VO struct {
@@ -52,7 +50,7 @@ type VO struct {
 	//
 	// Note 𝜏 should be roughly on the scale of the input velocities and
 	// agent sizes, i.e. if agents are moving at a scale of 100 m/s and are
-	// of size meters, we should set 𝜏 to ~1 (vs. 1e10).
+	// around a meter wide, we should set 𝜏 to ~1 (vs. 1e10).
 	tau float64
 
 	// We cache some fields to make things zoom-zoom.
@@ -80,20 +78,42 @@ func New(a, b vo.Agent, tau float64) (*VO, error) {
 // TODO(minkezhang): Implement.
 func (vo *VO) ORCA() (vector.V, error) {
 	switch d := vo.check(); d {
-	case Circle:
-		return vector.Scale(vo.r()/vector.Magnitude(vo.w())-1, vo.w()), nil
 	case Collision:
-		minTau := vo.tau * minTauScalar
-		w := vector.Sub(
-			vector.Sub(vo.a.V(), vo.b.V()),
-			vector.Scale(minTau, vector.Sub(vo.b.P(), vo.a.P())),
-		)
-		return vector.Scale((vo.a.R()+vo.b.R())/minTau/vector.Magnitude(w)-1, w), nil
-	case Left:
-		return vector.Sub(vector.Scale(vector.Dot(vo.v(), vo.l()), vo.l()), vo.v()), nil
+		fallthrough
+	case Circle:
+		tr := vo.r()
+		tw := vo.w()
+		if d == Collision {
+			tr = r(vo.a, vo.b, minTau)
+			tw = w(vo.a, vo.b, minTau)
+		}
+
+		return vector.Scale(tr/vector.Magnitude(tw)-1, tw), nil
 	case Right:
-		l := *vector.New(-vo.l().X(), vo.l().Y())
-		return vector.Sub(vector.Scale(vector.Dot(vo.v(), l), l), vo.v()), nil
+		fallthrough
+	case Left:
+		l := vo.l()
+		if d == Right {
+			l = *vector.New(-l.X(), l.Y())
+		}
+
+		// The distance u between the relative velocity v and the
+		// tangent line ℓ is defined as the vector difference of the
+		// vector projection of v onto ℓ to v.
+		//
+		// The vector projection of v onto ℓ is defined as
+		//
+		// v' = cℓ / ||ℓ||, where
+		//
+		// c = ||v|| * cos(𝜃)
+		//   = v • ℓ / ||ℓ||
+		//
+		// 𝜃 is the usual angle between the two vectors.
+		v := vector.Scale(
+			vector.Dot(vo.v(), l)/vector.SquaredMagnitude(l),
+			l,
+		)
+		return vector.Sub(v, vo.v()), nil
 	default:
 		return vector.V{}, status.Errorf(codes.Internal, "invalid VO projection %v", d)
 	}
@@ -103,19 +123,19 @@ func (vo *VO) ORCA() (vector.V, error) {
 func (vo *VO) r() float64 {
 	if !vo.rIsCached {
 		vo.rIsCached = true
-		vo.rCache = (vo.a.R() + vo.b.R()) / vo.tau
+		vo.rCache = r(vo.a, vo.b, vo.tau)
 	}
 	return vo.rCache
 }
 
-// l calculates the right vector of the tangent line segment from the start of p
+// l calculates the left vector of the tangent line segment from the base of p
 // to the edge of the truncation circle.
 //
 // N.B.: The direction of ℓ can be calculated by rotating p about the origin by
-// 𝛼 := π / 2 - 𝛽 , and scaling up via ||p|| ** 2 = ||ℓ|| ** 2 + r ** 2.
+// 𝛼 := π / 2 - 𝛽, and scaling up via ||p|| ** 2 = ||ℓ|| ** 2 + r ** 2.
 //
 // Note that ℓ, p, and a third leg with length r form a right triangle. Because
-// of this, We know cos(𝛼) = r / ||p|| and sin(𝛼) = ||ℓ|| / ||p||. These can be
+// of this, We know cos(𝛼) = ||ℓ|| / ||p|| and sin(𝛼) = r / ||p||. These can be
 // substituted directly to the rotation matrix:
 //
 // ℓ ~ V{ x: p.x * cos(𝛼) - p.y * sin(𝛼),
@@ -127,12 +147,16 @@ func (vo *VO) r() float64 {
 func (vo *VO) l() vector.V {
 	if !vo.lIsCached {
 		vo.lIsCached = true
-		p := vector.Magnitude(vo.p())
 		l := math.Sqrt(vector.SquaredMagnitude(vo.p()) - math.Pow(vo.r(), 2))
-		vo.lCache = vector.Scale(l, vector.Unit(*vector.New(
-			vo.p().X()*vo.r()-vo.p().Y()*p,
-			vo.p().X()*p+vo.p().Y()*vo.r(),
-		)))
+		vo.lCache = vector.Scale(
+			l,
+			vector.Unit(
+				*vector.New(
+					vo.p().X()*l-vo.p().Y()*vo.r(),
+					vo.p().X()*vo.r()+vo.p().Y()*l,
+				),
+			),
+		)
 	}
 	return vo.lCache
 }
@@ -142,7 +166,7 @@ func (vo *VO) l() vector.V {
 func (vo *VO) p() vector.V {
 	if !vo.pIsCached {
 		vo.pIsCached = true
-		vo.pCache = vector.Scale(1/vo.tau, vector.Sub(vo.b.P(), vo.a.P()))
+		vo.pCache = p(vo.a, vo.b, vo.tau)
 	}
 	return vo.pCache
 }
@@ -260,4 +284,24 @@ func (vo *VO) check() Direction {
 	}
 
 	return Right
+}
+
+// v is a utility function calculating the relative velocities between two
+// agents. Note that the relative velocity here is oriented from b.V to a.V.
+func v(a vo.Agent, b vo.Agent) vector.V { return vector.Sub(a.V(), b.V()) }
+
+// r is a utility function calculating the radius of the truncated VO circle.
+func r(a vo.Agent, b vo.Agent, tau float64) float64 { return (a.R() + b.R()) / tau }
+
+// p is a utility function calculating the relative position vector between two
+// agents, scaled to the center of the truncated circle. Note the relative
+// position is oriented from a.P to b.P.
+func p(a vo.Agent, b vo.Agent, tau float64) vector.V {
+	return vector.Scale(1/tau, vector.Sub(b.P(), a.P()))
+}
+
+// w is a utility function calculating the relative velocity between a and b,
+// centered on the truncation circle.
+func w(a vo.Agent, b vo.Agent, tau float64) vector.V {
+	return vector.Sub(v(a, b), p(a, b, tau))
 }
