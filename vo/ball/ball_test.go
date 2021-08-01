@@ -18,6 +18,8 @@ var (
 	_ vo.VO    = Reference{}
 )
 
+const tolerance = 1e-10
+
 type Agent struct {
 	p vector.V
 	v vector.V
@@ -36,7 +38,10 @@ type Reference struct {
 	tau float64
 }
 
-func (vo Reference) ORCA() (vector.V, error) {
+// TODO(minkezhang): Implement this.
+func (vo Reference) ORCA() (vector.V, error) { return vector.V{}, nil }
+
+func (vo Reference) u() (vector.V, error) {
 	switch d := vo.check(); d {
 	case Collision:
 		fallthrough
@@ -97,78 +102,71 @@ func (vo Reference) check() Direction {
 	return Right
 }
 
-// TestVOReferenceDirection asserts a simple agent-agent setup will return u in
-// the correct hand-calculated direction.
-func TestVOReferenceDirection(t *testing.T) {
+// TestVOReference asserts a simple RVO2 agent-agent setup will return correct
+// values from hand calculations.
+func TestVOReference(t *testing.T) {
 	a := Agent{p: *vector.New(0, 0), v: *vector.New(0, 0), r: 1}
 	b := Agent{p: *vector.New(0, 5), v: *vector.New(1, -1), r: 2}
 
 	testConfigs := []struct {
-		name string
-		tau  float64
-		want Direction
-	}{
-		{name: "NormalScale", tau: 1, want: Circle},
-		{name: "NormalScaleLargeTau", tau: 3, want: Left},
-	}
-	for _, c := range testConfigs {
-		if got := (Reference{a: a, b: b, tau: c.tau}).check(); got != c.want {
-			t.Errorf("check() = %v, want = %v", got, c.want)
-		}
-	}
-}
-
-func TestVOReferenceORCA(t *testing.T) {
-	const tolerance = 1e-10
-	a := Agent{p: *vector.New(0, 0), v: *vector.New(0, 0), r: 1}
-	b := Agent{p: *vector.New(0, 5), v: *vector.New(1, -1), r: 2}
-
-	testConfigs := []struct {
-		name string
-		tau  float64
-		want vector.V
+		name      string
+		tau       float64
+		direction Direction
+		u         vector.V
 	}{
 		{
-			name: "NormalScale",
-			tau:  1,
+			name:      "NormalScale",
+			tau:       1,
+			direction: Circle,
 			// This value was determined experimentally.
-			want: *vector.New(0.2723931248910011, 1.0895724995640044),
+			u: *vector.New(0.2723931248910011, 1.0895724995640044),
 		},
 		{
-			name: "NormalScaleLargeTau",
-			tau:  3,
+			name:      "NormalScaleLargeTau",
+			tau:       3,
+			direction: Left,
 			// This value was determined experimentally.
-			want: *vector.New(0.16000000000000003, 0.11999999999999988),
+			u: *vector.New(0.16000000000000003, 0.11999999999999988),
 		},
 	}
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
 			r := Reference{a: a, b: b, tau: c.tau}
-			if got, err := r.ORCA(); err != nil || !withinV(got, c.want, tolerance) {
-				t.Errorf("check() = %v, %v, want = %v, %v", got, err, c.want, nil)
-			}
+			t.Run("Direction", func(t *testing.T) {
+				if got := r.check(); got != c.direction {
+					t.Errorf("check() = %v, want = %v", got, c.direction)
+				}
+			})
+			t.Run("U", func(t *testing.T) {
+				if got, err := r.u(); err != nil || !withinV(got, c.u, tolerance) {
+					t.Errorf("check() = %v, %v, want = %v, %v", got, err, c.u, nil)
+				}
+			})
 		})
 	}
 }
 
-// rd returns a random int between [-100, 100).
-func rd() float64 { return rand.Float64()*200 - 100 }
+// rn returns a random int between [-100, 100).
+func rn() float64 { return rand.Float64()*200 - 100 }
+
+// ra returns an agent with randomized dimensions.
+func ra() vo.Agent {
+	return Agent{p: *vector.New(rn(), rn()), v: *vector.New(rn(), rn()), r: math.Abs(rn())}
+}
 
 // within checks that two numeric values are within a small range of one
 // another.
-func within(got float64, want float64, tolerance float64) bool {
-	return math.Abs(got-want) < tolerance
-}
+func within(got float64, want float64, tolerance float64) bool { return math.Abs(got-want) < tolerance }
 
+// withinV checks that two vectors are within a small range of one another.
 func withinV(got vector.V, want vector.V, tolerance float64) bool {
 	return within(got.X(), want.X(), tolerance) && within(got.Y(), want.Y(), tolerance)
 }
 
 // TestVODirectionConformance tests that agent-agent VOs will return u in the
 // correct direction using the reference implementation as a sanity check.
-func TestVODirectionConformance(t *testing.T) {
+func TestVOConformance(t *testing.T) {
 	const nTests = 1000
-	const tolerance = 1e-10
 	const delta = 1e-10
 
 	type testConfig struct {
@@ -202,13 +200,13 @@ func TestVODirectionConformance(t *testing.T) {
 	for i := 0; i < nTests; i++ {
 		testConfigs = append(testConfigs, testConfig{
 			name: fmt.Sprintf("TestRandom-%v", i),
-			a:    Agent{p: *vector.New(rd(), rd()), v: *vector.New(rd(), rd()), r: math.Abs(rd())},
-			b:    Agent{p: *vector.New(rd(), rd()), v: *vector.New(rd(), rd()), r: math.Abs(rd())},
+			a:    ra(),
+			b:    ra(),
 			// A simulation timestep scalar of 0 indicates the
 			// simulation will never advance to the next snapshot,
 			// which is a meaningless case (and will produce
 			// boundary condition errors in our implementation).
-			tau: math.Abs(rd()) + delta,
+			tau: math.Abs(rn()) + delta,
 		})
 	}
 
@@ -233,18 +231,18 @@ func TestVODirectionConformance(t *testing.T) {
 					t.Errorf("check() = %v, want = %v", got, want)
 				}
 			})
-			t.Run("ORCA", func(t *testing.T) {
-				want, err := r.ORCA()
+			t.Run("U", func(t *testing.T) {
+				want, err := r.u()
 				if err != nil {
-					t.Fatalf("ORCA() returned error: %v", err)
+					t.Fatalf("u() returned error: %v", err)
 				}
-				got, err := v.ORCA()
+				got, err := v.u()
 				if err != nil {
-					t.Fatalf("ORCA() returned error: %v", err)
+					t.Fatalf("u() returned error: %v", err)
 				}
 
 				if !withinV(got, want, tolerance) {
-					t.Errorf("ORCA(%v, %v) = %v, want = %v", v.check(), r.check(), got, want)
+					t.Errorf("u(%v, %v) = %v, want = %v", v.check(), r.check(), got, want)
 				}
 			})
 		})
@@ -276,9 +274,7 @@ func BenchmarkCheck(t *testing.B) {
 	}
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.B) {
-			a := Agent{p: *vector.New(rd(), rd()), v: *vector.New(rd(), rd()), r: math.Abs(rd())}
-			b := Agent{p: *vector.New(rd(), rd()), v: *vector.New(rd(), rd()), r: math.Abs(rd())}
-			v := c.constructor(a, b)
+			v := c.constructor(ra(), ra())
 
 			t.ResetTimer()
 			for i := 0; i < t.N; i++ {
