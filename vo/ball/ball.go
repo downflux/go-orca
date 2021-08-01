@@ -21,6 +21,7 @@ package ball
 import (
 	"math"
 
+	"github.com/downflux/orca/geometry/plane"
 	"github.com/downflux/orca/geometry/vector"
 	"github.com/downflux/orca/vo"
 	"google.golang.org/grpc/codes"
@@ -75,8 +76,9 @@ func New(a, b vo.Agent, tau float64) (*VO, error) {
 	return &VO{a: a, b: b, tau: tau}, nil
 }
 
-// TODO(minkezhang): Implement this.
-func (vo *VO) ORCA() (vector.V, error) { return vector.V{}, nil }
+func (vo *VO) ORCA() (plane.HP, error) {
+	return plane.HP{}, status.Errorf(codes.Unimplemented, "")
+}
 
 func (vo *VO) u() (vector.V, error) {
 	switch d := vo.check(); d {

@@ -1,6 +1,7 @@
 package vo
 
 import (
+	"github.com/downflux/orca/geometry/plane"
 	"github.com/downflux/orca/geometry/vector"
 )
 
@@ -11,5 +12,5 @@ type Agent interface {
 }
 
 type VO interface {
-	ORCA() (vector.V, error)
+	ORCA() (plane.HP, error)
 }

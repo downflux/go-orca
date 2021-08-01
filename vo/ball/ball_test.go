@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/downflux/orca/geometry/plane"
 	"github.com/downflux/orca/geometry/vector"
 	"github.com/downflux/orca/vo"
 	"google.golang.org/grpc/codes"
@@ -38,8 +39,9 @@ type Reference struct {
 	tau float64
 }
 
-// TODO(minkezhang): Implement this.
-func (vo Reference) ORCA() (vector.V, error) { return vector.V{}, nil }
+func (vo Reference) ORCA() (plane.HP, error) {
+	return plane.HP{}, status.Errorf(codes.Unimplemented, "")
+}
 
 func (vo Reference) u() (vector.V, error) {
 	switch d := vo.check(); d {
