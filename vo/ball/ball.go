@@ -21,7 +21,7 @@ package ball
 import (
 	"math"
 
-	"github.com/downflux/orca/vector"
+	"github.com/downflux/orca/geometry/vector"
 	"github.com/downflux/orca/vo"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
