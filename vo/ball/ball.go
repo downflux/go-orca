@@ -144,8 +144,6 @@ func (vo *VO) r() float64 {
 //        y: p.x * sin(𝛼) + p.y * cos(𝛼) }
 //
 // See design doc for more information.
-//
-// TODO(minkezhang): Add tests for this.
 func (vo *VO) l() vector.V {
 	if !vo.lIsCached {
 		vo.lIsCached = true
@@ -289,15 +287,18 @@ func (vo *VO) check() Direction {
 }
 
 // v is a utility function calculating the relative velocities between two
-// agents. Note that the relative velocity here is oriented from b.V to a.V.
+// agents.
+//
+// Note that the relative velocity here is oriented from b.V to a.V.
 func v(a vo.Agent, b vo.Agent) vector.V { return vector.Sub(a.V(), b.V()) }
 
 // r is a utility function calculating the radius of the truncated VO circle.
 func r(a vo.Agent, b vo.Agent, tau float64) float64 { return (a.R() + b.R()) / tau }
 
 // p is a utility function calculating the relative position vector between two
-// agents, scaled to the center of the truncated circle. Note the relative
-// position is oriented from a.P to b.P.
+// agents, scaled to the center of the truncated circle.
+//
+// Note the relative position is oriented from a.P to b.P.
 func p(a vo.Agent, b vo.Agent, tau float64) vector.V {
 	return vector.Scale(1/tau, vector.Sub(b.P(), a.P()))
 }

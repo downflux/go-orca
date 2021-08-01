@@ -102,6 +102,23 @@ func (vo Reference) check() Direction {
 	return Right
 }
 
+// rn returns a random int between [-100, 100).
+func rn() float64 { return rand.Float64()*200 - 100 }
+
+// ra returns an agent with randomized dimensions.
+func ra() vo.Agent {
+	return Agent{p: *vector.New(rn(), rn()), v: *vector.New(rn(), rn()), r: math.Abs(rn())}
+}
+
+// within checks that two numeric values are within a small range of one
+// another.
+func within(got float64, want float64, tolerance float64) bool { return math.Abs(got-want) < tolerance }
+
+// withinV checks that two vectors are within a small range of one another.
+func withinV(got vector.V, want vector.V, tolerance float64) bool {
+	return within(got.X(), want.X(), tolerance) && within(got.Y(), want.Y(), tolerance)
+}
+
 // TestVOReference asserts a simple RVO2 agent-agent setup will return correct
 // values from hand calculations.
 func TestVOReference(t *testing.T) {
@@ -146,24 +163,46 @@ func TestVOReference(t *testing.T) {
 	}
 }
 
-// rn returns a random int between [-100, 100).
-func rn() float64 { return rand.Float64()*200 - 100 }
+// TestVOL tests that the tangent line ℓ is being calculated correctly.
+func TestVOL(t *testing.T) {
+	testConfigs := []struct {
+		name string
+		a    vo.Agent
+		b    vo.Agent
+		tau  float64
+		want vector.V
+	}{
+		{
+			name: "345",
+			a:    Agent{p: *vector.New(0, 0), v: *vector.New(0, 0), r: 1},
+			b:    Agent{p: *vector.New(0, 5), v: *vector.New(1, -1), r: 2},
+			tau:  1,
+			want: *vector.New(-2.4, 3.2),
+		},
+		{
+			name: "345LargeTimeStep",
+			a:    Agent{p: *vector.New(0, 0), v: *vector.New(0, 0), r: 1},
+			b:    Agent{p: *vector.New(0, 5), v: *vector.New(1, -1), r: 2},
+			tau:  3,
+			want: vector.Scale(1./3, *vector.New(-2.4, 3.2)),
+		},
+	}
 
-// ra returns an agent with randomized dimensions.
-func ra() vo.Agent {
-	return Agent{p: *vector.New(rn(), rn()), v: *vector.New(rn(), rn()), r: math.Abs(rn())}
+	for _, c := range testConfigs {
+		t.Run(c.name, func(t *testing.T) {
+			v, err := New(c.a, c.b, c.tau)
+			if err != nil {
+				t.Fatalf("New() returned error: %v", err)
+			}
+
+			if got := v.l(); !withinV(got, c.want, tolerance) {
+				t.Errorf("l() = %v, want = %v", got, c.want)
+			}
+		})
+	}
 }
 
-// within checks that two numeric values are within a small range of one
-// another.
-func within(got float64, want float64, tolerance float64) bool { return math.Abs(got-want) < tolerance }
-
-// withinV checks that two vectors are within a small range of one another.
-func withinV(got vector.V, want vector.V, tolerance float64) bool {
-	return within(got.X(), want.X(), tolerance) && within(got.Y(), want.Y(), tolerance)
-}
-
-// TestVODirectionConformance tests that agent-agent VOs will return u in the
+// TestVOConformance tests that agent-agent VOs will return u in the
 // correct direction using the reference implementation as a sanity check.
 func TestVOConformance(t *testing.T) {
 	const nTests = 1000
