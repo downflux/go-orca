@@ -77,7 +77,15 @@ func New(a, b vo.Agent, tau float64) (*VO, error) {
 }
 
 func (vo *VO) ORCA() (plane.HP, error) {
-	return plane.HP{}, status.Errorf(codes.Unimplemented, "")
+	u, err := vo.u()
+	if err != nil {
+		return plane.HP{}, err
+	}
+	n := vector.Unit(vector.Rotate(-math.Pi/2, u))
+	return *plane.New(
+		vector.Add(vo.a.V(), vector.Scale(0.5, u)),
+		n,
+	), nil
 }
 
 func (vo *VO) u() (vector.V, error) {

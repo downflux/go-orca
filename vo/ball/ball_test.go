@@ -40,7 +40,37 @@ type Reference struct {
 }
 
 func (vo Reference) ORCA() (plane.HP, error) {
-	return plane.HP{}, status.Errorf(codes.Unimplemented, "")
+	u, err := vo.u()
+	if err != nil {
+		return plane.HP{}, err
+	}
+
+	var n vector.V
+
+	switch d := vo.check(); d {
+	case Collision:
+		fallthrough
+	case Circle:
+		tw := vo.w()
+		if d == Collision {
+			tw = w(vo.a, vo.b, minTau)
+		}
+		n = *vector.New(vector.Unit(tw).Y(), -vector.Unit(tw).X())
+	case Right:
+		fallthrough
+	case Left:
+		l := vo.l()
+		if d == Right {
+			l = *vector.New(-l.X(), l.Y())
+		}
+		n = l
+	default:
+		return plane.HP{}, status.Errorf(codes.Internal, "invalid direction %v", d)
+	}
+	return *plane.New(
+		vector.Add(vo.a.V(), vector.Scale(0.5, u)),
+		n,
+	), nil
 }
 
 func (vo Reference) u() (vector.V, error) {
@@ -66,8 +96,9 @@ func (vo Reference) u() (vector.V, error) {
 		}
 
 		return vector.Sub(vector.Scale(vector.Dot(vo.v(), l), l), vo.v()), nil
+	default:
+		return vector.V{}, status.Errorf(codes.Internal, "invalid direction %v", d)
 	}
-	return vector.V{}, status.Error(codes.Unimplemented, "unimplemented function")
 }
 func (vo Reference) r() float64  { return r(vo.a, vo.b, vo.tau) }
 func (vo Reference) p() vector.V { return p(vo.a, vo.b, vo.tau) }
@@ -121,6 +152,52 @@ func withinV(got vector.V, want vector.V, tolerance float64) bool {
 	return within(got.X(), want.X(), tolerance) && within(got.Y(), want.Y(), tolerance)
 }
 
+func withinHP(got plane.HP, want plane.HP, tolerance float64) bool {
+	return withinV(got.N(), want.N(), tolerance) && withinV(got.P(), want.P(), tolerance)
+}
+
+func TestOrientation(t *testing.T) {
+	a := Agent{p: *vector.New(0, 0), v: *vector.New(0, 0), r: 1}
+	b := Agent{p: *vector.New(0, 5), v: *vector.New(1, -1), r: 2}
+
+	t.Run("P", func(t *testing.T) {
+		want := *vector.New(0, 5)
+		if got := p(a, b, 1); !withinV(got, want, tolerance) {
+			t.Errorf("p() = %v, want = %v", got, want)
+		}
+		if got := p(b, a, 1); !withinV(got, vector.Scale(-1, want), tolerance) {
+			t.Errorf("p() = %v, want = %v", got, vector.Scale(-1, want))
+		}
+	})
+	t.Run("R", func(t *testing.T) {
+		want := 3.0
+		if got := r(a, b, 1); !within(got, want, tolerance) {
+			t.Errorf("r() = %v, want = %v", got, want)
+		}
+		if got := r(b, a, 1); !within(got, want, tolerance) {
+			t.Errorf("r() = %v, want = %v", got, want)
+		}
+	})
+	t.Run("V", func(t *testing.T) {
+		want := *vector.New(-1, 1)
+		if got := v(a, b); !withinV(got, want, tolerance) {
+			t.Errorf("v() = %v, want = %v", got, want)
+		}
+		if got := v(b, a); !withinV(got, vector.Scale(-1, want), tolerance) {
+			t.Errorf("v() = %v, want = %v", got, vector.Scale(-1, want))
+		}
+	})
+	t.Run("W", func(t *testing.T) {
+		want := *vector.New(-1, -4)
+		if got := w(a, b, 1); !withinV(got, want, tolerance) {
+			t.Errorf("w() = %v, want = %v", got, want)
+		}
+		if got := w(b, a, 1); !withinV(got, vector.Scale(-1, want), tolerance) {
+			t.Errorf("w() = %v, want = %v", got, vector.Scale(-1, want))
+		}
+	})
+}
+
 // TestVOReference asserts a simple RVO2 agent-agent setup will return correct
 // values from hand calculations.
 func TestVOReference(t *testing.T) {
@@ -132,34 +209,72 @@ func TestVOReference(t *testing.T) {
 		tau       float64
 		direction Direction
 		u         vector.V
+		a         vo.Agent
+		b         vo.Agent
 	}{
 		{
-			name:      "NormalScale",
+			name:      "Simple",
+			a:         a,
+			b:         b,
 			tau:       1,
 			direction: Circle,
 			// This value was determined experimentally.
 			u: *vector.New(0.2723931248910011, 1.0895724995640044),
 		},
 		{
-			name:      "NormalScaleLargeTau",
+			name:      "LargeTau",
+			a:         a,
+			b:         b,
 			tau:       3,
 			direction: Left,
 			// This value was determined experimentally.
 			u: *vector.New(0.16000000000000003, 0.11999999999999988),
 		},
+		{
+			name:      "InverseSimple",
+			a:         b,
+			b:         a,
+			tau:       1,
+			direction: Circle,
+			// This value was determined experimentally.
+			u: vector.Scale(
+				-1,
+				*vector.New(0.2723931248910011, 1.0895724995640044),
+			),
+		},
+		{
+			name:      "InverseLargeTau",
+			a:         a,
+			b:         b,
+			tau:       3,
+			direction: Left,
+			// This value was determined experimentally.
+			u: vector.Scale(
+				-1,
+				*vector.New(0.16000000000000003, 0.11999999999999988),
+			),
+		},
 	}
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
-			r := Reference{a: a, b: b, tau: c.tau}
+			r := Reference{a: c.a, b: c.b, tau: c.tau}
 			t.Run("Direction", func(t *testing.T) {
 				if got := r.check(); got != c.direction {
 					t.Errorf("check() = %v, want = %v", got, c.direction)
 				}
 			})
 			t.Run("U", func(t *testing.T) {
-				if got, err := r.u(); err != nil || !withinV(got, c.u, tolerance) {
-					t.Errorf("check() = %v, %v, want = %v, %v", got, err, c.u, nil)
+				got, err := r.u()
+				if err != nil {
+					t.Fatalf("u() returned error: %v", err)
 				}
+				if !withinV(got, c.u, tolerance) {
+					t.Errorf("u() = %v, want = %v", got, c.u)
+				}
+			})
+			t.Run("ORCA", func(t *testing.T) {
+				got, err := r.ORCA()
+				t.Fatalf("DEBUG: ORCA() = %v, %v", got, err)
 			})
 		})
 	}
@@ -182,11 +297,31 @@ func TestVOL(t *testing.T) {
 			want: *vector.New(-2.4, 3.2),
 		},
 		{
-			name: "345LargeTimeStep",
+			name: "345LargeTau",
 			a:    Agent{p: *vector.New(0, 0), v: *vector.New(0, 0), r: 1},
 			b:    Agent{p: *vector.New(0, 5), v: *vector.New(1, -1), r: 2},
 			tau:  3,
-			want: vector.Scale(1./3, *vector.New(-2.4, 3.2)),
+			want: vector.Scale(1.0/3, *vector.New(-2.4, 3.2)),
+		},
+		{
+			name: "Inverse345",
+			a:    Agent{p: *vector.New(0, 5), v: *vector.New(1, -1), r: 2},
+			b:    Agent{p: *vector.New(0, 0), v: *vector.New(0, 0), r: 1},
+			tau:  1,
+			want: vector.Scale(
+				-1,
+				*vector.New(-2.4, 3.2),
+			),
+		},
+		{
+			name: "Inverse345LargeTau",
+			a:    Agent{p: *vector.New(0, 5), v: *vector.New(1, -1), r: 2},
+			b:    Agent{p: *vector.New(0, 0), v: *vector.New(0, 0), r: 1},
+			tau:  3,
+			want: vector.Scale(
+				-1,
+				vector.Scale(1.0/3, *vector.New(-2.4, 3.2)),
+			),
 		},
 	}
 
@@ -283,7 +418,29 @@ func TestVOConformance(t *testing.T) {
 				}
 
 				if !withinV(got, want, tolerance) {
-					t.Errorf("u(%v, %v) = %v, want = %v", v.check(), r.check(), got, want)
+					t.Errorf("u() = %v, want = %v", got, want)
+				}
+			})
+			t.Run("ORCA", func(t *testing.T) {
+				want, err := r.ORCA()
+				if err != nil {
+					t.Fatalf("ORCA() returned error: %v", err)
+				}
+				got, err := v.ORCA()
+				if err != nil {
+					t.Fatalf("ORCA() returned error: %v", err)
+				}
+
+				ru, _ := r.u()
+				vu, _ := v.u()
+
+				if !withinHP(got, want, tolerance) {
+					t.Errorf(
+						"ORCA(%v, %v) = %v, want = %v\nr.u == %v, v.u == %v",
+						v.check(),
+						r.check(),
+						got,
+						want, ru, vu)
 				}
 			})
 		})
