@@ -29,3 +29,7 @@ func Rotate(theta float64, v V) V {
 		y: v.x*math.Sin(theta) + v.y*math.Cos(theta),
 	}
 }
+
+func Within(a V, b V, tolerance float64) bool {
+	return Magnitude(Sub(a, b)) < tolerance
+}

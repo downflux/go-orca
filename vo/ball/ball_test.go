@@ -60,9 +60,6 @@ func (vo Reference) ORCA() (plane.HP, error) {
 		fallthrough
 	case Left:
 		l := vo.l()
-		if d == Right {
-			l = *vector.New(-l.X(), l.Y())
-		}
 		n = vector.Unit(l)
 	default:
 		return plane.HP{}, status.Errorf(codes.Internal, "invalid direction %v", d)
@@ -99,10 +96,6 @@ func (vo Reference) u() (vector.V, error) {
 		fallthrough
 	case Left:
 		l := vo.l()
-		if d == Right {
-			l = *vector.New(-l.X(), l.Y())
-		}
-
 		return vector.Sub(vector.Scale(vector.Dot(vo.v(), l), l), vo.v()), nil
 	default:
 		return vector.V{}, status.Errorf(codes.Internal, "invalid direction %v", d)
@@ -113,17 +106,26 @@ func (vo Reference) p() vector.V { return p(vo.a, vo.b, vo.tau) }
 func (vo Reference) w() vector.V { return w(vo.a, vo.b, vo.tau) }
 func (vo Reference) v() vector.V { return v(vo.a, vo.b) }
 
-// l calculates the unnormalized left vector of the tangent line from the base
-// of p to the edge of the truncation circle. This corresponds to line.direction
-// in the RVO2 implementation.
+// l calculates the unnormalized vector of the tangent line from the base of p
+// to the edge of the truncation circle. This corresponds to line.direction in
+// the RVO2 implementation. Returns the left or right vector based on the
+// projected side of u onto the VO.
 func (vo Reference) l() vector.V {
 	tp := p(vo.a, vo.b, 1)
 	tr := r(vo.a, vo.b, 1)
 	l := math.Sqrt(vector.SquaredMagnitude(tp) - math.Pow(tr, 2))
-	return vector.Scale(1/vector.SquaredMagnitude(tp), *vector.New(
-		tp.X()*l-tp.Y()*tr,
-		tp.X()*tr+tp.Y()*l,
-	))
+	switch d := vo.check(); d {
+	case Right:
+		return vector.Scale(-1/vector.SquaredMagnitude(tp), *vector.New(
+			tp.X()*l+tp.Y()*tr,
+			-tp.X()*tr+tp.Y()*l,
+		))
+	default:
+		return vector.Scale(1/vector.SquaredMagnitude(tp), *vector.New(
+			tp.X()*l-tp.Y()*tr,
+			tp.X()*tr+tp.Y()*l,
+		))
+	}
 }
 
 func (vo Reference) check() Direction {
@@ -155,26 +157,16 @@ func ra() vo.Agent {
 // another.
 func within(got float64, want float64, tolerance float64) bool { return math.Abs(got-want) < tolerance }
 
-// withinV checks that two vectors are within a small range of one another.
-func withinV(got vector.V, want vector.V, tolerance float64) bool {
-	return within(got.X(), want.X(), tolerance) && within(got.Y(), want.Y(), tolerance)
-}
-
-// withinHP checks that two half-planes are within a small range of one another.
-func withinHP(got plane.HP, want plane.HP, tolerance float64) bool {
-	return withinV(got.N(), want.N(), tolerance) && withinV(got.P(), want.P(), tolerance)
-}
-
 func TestOrientation(t *testing.T) {
 	a := Agent{p: *vector.New(0, 0), v: *vector.New(0, 0), r: 1}
 	b := Agent{p: *vector.New(0, 5), v: *vector.New(1, -1), r: 2}
 
 	t.Run("P", func(t *testing.T) {
 		want := *vector.New(0, 5)
-		if got := p(a, b, 1); !withinV(got, want, tolerance) {
+		if got := p(a, b, 1); !vector.Within(got, want, tolerance) {
 			t.Errorf("p() = %v, want = %v", got, want)
 		}
-		if got := p(b, a, 1); !withinV(got, vector.Scale(-1, want), tolerance) {
+		if got := p(b, a, 1); !vector.Within(got, vector.Scale(-1, want), tolerance) {
 			t.Errorf("p() = %v, want = %v", got, vector.Scale(-1, want))
 		}
 	})
@@ -189,19 +181,19 @@ func TestOrientation(t *testing.T) {
 	})
 	t.Run("V", func(t *testing.T) {
 		want := *vector.New(-1, 1)
-		if got := v(a, b); !withinV(got, want, tolerance) {
+		if got := v(a, b); !vector.Within(got, want, tolerance) {
 			t.Errorf("v() = %v, want = %v", got, want)
 		}
-		if got := v(b, a); !withinV(got, vector.Scale(-1, want), tolerance) {
+		if got := v(b, a); !vector.Within(got, vector.Scale(-1, want), tolerance) {
 			t.Errorf("v() = %v, want = %v", got, vector.Scale(-1, want))
 		}
 	})
 	t.Run("W", func(t *testing.T) {
 		want := *vector.New(-1, -4)
-		if got := w(a, b, 1); !withinV(got, want, tolerance) {
+		if got := w(a, b, 1); !vector.Within(got, want, tolerance) {
 			t.Errorf("w() = %v, want = %v", got, want)
 		}
-		if got := w(b, a, 1); !withinV(got, vector.Scale(-1, want), tolerance) {
+		if got := w(b, a, 1); !vector.Within(got, vector.Scale(-1, want), tolerance) {
 			t.Errorf("w() = %v, want = %v", got, vector.Scale(-1, want))
 		}
 	})
@@ -291,7 +283,7 @@ func TestVOReference(t *testing.T) {
 				if err != nil {
 					t.Fatalf("u() returned error: %v", err)
 				}
-				if !withinV(got, c.u, tolerance) {
+				if !vector.Within(got, c.u, tolerance) {
 					t.Errorf("u() = %v, want = %v", got, c.u)
 				}
 			})
@@ -300,7 +292,7 @@ func TestVOReference(t *testing.T) {
 				if err != nil {
 					t.Fatalf("ORCA() returned error: %v", err)
 				}
-				if !withinHP(got, c.orca, tolerance) {
+				if !plane.Within(got, c.orca, tolerance) {
 					t.Errorf("ORCA() = %v, want = %v", got, c.orca)
 				}
 			})
@@ -360,7 +352,7 @@ func TestVOL(t *testing.T) {
 				t.Fatalf("New() returned error: %v", err)
 			}
 
-			if got := v.l(); !withinV(got, c.want, tolerance) {
+			if got := v.l(); !vector.Within(got, c.want, tolerance) {
 				t.Errorf("l() = %v, want = %v", got, c.want)
 			}
 		})
@@ -382,19 +374,19 @@ func TestVOConformance(t *testing.T) {
 
 	testConfigs := []testConfig{
 		{
-			name: "TestSimpleCase",
+			name: "SimpleCase",
 			a:    Agent{p: *vector.New(0, 0), v: *vector.New(0, 0), r: 1},
 			b:    Agent{p: *vector.New(0, 5), v: *vector.New(1, -1), r: 2},
 			tau:  1,
 		},
 		{
-			name: "TestSimpleCaseLargeTimeStep",
+			name: "SimpleCaseLargeTimeStep",
 			a:    Agent{p: *vector.New(0, 0), v: *vector.New(0, 0), r: 1},
 			b:    Agent{p: *vector.New(0, 5), v: *vector.New(1, -1), r: 2},
 			tau:  3,
 		},
 		{
-			name: "TestCollision",
+			name: "Collision",
 			a:    Agent{p: *vector.New(0, 0), v: *vector.New(0, 0), r: 1},
 			b:    Agent{p: *vector.New(0, 3), v: *vector.New(1, -1), r: 2},
 			tau:  1,
@@ -403,7 +395,7 @@ func TestVOConformance(t *testing.T) {
 
 	for i := 0; i < nTests; i++ {
 		testConfigs = append(testConfigs, testConfig{
-			name: fmt.Sprintf("TestRandom-%v", i),
+			name: fmt.Sprintf("Random-%v", i),
 			a:    ra(),
 			b:    ra(),
 			// A simulation timestep scalar of 0 indicates the
@@ -444,8 +436,7 @@ func TestVOConformance(t *testing.T) {
 				if err != nil {
 					t.Fatalf("u() returned error: %v", err)
 				}
-
-				if !withinV(got, want, tolerance) {
+				if !vector.Within(got, want, tolerance) {
 					t.Errorf("u() = %v, want = %v", got, want)
 				}
 			})
@@ -458,7 +449,7 @@ func TestVOConformance(t *testing.T) {
 				if err != nil {
 					t.Fatalf("n() returned error: %v", err)
 				}
-				if !withinV(got, want, tolerance) {
+				if !vector.Within(got, want, tolerance) {
 					t.Errorf("n() = %v, want = %v", got, want)
 				}
 			})
@@ -472,16 +463,8 @@ func TestVOConformance(t *testing.T) {
 					t.Fatalf("ORCA() returned error: %v", err)
 				}
 
-				ru, _ := r.u()
-				vu, _ := v.u()
-
-				if !withinHP(got, want, tolerance) {
-					t.Errorf(
-						"ORCA(%v, %v) = %v, want = %v\nr.u == %v, v.u == %v",
-						v.check(),
-						r.check(),
-						got,
-						want, ru, vu)
+				if !plane.Within(got, want, tolerance) {
+					t.Errorf("ORCA() = %v, want = %v", got, want)
 				}
 			})
 		})

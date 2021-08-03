@@ -88,11 +88,30 @@ func TestRotate(t *testing.T) {
 		{name: "180Degree", theta: math.Pi, v: V{1, 0}, want: V{-1, 0}},
 		{name: "270Degree", theta: 1.5 * math.Pi, v: V{1, 0}, want: V{0, -1}},
 		{name: "360Degree", theta: 2 * math.Pi, v: V{1, 0}, want: V{1, 0}},
+		{name: "InverseRotate", theta: .1, v: Rotate(-.1, V{1, 0}), want: V{1, 0}},
+		{
+			name: "FlipYCoordinate",
+			theta: .2,
+			v: Rotate(-.1, V{1, 0}),
+			want: *New(
+				Rotate(-.1, V{1, 0}).X(),
+				-Rotate(-.1, V{1, 0}).Y(),
+			),
+		},
+		{
+			name: "FlipXCoordinate",
+			theta: math.Pi + .2,
+			v: Rotate(-.1, V{1, 0}),
+			want: *New(
+				-Rotate(-.1, V{1, 0}).X(),
+				Rotate(-.1, V{1, 0}).Y(),
+			),
+		},
 	}
 
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
-			if got := Rotate(c.theta, c.v); Magnitude(Sub(got, c.want)) > tolerance {
+			if got := Rotate(c.theta, c.v); !Within(got, c.want, tolerance) {
 				t.Errorf("Rotate() = %v, want = %v", got, c.want)
 			}
 		})

@@ -55,23 +55,25 @@ type VO struct {
 	tau float64
 
 	// We cache some fields to make things zoom-zoom.
-	pIsCached    bool
-	wIsCached    bool
-	rIsCached    bool
-	lIsCached    bool
-	vIsCached    bool
-	betaIsCached bool
-	pCache       vector.V
-	wCache       vector.V
-	lCache       vector.V
-	vCache       vector.V
-	rCache       float64
-	betaCache    float64
+	pIsCached     bool
+	wIsCached     bool
+	rIsCached     bool
+	lIsCached     bool
+	vIsCached     bool
+	betaIsCached  bool
+	thetaIsCached bool
+	pCache        vector.V
+	wCache        vector.V
+	lCache        vector.V
+	vCache        vector.V
+	rCache        float64
+	betaCache     float64
+	thetaCache    float64
 }
 
 func New(a, b vo.Agent, tau float64) (*VO, error) {
 	if tau <= 0 {
-		return nil, status.Errorf(codes.OutOfRange, "invalid minimum lookahead time step")
+		return nil, status.Errorf(codes.OutOfRange, "invalid minimum lookahead timestep")
 	}
 	return &VO{a: a, b: b, tau: tau}, nil
 }
@@ -116,10 +118,16 @@ func (vo *VO) n() (vector.V, error) {
 	case Right:
 		fallthrough
 	case Left:
+		beta, err := vo.beta()
+		if err != nil {
+			return vector.V{}, err
+		}
+
 		l := vo.l()
 		if d == Right {
-			l = *vector.New(-l.X(), l.Y())
+			l = vector.Rotate(2*beta, l)
 		}
+
 		// We check the side of v compared to the projected edge ℓ, with
 		// the convention that if v is to the "left" of ℓ, we chose n to
 		// be anti-parallel to u.
@@ -153,9 +161,14 @@ func (vo *VO) u() (vector.V, error) {
 	case Right:
 		fallthrough
 	case Left:
+		beta, err := vo.beta()
+		if err != nil {
+			return vector.V{}, err
+		}
+
 		l := vo.l()
 		if d == Right {
-			l = *vector.New(-l.X(), l.Y())
+			l = vector.Rotate(2*beta, l)
 		}
 
 		// The distance u between the relative velocity v and the
@@ -293,31 +306,38 @@ func (vo *VO) theta() (float64, error) {
 		return 0, status.Errorf(codes.OutOfRange, "cannot find the incident angle between w and p for 0-length vectors")
 	}
 
-	p := vector.Scale(-1, vo.p())
+	if !vo.thetaIsCached {
+		vo.thetaIsCached = true
 
-	// w • p
-	dotWP := vector.Dot(vo.w(), p)
+		p := vector.Scale(-1, vo.p())
 
-	// ||w x p||
-	crossWP := vector.Determinant(vo.w(), p)
+		// w • p
+		dotWP := vector.Dot(vo.w(), p)
 
-	// ||w|| ||p||
-	wp := vector.Magnitude(vo.w()) * vector.Magnitude(p)
+		// ||w x p||
+		crossWP := vector.Determinant(vo.w(), p)
 
-	// cos(𝜃) = cos(-𝜃) -- we don't know if 𝜃 lies to the "left" or "right" of 0.
-	//
-	// Occasionally due to rounding errors, domain here is slightly larger
-	// than 1; other bounding issues are prevented with the check on |w| and
-	// |p| above, and we are safe to cap the domain here.
-	theta := math.Acos(math.Min(1, dotWP/wp))
+		// ||w|| ||p||
+		wp := vector.Magnitude(vo.w()) * vector.Magnitude(p)
 
-	// Use sin(𝜃) = -sin(-𝜃) to check the orientation of 𝜃.
-	orientation := crossWP/wp > 0
-	if !orientation {
-		// 𝜃 < 0; shift by 2π radians.
-		theta = 2*math.Pi - theta
+		// cos(𝜃) = cos(-𝜃) -- we don't know if 𝜃 lies to the "left" or "right" of 0.
+		//
+		// Occasionally due to rounding errors, domain here is slightly larger
+		// than 1; other bounding issues are prevented with the check on |w| and
+		// |p| above, and we are safe to cap the domain here.
+		theta := math.Acos(math.Min(1, dotWP/wp))
+
+		// Use sin(𝜃) = -sin(-𝜃) to check the orientation of 𝜃.
+		orientation := crossWP/wp > 0
+		if !orientation {
+			// 𝜃 < 0; shift by 2π radians.
+			theta = 2*math.Pi - theta
+		}
+
+		vo.thetaCache = theta
 	}
-	return theta, nil
+
+	return vo.thetaCache, nil
 }
 
 // check returns the indicated edge of the truncated VO that is closest to w.
