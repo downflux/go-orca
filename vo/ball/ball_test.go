@@ -106,26 +106,33 @@ func (vo Reference) p() vector.V { return p(vo.a, vo.b, vo.tau) }
 func (vo Reference) w() vector.V { return w(vo.a, vo.b, vo.tau) }
 func (vo Reference) v() vector.V { return v(vo.a, vo.b) }
 
-// l calculates the unnormalized vector of the tangent line from the base of p
+// t calculates the unnormalized vector of the tangent line from the base of p
 // to the edge of the truncation circle. This corresponds to line.direction in
 // the RVO2 implementation. Returns the left or right vector based on the
 // projected side of u onto the VO.
-func (vo Reference) l() vector.V {
+func (vo Reference) t() vector.V {
 	tp := p(vo.a, vo.b, 1)
 	tr := r(vo.a, vo.b, 1)
 	l := math.Sqrt(vector.SquaredMagnitude(tp) - math.Pow(tr, 2))
-	switch d := vo.check(); d {
-	case Right:
-		return vector.Scale(-1/vector.SquaredMagnitude(tp), *vector.New(
+	return vector.Scale(1/vector.SquaredMagnitude(tp), *vector.New(
+		tp.X()*l-tp.Y()*tr,
+		tp.X()*tr+tp.Y()*l,
+	))
+}
+
+// l calculates the direction-aware leg of the tangent line.
+func (vo Reference) l() vector.V {
+	t := vo.t()
+	if vo.check() == Right {
+		tp := p(vo.a, vo.b, 1)
+		tr := r(vo.a, vo.b, 1)
+		l := math.Sqrt(vector.SquaredMagnitude(tp) - math.Pow(tr, 2))
+		t = vector.Scale(-1/vector.SquaredMagnitude(tp), *vector.New(
 			tp.X()*l+tp.Y()*tr,
 			-tp.X()*tr+tp.Y()*l,
 		))
-	default:
-		return vector.Scale(1/vector.SquaredMagnitude(tp), *vector.New(
-			tp.X()*l-tp.Y()*tr,
-			tp.X()*tr+tp.Y()*l,
-		))
 	}
+	return t
 }
 
 func (vo Reference) check() Direction {
@@ -301,7 +308,7 @@ func TestVOReference(t *testing.T) {
 }
 
 // TestVOL tests that the tangent line ℓ is being calculated correctly.
-func TestVOL(t *testing.T) {
+func TestVOT(t *testing.T) {
 	testConfigs := []struct {
 		name string
 		a    vo.Agent
@@ -352,8 +359,8 @@ func TestVOL(t *testing.T) {
 				t.Fatalf("New() returned error: %v", err)
 			}
 
-			if got := v.l(); !vector.Within(got, c.want, tolerance) {
-				t.Errorf("l() = %v, want = %v", got, c.want)
+			if got := v.t(); !vector.Within(got, c.want, tolerance) {
+				t.Errorf("t() = %v, want = %v", got, c.want)
 			}
 		})
 	}

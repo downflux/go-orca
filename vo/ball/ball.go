@@ -58,12 +58,14 @@ type VO struct {
 	pIsCached     bool
 	wIsCached     bool
 	rIsCached     bool
+	tIsCached     bool
 	lIsCached     bool
 	vIsCached     bool
 	betaIsCached  bool
 	thetaIsCached bool
 	pCache        vector.V
 	wCache        vector.V
+	tCache        vector.V
 	lCache        vector.V
 	vCache        vector.V
 	rCache        float64
@@ -187,7 +189,24 @@ func (vo *VO) r() float64 {
 	return vo.rCache
 }
 
-// l calculates the left vector of the tangent line segment from the base of p
+// l calulates the direction-aware leg of the tangent line. That is, if u
+// projects onto the right leg, l returns the tangent line, rotated by -2𝛽, i.e.
+// about the x-axis.
+func (vo *VO) l() vector.V {
+	if !vo.lIsCached {
+		vo.lIsCached = true
+
+		l := vo.t()
+		if vo.check() == Right {
+			beta, _ := vo.beta()
+			l = vector.Rotate(2*beta, l)
+		}
+		vo.lCache = l
+	}
+	return vo.lCache
+}
+
+// t calculates the left vector of the tangent line segment from the base of p
 // to the edge of the truncation circle.
 //
 // N.B.: The direction of ℓ can be calculated by rotating p about the origin by
@@ -201,11 +220,11 @@ func (vo *VO) r() float64 {
 //        y: p.x * sin(𝛼) + p.y * cos(𝛼) }
 //
 // See design doc for more information.
-func (vo *VO) l() vector.V {
-	if !vo.lIsCached {
-		vo.lIsCached = true
+func (vo *VO) t() vector.V {
+	if !vo.tIsCached {
+		vo.tIsCached = true
 		l := math.Sqrt(vector.SquaredMagnitude(vo.p()) - math.Pow(vo.r(), 2))
-		vo.lCache = vector.Scale(
+		vo.tCache = vector.Scale(
 			l,
 			vector.Unit(
 				*vector.New(
@@ -214,26 +233,8 @@ func (vo *VO) l() vector.V {
 				),
 			),
 		)
-		if vo.check() == Right {
-			vo.lCache = vector.Scale(
-				l,
-				vector.Unit(
-					// Effectively rotate ℓ by 2𝛽; this is
-					// used to obtain the right leg vector,
-					// which has the same chirality as the
-					// left leg.
-					vector.Scale(
-						-1,
-						*vector.New(
-							vo.p().X()*l+vo.p().Y()*vo.r(),
-							-vo.p().X()*vo.r()+vo.p().Y()*l,
-						),
-					),
-				),
-			)
-		}
 	}
-	return vo.lCache
+	return vo.tCache
 }
 
 // p calculates the center of the truncation circle. Geometrically, this is the
