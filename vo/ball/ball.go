@@ -248,7 +248,7 @@ func (vo *VO) w() vector.V {
 	return vo.wCache
 }
 
-// beta returns the complementary angle between l and p, i.e. the angle
+// beta returns the complementary angle between ℓ and p, i.e. the angle
 // boundaries at which u should be directed towards the circular bottom of the
 // truncated VO.
 //
