@@ -471,24 +471,20 @@ func TestVOConformance(t *testing.T) {
 	}
 }
 
-// BenchmarkCheck compares the relative performance of VO.check() bewteen the
+// BenchmarkORCA compares the relative performance of VO.check() bewteen the
 // official RVO2 spec vs. the custom implementation provided.
-func BenchmarkCheck(t *testing.B) {
-	type checker interface {
-		check() Direction
-	}
-
+func BenchmarkORCA(t *testing.B) {
 	testConfigs := []struct {
 		name        string
-		constructor func(a, b vo.Agent) checker
+		constructor func(a, b vo.Agent) vo.VO
 	}{
 		{
 			name:        "VOReference",
-			constructor: func(a, b vo.Agent) checker { return Reference{a: a, b: b, tau: 1} },
+			constructor: func(a, b vo.Agent) vo.VO { return Reference{a: a, b: b, tau: 1} },
 		},
 		{
 			name: "VO",
-			constructor: func(a, b vo.Agent) checker {
+			constructor: func(a, b vo.Agent) vo.VO {
 				v, _ := New(a, b, 1)
 				return v
 			},
@@ -500,7 +496,7 @@ func BenchmarkCheck(t *testing.B) {
 
 			t.ResetTimer()
 			for i := 0; i < t.N; i++ {
-				v.check()
+				v.ORCA()
 			}
 		})
 	}
