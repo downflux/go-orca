@@ -81,11 +81,60 @@ func (vo *VO) ORCA() (plane.HP, error) {
 	if err != nil {
 		return plane.HP{}, err
 	}
-	n := vector.Unit(vector.Rotate(-math.Pi/2, u))
+	n, err := vo.n()
+	if err != nil {
+		return plane.HP{}, err
+	}
 	return *plane.New(
 		vector.Add(vo.a.V(), vector.Scale(0.5, u)),
-		n,
+		vector.Rotate(-math.Pi/2, n),
 	), nil
+}
+
+// n returns the outward normal vector of u -- that is, if u is pointed towards
+// the internal of VO, n should be anti-parallel to u.
+func (vo *VO) n() (vector.V, error) {
+	u, err := vo.u()
+	if err != nil {
+		return vector.V{}, err
+	}
+
+	orientation := 1.0
+	switch d := vo.check(); d {
+	case Collision:
+		fallthrough
+	case Circle:
+		tr := vo.r()
+		tw := vo.w()
+		if d == Collision {
+			tr = r(vo.a, vo.b, minTau)
+			tw = w(vo.a, vo.b, minTau)
+		}
+		if vector.SquaredMagnitude(tw) > math.Pow(tr, 2) {
+			orientation = -1.
+		}
+	case Right:
+		fallthrough
+	case Left:
+		l := vo.l()
+		if d == Right {
+			l = *vector.New(-l.X(), l.Y())
+		}
+		// We check the side of v compared to the projected edge ℓ, with
+		// the convention that if v is to the "left" of ℓ, we chose n to
+		// be anti-parallel to u.
+		//
+		// N.B.: The "right" leg is represented /anti-parallel/ to the
+		// orientation, and therefore already has an implicit negative
+		// sign attached, allowing the following determinant to be a
+		// continuous calculation from one leg to the other.
+		if vector.Determinant(l, vo.v()) > 0 {
+			orientation = -1
+		}
+	default:
+		return vector.V{}, status.Errorf(codes.Internal, "invalid VO projection %v", d)
+	}
+	return vector.Unit(vector.Scale(orientation, u)), nil
 }
 
 func (vo *VO) u() (vector.V, error) {

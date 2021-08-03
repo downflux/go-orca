@@ -63,7 +63,7 @@ func (vo Reference) ORCA() (plane.HP, error) {
 		if d == Right {
 			l = *vector.New(-l.X(), l.Y())
 		}
-		n = l
+		n = vector.Unit(l)
 	default:
 		return plane.HP{}, status.Errorf(codes.Internal, "invalid direction %v", d)
 	}
@@ -71,6 +71,14 @@ func (vo Reference) ORCA() (plane.HP, error) {
 		vector.Add(vo.a.V(), vector.Scale(0.5, u)),
 		n,
 	), nil
+}
+
+func (vo Reference) n() (vector.V, error) {
+	orca, err := vo.ORCA()
+	if err != nil {
+		return vector.V{}, err
+	}
+	return vector.Rotate(math.Pi/2, orca.N()), nil
 }
 
 func (vo Reference) u() (vector.V, error) {
@@ -152,6 +160,7 @@ func withinV(got vector.V, want vector.V, tolerance float64) bool {
 	return within(got.X(), want.X(), tolerance) && within(got.Y(), want.Y(), tolerance)
 }
 
+// withinHP checks that two half-planes are within a small range of one another.
 func withinHP(got plane.HP, want plane.HP, tolerance float64) bool {
 	return withinV(got.N(), want.N(), tolerance) && withinV(got.P(), want.P(), tolerance)
 }
@@ -211,6 +220,7 @@ func TestVOReference(t *testing.T) {
 		u         vector.V
 		a         vo.Agent
 		b         vo.Agent
+		orca      plane.HP
 	}{
 		{
 			name:      "Simple",
@@ -218,8 +228,12 @@ func TestVOReference(t *testing.T) {
 			b:         b,
 			tau:       1,
 			direction: Circle,
-			// This value was determined experimentally.
+			// These values were determined experimentally.
 			u: *vector.New(0.2723931248910011, 1.0895724995640044),
+			orca: *plane.New(
+				*vector.New(0.13619656244550055, 0.5447862497820022),
+				*vector.New(-0.9701425001453319, 0.24253562503633297),
+			),
 		},
 		{
 			name:      "LargeTau",
@@ -227,8 +241,12 @@ func TestVOReference(t *testing.T) {
 			b:         b,
 			tau:       3,
 			direction: Left,
-			// This value was determined experimentally.
+			// These values were determined experimentally.
 			u: *vector.New(0.16000000000000003, 0.11999999999999988),
+			orca: *plane.New(
+				*vector.New(0.08000000000000002, 0.05999999999999994),
+				*vector.New(-0.6, 0.8),
+			),
 		},
 		{
 			name:      "InverseSimple",
@@ -236,10 +254,14 @@ func TestVOReference(t *testing.T) {
 			b:         a,
 			tau:       1,
 			direction: Circle,
-			// This value was determined experimentally.
+			// These values were determined experimentally.
 			u: vector.Scale(
 				-1,
 				*vector.New(0.2723931248910011, 1.0895724995640044),
+			),
+			orca: *plane.New(
+				*vector.New(0.8638034375544994, -1.5447862497820022),
+				*vector.New(0.9701425001453319, -0.24253562503633297),
 			),
 		},
 		{
@@ -248,10 +270,11 @@ func TestVOReference(t *testing.T) {
 			b:         b,
 			tau:       3,
 			direction: Left,
-			// This value was determined experimentally.
-			u: vector.Scale(
-				-1,
-				*vector.New(0.16000000000000003, 0.11999999999999988),
+			// These values were determined experimentally.
+			u: *vector.New(0.16000000000000003, 0.11999999999999988),
+			orca: *plane.New(
+				*vector.New(0.08000000000000002, 0.05999999999999994),
+				*vector.New(-0.6, 0.8),
 			),
 		},
 	}
@@ -274,7 +297,12 @@ func TestVOReference(t *testing.T) {
 			})
 			t.Run("ORCA", func(t *testing.T) {
 				got, err := r.ORCA()
-				t.Fatalf("DEBUG: ORCA() = %v, %v", got, err)
+				if err != nil {
+					t.Fatalf("ORCA() returned error: %v", err)
+				}
+				if !withinHP(got, c.orca, tolerance) {
+					t.Errorf("ORCA() = %v, want = %v", got, c.orca)
+				}
 			})
 		})
 	}
@@ -419,6 +447,19 @@ func TestVOConformance(t *testing.T) {
 
 				if !withinV(got, want, tolerance) {
 					t.Errorf("u() = %v, want = %v", got, want)
+				}
+			})
+			t.Run("N", func(t *testing.T) {
+				want, err := r.n()
+				if err != nil {
+					t.Fatalf("n() returned error: %v", err)
+				}
+				got, err := v.n()
+				if err != nil {
+					t.Fatalf("n() returned error: %v", err)
+				}
+				if !withinV(got, want, tolerance) {
+					t.Errorf("n() = %v, want = %v", got, want)
 				}
 			})
 			t.Run("ORCA", func(t *testing.T) {
