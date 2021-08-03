@@ -307,7 +307,7 @@ func TestVOReference(t *testing.T) {
 	}
 }
 
-// TestVOL tests that the tangent line ℓ is being calculated correctly.
+// TestVOT tests that the tangent line t is being calculated correctly.
 func TestVOT(t *testing.T) {
 	testConfigs := []struct {
 		name string

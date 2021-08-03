@@ -32,13 +32,13 @@ const (
 	minTau = 1e-3
 )
 
-type Direction string
+type Domain string
 
 const (
-	Left      Direction = "LEFT"
-	Right               = "RIGHT"
-	Circle              = "CIRCLE"
-	Collision           = "COLLISION"
+	Left      Domain = "LEFT"
+	Right            = "RIGHT"
+	Circle           = "CIRCLE"
+	Collision        = "COLLISION"
 )
 
 type VO struct {
@@ -72,7 +72,7 @@ type VO struct {
 	rCache        float64
 	betaCache     float64
 	thetaCache    float64
-	checkCache    Direction
+	checkCache    Domain
 }
 
 func New(a, b vo.Agent, tau float64) (*VO, error) {
@@ -166,10 +166,12 @@ func (vo *VO) u() (vector.V, error) {
 		//
 		// The vector projection of v onto ℓ is defined as
 		//
-		// v' = cℓ / ||ℓ||, where
+		//   v' = cℓ / ||ℓ||
 		//
-		// c = ||v|| * cos(𝜃)
-		//   = v • ℓ / ||ℓ||
+		// where
+		//
+		//   c = ||v|| * cos(𝜃)
+		//     = v • ℓ / ||ℓ||
 		//
 		// 𝜃 is the usual angle between the two vectors.
 		v := vector.Scale(
@@ -191,9 +193,9 @@ func (vo *VO) r() float64 {
 	return vo.rCache
 }
 
-// l calulates the direction-aware leg of the tangent line. That is, if u
-// projects onto the right leg, l returns the tangent line, rotated by -2𝛽, i.e.
-// about the x-axis.
+// l calulates the domain-aware leg of the tangent line. That is, if u projects
+// onto the right leg, ℓ is the tangent line t rotated by -2𝛽, i.e. flipped
+// about p.
 func (vo *VO) l() vector.V {
 	if !vo.lIsCached {
 		vo.lIsCached = true
@@ -211,15 +213,21 @@ func (vo *VO) l() vector.V {
 // t calculates the left vector of the tangent line segment from the base of p
 // to the edge of the truncation circle.
 //
-// N.B.: The direction of ℓ can be calculated by rotating p about the origin by
-// 𝛼 := π / 2 - 𝛽, and scaling up via ||p|| ** 2 = ||ℓ|| ** 2 + r ** 2.
+// N.B.: The domain of ℓ can be calculated by rotating p anti-clockwise about
+// the origin by
+//
+//   𝛼 := π / 2 - 𝛽
+//
+// ℓ may be scaled via
+//
+//   ||p|| ** 2 = ||ℓ|| ** 2 + r ** 2.
 //
 // Note that ℓ, p, and a third leg with length r form a right triangle. Because
 // of this, We know cos(𝛼) = ||ℓ|| / ||p|| and sin(𝛼) = r / ||p||. These can be
 // substituted directly to the rotation matrix:
 //
-// ℓ ~ V{ x: p.x * cos(𝛼) - p.y * sin(𝛼),
-//        y: p.x * sin(𝛼) + p.y * cos(𝛼) }
+//   ℓ ~ V{ x: p.x * cos(𝛼) - p.y * sin(𝛼),
+//          y: p.x * sin(𝛼) + p.y * cos(𝛼) }
 //
 // See design doc for more information.
 func (vo *VO) t() vector.V {
@@ -298,15 +306,15 @@ func (vo *VO) beta() (float64, error) {
 //
 // Note that
 //
-// 1.   w • p   = ||w|| ||p|| cos(𝜃), and
-// 2. ||w x p|| = ||w|| ||p|| sin(𝜃)
+//   1.   w • p   = ||w|| ||p|| cos(𝜃), and
+//   2. ||w x p|| = ||w|| ||p|| sin(𝜃)
 //
 // vo.p() is defined as vo.b.P() - vo.a.P(); however, we want 𝜃 = 0 when w is
 // pointing towards the origin -- that is, opposite the direction of p.
 // Therefore, we flip p in our calculations here.
 //
 // Returns:
-//   Angle in radians between 0 and 2π, between w and -p.
+//   Angle between w and -p in the range [0, 2π).
 func (vo *VO) theta() (float64, error) {
 	if vector.SquaredMagnitude(vo.w()) == 0 || vector.SquaredMagnitude(vo.p()) == 0 {
 		return 0, status.Errorf(codes.OutOfRange, "cannot find the incident angle between w and p for 0-length vectors")
@@ -347,11 +355,11 @@ func (vo *VO) theta() (float64, error) {
 }
 
 // check returns the indicated edge of the truncated VO that is closest to w.
-func (vo *VO) check() Direction {
+func (vo *VO) check() Domain {
 	if !vo.checkIsCached {
 		vo.checkIsCached = true
 
-		vo.checkCache = func() Direction {
+		vo.checkCache = func() Domain {
 			beta, err := vo.beta()
 			// Retain parity with RVO2 behavior.
 			if err != nil {
