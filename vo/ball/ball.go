@@ -63,6 +63,7 @@ type VO struct {
 	vIsCached     bool
 	betaIsCached  bool
 	thetaIsCached bool
+	checkIsCached bool
 	pCache        vector.V
 	wCache        vector.V
 	tCache        vector.V
@@ -71,6 +72,7 @@ type VO struct {
 	rCache        float64
 	betaCache     float64
 	thetaCache    float64
+	checkCache    Direction
 }
 
 func New(a, b vo.Agent, tau float64) (*VO, error) {
@@ -115,7 +117,7 @@ func (vo *VO) n() (vector.V, error) {
 			tr = r(vo.a, vo.b, minTau)
 			tw = w(vo.a, vo.b, minTau)
 		}
-		if vector.SquaredMagnitude(tw) > math.Pow(tr, 2) {
+		if vector.SquaredMagnitude(tw) > tr*tr {
 			orientation = -1.
 		}
 	case Right:
@@ -223,7 +225,7 @@ func (vo *VO) l() vector.V {
 func (vo *VO) t() vector.V {
 	if !vo.tIsCached {
 		vo.tIsCached = true
-		l := math.Sqrt(vector.SquaredMagnitude(vo.p()) - math.Pow(vo.r(), 2))
+		l := math.Sqrt(vector.SquaredMagnitude(vo.p()) - vo.r()*vo.r())
 		vo.tCache = vector.Scale(
 			l,
 			vector.Unit(
@@ -278,7 +280,7 @@ func (vo *VO) beta() (float64, error) {
 	// Note that r and p are both scaled by 𝜏 here, and as such, cancels
 	// out, giving us the straightforward conclusion that we should be able
 	// to detect collisions independent of the lookahead time.
-	if math.Pow(vo.r(), 2) >= vector.SquaredMagnitude(vo.p()) {
+	if vo.r()*vo.r() >= vector.SquaredMagnitude(vo.p()) {
 		return 0, status.Errorf(codes.OutOfRange, "cannot find the tangent VO angle of colliding agents")
 	}
 
@@ -346,27 +348,34 @@ func (vo *VO) theta() (float64, error) {
 
 // check returns the indicated edge of the truncated VO that is closest to w.
 func (vo *VO) check() Direction {
-	beta, err := vo.beta()
-	// Retain parity with RVO2 behavior.
-	if err != nil {
-		return Collision
-	}
+	if !vo.checkIsCached {
+		vo.checkIsCached = true
 
-	theta, err := vo.theta()
-	// Retain parity with RVO2 behavior.
-	if err != nil {
-		return Right
-	}
+		vo.checkCache = func() Direction {
+			beta, err := vo.beta()
+			// Retain parity with RVO2 behavior.
+			if err != nil {
+				return Collision
+			}
 
-	if theta < beta || math.Abs(2*math.Pi-theta) < beta {
-		return Circle
-	}
+			theta, err := vo.theta()
+			// Retain parity with RVO2 behavior.
+			if err != nil {
+				return Right
+			}
 
-	if theta < math.Pi {
-		return Left
-	}
+			if theta < beta || math.Abs(2*math.Pi-theta) < beta {
+				return Circle
+			}
 
-	return Right
+			if theta < math.Pi {
+				return Left
+			}
+
+			return Right
+		}()
+	}
+	return vo.checkCache
 }
 
 // v is a utility function calculating the relative velocities between two
