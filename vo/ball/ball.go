@@ -89,7 +89,8 @@ func (vo *VO) ORCA() (plane.HP, error) {
 	}
 	return *plane.New(
 		vector.Add(vo.a.V(), vector.Scale(0.5, u)),
-		vector.Rotate(-math.Pi/2, n),
+		// Rotate n by -π / 2.
+		*vector.New(n.Y(), -n.X()),
 	), nil
 }
 
@@ -118,15 +119,7 @@ func (vo *VO) n() (vector.V, error) {
 	case Right:
 		fallthrough
 	case Left:
-		beta, err := vo.beta()
-		if err != nil {
-			return vector.V{}, err
-		}
-
 		l := vo.l()
-		if d == Right {
-			l = vector.Rotate(2*beta, l)
-		}
 
 		// We check the side of v compared to the projected edge ℓ, with
 		// the convention that if v is to the "left" of ℓ, we chose n to
@@ -161,15 +154,7 @@ func (vo *VO) u() (vector.V, error) {
 	case Right:
 		fallthrough
 	case Left:
-		beta, err := vo.beta()
-		if err != nil {
-			return vector.V{}, err
-		}
-
 		l := vo.l()
-		if d == Right {
-			l = vector.Rotate(2*beta, l)
-		}
 
 		// The distance u between the relative velocity v and the
 		// tangent line ℓ is defined as the vector difference of the
@@ -229,6 +214,24 @@ func (vo *VO) l() vector.V {
 				),
 			),
 		)
+		if vo.check() == Right {
+			vo.lCache = vector.Scale(
+				l,
+				vector.Unit(
+					// Effectively rotate ℓ by 2𝛽; this is
+					// used to obtain the right leg vector,
+					// which has the same chirality as the
+					// left leg.
+					vector.Scale(
+						-1,
+						*vector.New(
+							vo.p().X()*l+vo.p().Y()*vo.r(),
+							-vo.p().X()*vo.r()+vo.p().Y()*l,
+						),
+					),
+				),
+			)
+		}
 	}
 	return vo.lCache
 }
