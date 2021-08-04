@@ -30,6 +30,7 @@ type Agent struct {
 func (a Agent) P() vector.V { return a.p }
 func (a Agent) V() vector.V { return a.v }
 func (a Agent) R() float64  { return a.r }
+func (a Agent) G() vector.V { return vector.V{} }
 
 // Reference implements the official RVO2 spec. See
 // https://gamma.cs.unc.edu/RVO2/ for more information.
@@ -62,7 +63,7 @@ func (vo Reference) ORCA() (plane.HP, error) {
 		l := vo.l()
 		n = vector.Unit(l)
 	default:
-		return plane.HP{}, status.Errorf(codes.Internal, "invalid direction %v", d)
+		return plane.HP{}, status.Errorf(codes.Internal, "invalid domain %v", d)
 	}
 	return *plane.New(
 		vector.Add(vo.a.V(), vector.Scale(0.5, u)),
@@ -98,7 +99,7 @@ func (vo Reference) u() (vector.V, error) {
 		l := vo.l()
 		return vector.Sub(vector.Scale(vector.Dot(vo.v(), l), l), vo.v()), nil
 	default:
-		return vector.V{}, status.Errorf(codes.Internal, "invalid direction %v", d)
+		return vector.V{}, status.Errorf(codes.Internal, "invalid domain %v", d)
 	}
 }
 func (vo Reference) r() float64  { return r(vo.a, vo.b, vo.tau) }
@@ -120,7 +121,7 @@ func (vo Reference) t() vector.V {
 	))
 }
 
-// l calculates the direction-aware leg of the tangent line.
+// l calculates the domain-aware leg of the tangent line.
 func (vo Reference) l() vector.V {
 	t := vo.t()
 	if vo.check() == Right {
@@ -135,7 +136,7 @@ func (vo Reference) l() vector.V {
 	return t
 }
 
-func (vo Reference) check() Direction {
+func (vo Reference) check() Domain {
 	if vector.SquaredMagnitude(vo.p()) <= math.Pow(vo.r(), 2) {
 		return Collision
 	}
@@ -213,20 +214,20 @@ func TestVOReference(t *testing.T) {
 	b := Agent{p: *vector.New(0, 5), v: *vector.New(1, -1), r: 2}
 
 	testConfigs := []struct {
-		name      string
-		tau       float64
-		direction Direction
-		u         vector.V
-		a         vo.Agent
-		b         vo.Agent
-		orca      plane.HP
+		name   string
+		tau    float64
+		domain Domain
+		u      vector.V
+		a      vo.Agent
+		b      vo.Agent
+		orca   plane.HP
 	}{
 		{
-			name:      "Simple",
-			a:         a,
-			b:         b,
-			tau:       1,
-			direction: Circle,
+			name:   "Simple",
+			a:      a,
+			b:      b,
+			tau:    1,
+			domain: Circle,
 			// These values were determined experimentally.
 			u: *vector.New(0.2723931248910011, 1.0895724995640044),
 			orca: *plane.New(
@@ -235,11 +236,11 @@ func TestVOReference(t *testing.T) {
 			),
 		},
 		{
-			name:      "LargeTau",
-			a:         a,
-			b:         b,
-			tau:       3,
-			direction: Left,
+			name:   "LargeTau",
+			a:      a,
+			b:      b,
+			tau:    3,
+			domain: Left,
 			// These values were determined experimentally.
 			u: *vector.New(0.16000000000000003, 0.11999999999999988),
 			orca: *plane.New(
@@ -248,11 +249,11 @@ func TestVOReference(t *testing.T) {
 			),
 		},
 		{
-			name:      "InverseSimple",
-			a:         b,
-			b:         a,
-			tau:       1,
-			direction: Circle,
+			name:   "InverseSimple",
+			a:      b,
+			b:      a,
+			tau:    1,
+			domain: Circle,
 			// These values were determined experimentally.
 			u: vector.Scale(
 				-1,
@@ -264,11 +265,11 @@ func TestVOReference(t *testing.T) {
 			),
 		},
 		{
-			name:      "InverseLargeTau",
-			a:         a,
-			b:         b,
-			tau:       3,
-			direction: Left,
+			name:   "InverseLargeTau",
+			a:      a,
+			b:      b,
+			tau:    3,
+			domain: Left,
 			// These values were determined experimentally.
 			u: *vector.New(0.16000000000000003, 0.11999999999999988),
 			orca: *plane.New(
@@ -280,9 +281,9 @@ func TestVOReference(t *testing.T) {
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
 			r := Reference{a: c.a, b: c.b, tau: c.tau}
-			t.Run("Direction", func(t *testing.T) {
-				if got := r.check(); got != c.direction {
-					t.Errorf("check() = %v, want = %v", got, c.direction)
+			t.Run("Domain", func(t *testing.T) {
+				if got := r.check(); got != c.domain {
+					t.Errorf("check() = %v, want = %v", got, c.domain)
 				}
 			})
 			t.Run("U", func(t *testing.T) {
@@ -366,8 +367,8 @@ func TestVOT(t *testing.T) {
 	}
 }
 
-// TestVOConformance tests that agent-agent VOs will return u in the
-// correct direction using the reference implementation as a sanity check.
+// TestVOConformance tests that agent-agent VOs will return u in the correct
+// domain using the reference implementation as a sanity check.
 func TestVOConformance(t *testing.T) {
 	const nTests = 1000
 	const delta = 1e-10
@@ -421,13 +422,14 @@ func TestVOConformance(t *testing.T) {
 			}
 			r := Reference{a: c.a, b: c.b, tau: float64(c.tau)}
 
-			t.Run("Direction", func(t *testing.T) {
+			t.Run("Domain", func(t *testing.T) {
 				want := r.check()
 				if got := v.check(); got != want {
 					beta, _ := v.beta()
 					theta, _ := v.theta()
 
-					// Disregard rounding errors around where 𝜃 ~ 𝛽.
+					// Disregard rounding errors around
+					// where 𝜃 ~ 𝛽.
 					if got == Circle && (!within(beta, theta, tolerance) || !within(2*math.Pi-theta, beta, tolerance)) {
 						return
 					}
