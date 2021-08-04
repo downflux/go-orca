@@ -90,18 +90,18 @@ func TestRotate(t *testing.T) {
 		{name: "360Degree", theta: 2 * math.Pi, v: V{1, 0}, want: V{1, 0}},
 		{name: "InverseRotate", theta: .1, v: Rotate(-.1, V{1, 0}), want: V{1, 0}},
 		{
-			name: "FlipYCoordinate",
+			name:  "FlipYCoordinate",
 			theta: .2,
-			v: Rotate(-.1, V{1, 0}),
+			v:     Rotate(-.1, V{1, 0}),
 			want: *New(
 				Rotate(-.1, V{1, 0}).X(),
 				-Rotate(-.1, V{1, 0}).Y(),
 			),
 		},
 		{
-			name: "FlipXCoordinate",
+			name:  "FlipXCoordinate",
 			theta: math.Pi + .2,
-			v: Rotate(-.1, V{1, 0}),
+			v:     Rotate(-.1, V{1, 0}),
 			want: *New(
 				-Rotate(-.1, V{1, 0}).X(),
 				Rotate(-.1, V{1, 0}).Y(),
