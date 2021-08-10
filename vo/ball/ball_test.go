@@ -11,26 +11,16 @@ import (
 	"github.com/downflux/orca/vo"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	agent "github.com/downflux/orca/vo/agent/reference"
 )
 
 var (
-	_ vo.Agent = Agent{}
-	_ vo.VO    = &VO{}
-	_ vo.VO    = Reference{}
+	_ vo.VO = &VO{}
+	_ vo.VO = Reference{}
 )
 
 const tolerance = 1e-10
-
-type Agent struct {
-	p vector.V
-	v vector.V
-	r float64
-}
-
-func (a Agent) P() vector.V { return a.p }
-func (a Agent) V() vector.V { return a.v }
-func (a Agent) R() float64  { return a.r }
-func (a Agent) G() vector.V { return vector.V{} }
 
 // Reference implements the official RVO2 spec. See
 // https://gamma.cs.unc.edu/RVO2/ for more information.
@@ -158,7 +148,13 @@ func rn() float64 { return rand.Float64()*200 - 100 }
 
 // ra returns an agent with randomized dimensions.
 func ra() vo.Agent {
-	return Agent{p: *vector.New(rn(), rn()), v: *vector.New(rn(), rn()), r: math.Abs(rn())}
+	return *agent.New(
+		agent.O{
+			P: *vector.New(rn(), rn()),
+			V: *vector.New(rn(), rn()),
+			R: math.Abs(rn()),
+		},
+	)
 }
 
 // within checks that two numeric values are within a small range of one
@@ -166,8 +162,8 @@ func ra() vo.Agent {
 func within(got float64, want float64, tolerance float64) bool { return math.Abs(got-want) < tolerance }
 
 func TestOrientation(t *testing.T) {
-	a := Agent{p: *vector.New(0, 0), v: *vector.New(0, 0), r: 1}
-	b := Agent{p: *vector.New(0, 5), v: *vector.New(1, -1), r: 2}
+	a := *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1})
+	b := *agent.New(agent.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2})
 
 	t.Run("P", func(t *testing.T) {
 		want := *vector.New(0, 5)
@@ -210,8 +206,8 @@ func TestOrientation(t *testing.T) {
 // TestVOReference asserts a simple RVO2 agent-agent setup will return correct
 // values from hand calculations.
 func TestVOReference(t *testing.T) {
-	a := Agent{p: *vector.New(0, 0), v: *vector.New(0, 0), r: 1}
-	b := Agent{p: *vector.New(0, 5), v: *vector.New(1, -1), r: 2}
+	a := *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1})
+	b := *agent.New(agent.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2})
 
 	testConfigs := []struct {
 		name   string
@@ -319,22 +315,22 @@ func TestVOT(t *testing.T) {
 	}{
 		{
 			name: "345",
-			a:    Agent{p: *vector.New(0, 0), v: *vector.New(0, 0), r: 1},
-			b:    Agent{p: *vector.New(0, 5), v: *vector.New(1, -1), r: 2},
+			a:    *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
+			b:    *agent.New(agent.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
 			tau:  1,
 			want: *vector.New(-2.4, 3.2),
 		},
 		{
 			name: "345LargeTau",
-			a:    Agent{p: *vector.New(0, 0), v: *vector.New(0, 0), r: 1},
-			b:    Agent{p: *vector.New(0, 5), v: *vector.New(1, -1), r: 2},
+			a:    *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
+			b:    *agent.New(agent.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
 			tau:  3,
 			want: vector.Scale(1.0/3, *vector.New(-2.4, 3.2)),
 		},
 		{
 			name: "Inverse345",
-			a:    Agent{p: *vector.New(0, 5), v: *vector.New(1, -1), r: 2},
-			b:    Agent{p: *vector.New(0, 0), v: *vector.New(0, 0), r: 1},
+			a:    *agent.New(agent.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
+			b:    *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
 			tau:  1,
 			want: vector.Scale(
 				-1,
@@ -343,8 +339,8 @@ func TestVOT(t *testing.T) {
 		},
 		{
 			name: "Inverse345LargeTau",
-			a:    Agent{p: *vector.New(0, 5), v: *vector.New(1, -1), r: 2},
-			b:    Agent{p: *vector.New(0, 0), v: *vector.New(0, 0), r: 1},
+			a:    *agent.New(agent.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
+			b:    *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
 			tau:  3,
 			want: vector.Scale(
 				-1,
@@ -383,20 +379,20 @@ func TestVOConformance(t *testing.T) {
 	testConfigs := []testConfig{
 		{
 			name: "SimpleCase",
-			a:    Agent{p: *vector.New(0, 0), v: *vector.New(0, 0), r: 1},
-			b:    Agent{p: *vector.New(0, 5), v: *vector.New(1, -1), r: 2},
+			a:    *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
+			b:    *agent.New(agent.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
 			tau:  1,
 		},
 		{
 			name: "SimpleCaseLargeTimeStep",
-			a:    Agent{p: *vector.New(0, 0), v: *vector.New(0, 0), r: 1},
-			b:    Agent{p: *vector.New(0, 5), v: *vector.New(1, -1), r: 2},
+			a:    *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
+			b:    *agent.New(agent.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
 			tau:  3,
 		},
 		{
 			name: "Collision",
-			a:    Agent{p: *vector.New(0, 0), v: *vector.New(0, 0), r: 1},
-			b:    Agent{p: *vector.New(0, 3), v: *vector.New(1, -1), r: 2},
+			a:    *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
+			b:    *agent.New(agent.O{P: *vector.New(0, 3), V: *vector.New(1, -1), R: 2}),
 			tau:  1,
 		},
 	}
