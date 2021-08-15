@@ -1,4 +1,4 @@
-package lp
+package constraint
 
 import (
 	"fmt"
@@ -15,6 +15,7 @@ const tolerance = 1e-10
 var (
 	_ C = Reference{}
 	_ C = plane.HP{}
+	_ C = CImpl{}
 )
 
 type Reference struct {
