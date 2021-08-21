@@ -31,7 +31,9 @@ func (r ReferenceHelper) Solve(i int) (vector.V, bool) {
 		return vector.V{}, false
 	}
 
-	// Find two intersections between line and circle.
+	// Find two intersections between line and circle. This is equivalent to
+	// having two additional constraints which lie tangent to the circle at
+	// these two points.
 	tl := -dot - math.Sqrt(discriminant)
 	tr := -dot + math.Sqrt(discriminant)
 
@@ -63,20 +65,28 @@ func (r ReferenceHelper) Solve(i int) (vector.V, bool) {
 			}
 		}
 	}
-	// Skip direction opitmization for now.
+	// TODO(minkezhang): Implment direction opitmization.
 
-	// Returns a result vector which is closest to v_pref.
+	// We represent the linear constraint as a vector
+	//
+	//   l := P + td
+	//
+	// We want to find the point on l which is closest to the agent goal
+	// velocity G; this is equivalent to finding the distance between G and
+	// l, and solving for t_min.
 	t := vector.Dot(l, vector.Sub(r.a.G(), r.cs[i].P()))
+	// If t_min lies beyond tl or tr, we know that t_min will fail to
+	// satisfy at least one constraint (i.e. lies outside the boundaries of
+	// at least one half-plane). The "best" we can do is to bound our
+	// solution to the parametric bounds.
 	if t < tl {
-		// P = E + tD
 		result = vector.Add(r.cs[i].P(), vector.Scale(tl, l))
 	} else if t > tr {
 		result = vector.Add(r.cs[i].P(), vector.Scale(tr, l))
 	} else {
-		// Optimal point is on the circle (?)
-		//
-		// TODO(minkezhang): Verify this is actually the
-		// reasoning.
+		// If t_min lies between tl and tr, then we know "optimal" t
+		// value is t_min and we can substitute directly into the
+		// result.
 		result = vector.Add(r.cs[i].P(), vector.Scale(t, l))
 	}
 	return result, true
