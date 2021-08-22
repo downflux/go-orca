@@ -30,20 +30,20 @@ func New(p vector.V, n vector.V) *HP {
 func (p HP) N() vector.V { return p.n }
 func (p HP) P() vector.V { return p.p }
 
-func (p HP) D() int       { return 2 }
-func (p HP) A() []float64 { return p.aCache }
-func (p HP) B() float64   { return p.bCache }
+func (p HP) Dimension() int { return 2 }
+func (p HP) A() []float64   { return p.aCache }
+func (p HP) B() float64     { return p.bCache }
 
-// l returns the characteristic line along the plane is bisected. Points to the
+// D returns the characteristic line along the plane is bisected. Points to the
 // "left" of the line are not permissible.
-func (p HP) l() vector.V { return *vector.New(-p.N().Y(), p.N().X()) }
+func (p HP) D() vector.V { return *vector.New(-p.N().Y(), p.N().X()) }
 
 func (p HP) In(v vector.V) bool {
 	// Generate a vector with tail on l and pointing towards the input.
 	w := vector.Sub(v, p.P())
 
 	// Check relative orientation between w and l.
-	return vector.Determinant(w, p.l()) >= 0
+	return vector.Determinant(w, p.D()) >= 0
 }
 
 func Within(a HP, b HP, tolerance float64) bool {

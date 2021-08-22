@@ -23,8 +23,7 @@ type ReferenceHelper struct {
 func (r ReferenceHelper) Solve(i int) (vector.V, bool) {
 	result := vector.V{}
 
-	l := *vector.New(-r.cs[i].N().Y(), r.cs[i].N().X())
-	dot := vector.Dot(r.cs[i].P(), l)
+	dot := vector.Dot(r.cs[i].P(), r.cs[i].D())
 	discriminant := dot*dot + r.a.R()*r.a.R() - vector.SquaredMagnitude(r.cs[i].P())
 
 	if discriminant < 0 {
@@ -39,9 +38,8 @@ func (r ReferenceHelper) Solve(i int) (vector.V, bool) {
 
 	for j, c := range r.cs {
 		if j < i {
-			lj := *vector.New(-c.N().Y(), c.N().X())
-			d := vector.Determinant(lj, l)
-			n := vector.Determinant(l, vector.Sub(c.P(), r.cs[i].P()))
+			d := vector.Determinant(r.cs[j].D(), r.cs[i].D())
+			n := vector.Determinant(r.cs[i].D(), vector.Sub(c.P(), r.cs[i].P()))
 			if d < tolerance {
 				if n < 0 {
 					return vector.V{}, false
@@ -76,20 +74,20 @@ func (r ReferenceHelper) Solve(i int) (vector.V, bool) {
 	// We want to find the point on l which is closest to the agent goal
 	// velocity G; this is equivalent to finding the distance between G and
 	// l, and solving for t_min.
-	t := vector.Dot(l, vector.Sub(r.a.G(), r.cs[i].P()))
+	t := vector.Dot(r.cs[i].D(), vector.Sub(r.a.G(), r.cs[i].P()))
 	// If t_min lies beyond tl or tr, we know that t_min will fail to
 	// satisfy at least one constraint (i.e. lies outside the boundaries of
 	// at least one half-plane). The "best" we can do is to bound our
 	// solution to the parametric bounds.
 	if t < tl {
-		result = vector.Add(r.cs[i].P(), vector.Scale(tl, l))
+		result = vector.Add(r.cs[i].P(), vector.Scale(tl, r.cs[i].D()))
 	} else if t > tr {
-		result = vector.Add(r.cs[i].P(), vector.Scale(tr, l))
+		result = vector.Add(r.cs[i].P(), vector.Scale(tr, r.cs[i].D()))
 	} else {
 		// If t_min lies between tl and tr, then we know "optimal" t
 		// value is t_min and we can substitute directly into the
 		// result.
-		result = vector.Add(r.cs[i].P(), vector.Scale(t, l))
+		result = vector.Add(r.cs[i].P(), vector.Scale(t, r.cs[i].D()))
 	}
 	return result, true
 }

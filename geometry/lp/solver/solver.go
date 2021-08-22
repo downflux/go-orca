@@ -26,7 +26,7 @@ func (s *S) Minimize(c []float64) ([]float64, error) {
 	if len(c) == 0 {
 		return nil, nil
 	}
-	a := mat.NewDense(len(s.cs), s.cs[0].D(), nil)
+	a := mat.NewDense(len(s.cs), s.cs[0].Dimension(), nil)
 	var b []float64
 
 	for i, c := range s.cs {

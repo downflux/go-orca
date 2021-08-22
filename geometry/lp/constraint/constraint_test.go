@@ -23,7 +23,7 @@ type Reference struct {
 	n vector.V
 }
 
-func (r Reference) D() int { return 2 }
+func (r Reference) Dimension() int { return 2 }
 func (r Reference) A() []float64 {
 	a := vector.Scale(-1, r.n)
 	return []float64{a.X(), a.Y()}

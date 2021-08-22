@@ -8,9 +8,9 @@ package constraint
 //
 //   a_x * x + a_y * y <= b
 type C interface {
-	// D refers to the dimension of the contraint, e.g. return 2 if the
-	// contraint is 2D example above.
-	D() int
+	// Dimension refers to the dimension of the contraint, e.g. return 2 if
+	// the contraint is 2D example above.
+	Dimension() int
 
 	// A returns the A vector of the contraint; returns [a, b] in the 2D
 	// case.
@@ -27,6 +27,6 @@ type CImpl struct {
 
 func New(a []float64, b float64) *CImpl { return &CImpl{a: a, b: b} }
 
-func (c CImpl) D() int       { return len(c.a) }
-func (c CImpl) A() []float64 { return c.a }
-func (c CImpl) B() float64   { return c.b }
+func (c CImpl) Dimension() int { return len(c.a) }
+func (c CImpl) A() []float64   { return c.a }
+func (c CImpl) B() float64     { return c.b }
