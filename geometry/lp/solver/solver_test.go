@@ -49,6 +49,8 @@ func (r ReferenceHelper) Solve(i int) (vector.V, bool) {
 				continue
 			}
 
+			// find the intersection between the two lines as a
+			// function of the constraint parameter t.
 			t := n / d
 			if d > 0 {
 				// tl and tr is mutated across loop boundaries.
