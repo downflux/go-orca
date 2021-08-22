@@ -46,12 +46,13 @@ func (vo Reference) ORCA() (plane.HP, error) {
 		if d == Collision {
 			tw = w(vo.a, vo.b, minTau)
 		}
-		n = *vector.New(vector.Unit(tw).Y(), -vector.Unit(tw).X())
+		n = vector.Unit(tw)
 	case Right:
 		fallthrough
 	case Left:
 		l := vo.l()
-		n = vector.Unit(l)
+		// Rotate by π / 2 towards the "outside" of the VO cone.
+		n = vector.Unit(*vector.New(-l.Y(), l.X()))
 	default:
 		return plane.HP{}, status.Errorf(codes.Internal, "invalid domain %v", d)
 	}
@@ -66,7 +67,7 @@ func (vo Reference) n() (vector.V, error) {
 	if err != nil {
 		return vector.V{}, err
 	}
-	return vector.Rotate(math.Pi/2, orca.N()), nil
+	return orca.N(), nil
 }
 
 func (vo Reference) u() (vector.V, error) {
@@ -228,7 +229,7 @@ func TestVOReference(t *testing.T) {
 			u: *vector.New(0.2723931248910011, 1.0895724995640044),
 			orca: *plane.New(
 				*vector.New(0.13619656244550055, 0.5447862497820022),
-				*vector.New(-0.9701425001453319, 0.24253562503633297),
+				*vector.New(-0.24253562503633297, -0.9701425001453319),
 			),
 		},
 		{
@@ -241,7 +242,7 @@ func TestVOReference(t *testing.T) {
 			u: *vector.New(0.16000000000000003, 0.11999999999999988),
 			orca: *plane.New(
 				*vector.New(0.08000000000000002, 0.05999999999999994),
-				*vector.New(-0.6, 0.8),
+				*vector.New(-0.8, -0.6),
 			),
 		},
 		{
@@ -257,7 +258,7 @@ func TestVOReference(t *testing.T) {
 			),
 			orca: *plane.New(
 				*vector.New(0.8638034375544994, -1.5447862497820022),
-				*vector.New(0.9701425001453319, -0.24253562503633297),
+				*vector.New(0.24253562503633297, 0.9701425001453319),
 			),
 		},
 		{
@@ -270,7 +271,7 @@ func TestVOReference(t *testing.T) {
 			u: *vector.New(0.16000000000000003, 0.11999999999999988),
 			orca: *plane.New(
 				*vector.New(0.08000000000000002, 0.05999999999999994),
-				*vector.New(-0.6, 0.8),
+				*vector.New(-0.8, -0.6),
 			),
 		},
 	}

@@ -82,6 +82,8 @@ func New(a, b vo.Agent, tau float64) (*VO, error) {
 	return &VO{a: a, b: b, tau: tau}, nil
 }
 
+// ORCA returns the half-plane of permissable velocities for an agent, given the
+// an agent constraint.
 func (vo *VO) ORCA() (plane.HP, error) {
 	u, err := vo.u()
 	if err != nil {
@@ -93,8 +95,7 @@ func (vo *VO) ORCA() (plane.HP, error) {
 	}
 	return *plane.New(
 		vector.Add(vo.a.V(), vector.Scale(0.5, u)),
-		// Rotate n by -π / 2.
-		*vector.New(n.Y(), -n.X()),
+		n,
 	), nil
 }
 
@@ -129,7 +130,7 @@ func (vo *VO) n() (vector.V, error) {
 		// the convention that if v is to the "left" of ℓ, we chose n to
 		// be anti-parallel to u.
 		//
-		// N.B.: The "right" leg is represented /anti-parallel/ to the
+		// N.B.: The "right" leg is represented anti-parallel to the
 		// orientation, and therefore already has an implicit negative
 		// sign attached, allowing the following determinant to be a
 		// continuous calculation from one leg to the other.
@@ -142,6 +143,8 @@ func (vo *VO) n() (vector.V, error) {
 	return vector.Unit(vector.Scale(orientation, u)), nil
 }
 
+// u returns the calculated vector difference between the relative velocity v
+// and the closest part of the VO, pointing into the VO edge.
 func (vo *VO) u() (vector.V, error) {
 	switch d := vo.check(); d {
 	case Collision:

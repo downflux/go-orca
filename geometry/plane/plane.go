@@ -13,7 +13,6 @@ type HP struct {
 	n vector.V
 
 	aCache []float64
-	lCache vector.V
 	bCache float64
 }
 
