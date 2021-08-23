@@ -1,4 +1,4 @@
-package solver
+package reference
 
 import (
 	"math"
@@ -13,14 +13,14 @@ const (
 	tolerance = 1e-10
 )
 
-// ReferenceHelper implements linearProgram1 from the reference RVO2
+// Helper implements linearProgram1 from the reference RVO2
 // implmentation.
-type ReferenceHelper struct {
+type Helper struct {
 	cs []plane.HP
 	a  agent.A
 }
 
-func (r ReferenceHelper) Solve(i int) (vector.V, bool) {
+func (r Helper) Solve(i int) (vector.V, bool) {
 	result := vector.V{}
 
 	dot := vector.Dot(r.cs[i].P(), r.cs[i].D())
