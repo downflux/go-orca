@@ -6,7 +6,7 @@ import (
 	"github.com/downflux/orca/geometry/plane"
 	"github.com/downflux/orca/geometry/vector"
 
-	agent "github.com/downflux/orca/vo/agent/reference"
+	agent "github.com/downflux/orca/agent/reference"
 )
 
 const (

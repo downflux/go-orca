@@ -21,9 +21,9 @@ package ball
 import (
 	"math"
 
+	"github.com/downflux/orca/agent"
 	"github.com/downflux/orca/geometry/plane"
 	"github.com/downflux/orca/geometry/vector"
-	"github.com/downflux/orca/vo"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -42,8 +42,8 @@ const (
 )
 
 type VO struct {
-	a vo.Agent
-	b vo.Agent
+	a agent.A
+	b agent.A
 
 	// tau is a scalar determining the bottom vertex of the truncated VO;
 	// large 𝜏 forces the bottom of the VO closer to the origin. When tau is
@@ -75,7 +75,7 @@ type VO struct {
 	checkCache    Domain
 }
 
-func New(a, b vo.Agent, tau float64) (*VO, error) {
+func New(a, b agent.A, tau float64) (*VO, error) {
 	if tau <= 0 {
 		return nil, status.Errorf(codes.OutOfRange, "invalid minimum lookahead timestep")
 	}
@@ -393,21 +393,21 @@ func (vo *VO) check() Domain {
 // agents.
 //
 // Note that the relative velocity here is oriented from b.V to a.V.
-func v(a vo.Agent, b vo.Agent) vector.V { return vector.Sub(a.V(), b.V()) }
+func v(a agent.A, b agent.A) vector.V { return vector.Sub(a.V(), b.V()) }
 
 // r is a utility function calculating the radius of the truncated VO circle.
-func r(a vo.Agent, b vo.Agent, tau float64) float64 { return (a.R() + b.R()) / tau }
+func r(a agent.A, b agent.A, tau float64) float64 { return (a.R() + b.R()) / tau }
 
 // p is a utility function calculating the relative position vector between two
 // agents, scaled to the center of the truncated circle.
 //
 // Note the relative position is oriented from a.P to b.P.
-func p(a vo.Agent, b vo.Agent, tau float64) vector.V {
+func p(a agent.A, b agent.A, tau float64) vector.V {
 	return vector.Scale(1/tau, vector.Sub(b.P(), a.P()))
 }
 
 // w is a utility function calculating the relative velocity between a and b,
 // centered on the truncation circle.
-func w(a vo.Agent, b vo.Agent, tau float64) vector.V {
+func w(a agent.A, b agent.A, tau float64) vector.V {
 	return vector.Sub(v(a, b), p(a, b, tau))
 }

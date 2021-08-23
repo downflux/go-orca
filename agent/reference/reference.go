@@ -1,12 +1,12 @@
 package reference
 
 import (
+	"github.com/downflux/orca/agent"
 	"github.com/downflux/orca/geometry/vector"
-	"github.com/downflux/orca/vo"
 )
 
 var (
-	_ vo.Agent = A{}
+	_ agent.A = A{}
 )
 
 type O struct {

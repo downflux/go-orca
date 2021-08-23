@@ -1,10 +1,10 @@
 package orca
 
 import (
-	"github.com/downflux/orca/vo"
-	"github.com/downflux/orca/vo/ball"
 	"github.com/downflux/orca/geometry/lp/constraint"
 	"github.com/downflux/orca/geometry/lp/solver"
+	"github.com/downflux/orca/vo"
+	"github.com/downflux/orca/vo/ball"
 )
 
 const tolerance = 1e-10
@@ -23,8 +23,8 @@ func (o *ORCA) Step(tau float64) error {
 	for _, a := range o.agents {
 		s := *solver.New(
 			[]constraint.C{
-				*constraint.New([]float64{1, 0}, a.G().Y()),  // px <= Mx
-				*constraint.New([]float64{0, 1}, a.G().X()),  // py <= My
+				*constraint.New([]float64{1, 0}, a.G().Y()), // px <= Mx
+				*constraint.New([]float64{0, 1}, a.G().X()), // py <= My
 			},
 			tolerance,
 		)

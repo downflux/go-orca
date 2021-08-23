@@ -12,7 +12,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	agent "github.com/downflux/orca/vo/agent/reference"
+	agent "github.com/downflux/orca/agent/reference"
 )
 
 var (
@@ -25,8 +25,8 @@ const tolerance = 1e-10
 // Reference implements the official RVO2 spec. See
 // https://gamma.cs.unc.edu/RVO2/ for more information.
 type Reference struct {
-	a   vo.Agent
-	b   vo.Agent
+	a   agent.A
+	b   agent.A
 	tau float64
 }
 
@@ -148,7 +148,7 @@ func (vo Reference) check() Domain {
 func rn() float64 { return rand.Float64()*200 - 100 }
 
 // ra returns an agent with randomized dimensions.
-func ra() vo.Agent {
+func ra() agent.A {
 	return *agent.New(
 		agent.O{
 			P: *vector.New(rn(), rn()),
@@ -215,8 +215,8 @@ func TestVOReference(t *testing.T) {
 		tau    float64
 		domain Domain
 		u      vector.V
-		a      vo.Agent
-		b      vo.Agent
+		a      agent.A
+		b      agent.A
 		orca   plane.HP
 	}{
 		{
@@ -309,8 +309,8 @@ func TestVOReference(t *testing.T) {
 func TestVOT(t *testing.T) {
 	testConfigs := []struct {
 		name string
-		a    vo.Agent
-		b    vo.Agent
+		a    agent.A
+		b    agent.A
 		tau  float64
 		want vector.V
 	}{
@@ -372,8 +372,8 @@ func TestVOConformance(t *testing.T) {
 
 	type testConfig struct {
 		name string
-		a    vo.Agent
-		b    vo.Agent
+		a    agent.A
+		b    agent.A
 		tau  float64
 	}
 
@@ -482,15 +482,15 @@ func TestVOConformance(t *testing.T) {
 func BenchmarkORCA(t *testing.B) {
 	testConfigs := []struct {
 		name        string
-		constructor func(a, b vo.Agent) vo.VO
+		constructor func(a, b agent.A) vo.VO
 	}{
 		{
 			name:        "VOReference",
-			constructor: func(a, b vo.Agent) vo.VO { return Reference{a: a, b: b, tau: 1} },
+			constructor: func(a, b agent.A) vo.VO { return Reference{a: a, b: b, tau: 1} },
 		},
 		{
 			name: "VO",
-			constructor: func(a, b vo.Agent) vo.VO {
+			constructor: func(a, b agent.A) vo.VO {
 				v, _ := New(a, b, 1)
 				return v
 			},
