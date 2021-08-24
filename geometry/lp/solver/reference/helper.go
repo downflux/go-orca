@@ -20,11 +20,9 @@ type Helper struct {
 	a  agent.A
 }
 
-func (r Helper) Solve(i int) (vector.V, bool) {
-	result := vector.V{}
-
-	dot := vector.Dot(r.cs[i].P(), r.cs[i].D())
-	discriminant := dot*dot + r.a.R()*r.a.R() - vector.SquaredMagnitude(r.cs[i].P())
+func (r Helper) Add(constraint plane.HP) (vector.V, bool) {
+	dot := vector.Dot(constraint.P(), constraint.D())
+	discriminant := dot*dot + r.a.R()*r.a.R() - vector.SquaredMagnitude(constraint.P())
 
 	if discriminant < 0 {
 		return vector.V{}, false
@@ -36,33 +34,31 @@ func (r Helper) Solve(i int) (vector.V, bool) {
 	tl := -dot - math.Sqrt(discriminant)
 	tr := -dot + math.Sqrt(discriminant)
 
-	for j, c := range r.cs {
-		if j < i {
-			d := vector.Determinant(r.cs[j].D(), r.cs[i].D())
-			n := vector.Determinant(r.cs[i].D(), vector.Sub(c.P(), r.cs[i].P()))
-			if d < tolerance {
-				if n < 0 {
-					return vector.V{}, false
-				}
-				continue
-			}
-
-			// find the intersection between the two lines as a
-			// function of the constraint parameter t.
-			t := n / d
-			if d > 0 {
-				// tl and tr is mutated across loop boundaries.
-				//
-				// TODO(minkezhang): Reason out that this is the
-				// "memory" of the optimal result.
-				tr = math.Min(tr, t)
-			} else {
-				tl = math.Max(tl, t)
-			}
-
-			if tl > tr {
+	for _, c := range r.cs {
+		d := vector.Determinant(c.D(), constraint.D())
+		n := vector.Determinant(constraint.D(), vector.Sub(c.P(), constraint.P()))
+		if d < tolerance {
+			if n < 0 {
 				return vector.V{}, false
 			}
+			continue
+		}
+
+		// Find the intersection between the two lines as a function of
+		// the constraint parameter t.
+		t := n / d
+		if d > 0 {
+			// tl and tr is mutated across loop boundaries.
+			//
+			// TODO(minkezhang): Reason out that this is the
+			// "memory" of the optimal result.
+			tr = math.Min(tr, t)
+		} else {
+			tl = math.Max(tl, t)
+		}
+
+		if tl > tr {
+			return vector.V{}, false
 		}
 	}
 	// TODO(minkezhang): Implment direction opitmization.
@@ -74,20 +70,19 @@ func (r Helper) Solve(i int) (vector.V, bool) {
 	// We want to find the point on l which is closest to the agent goal
 	// velocity G; this is equivalent to finding the distance between G and
 	// l, and solving for t_min.
-	t := vector.Dot(r.cs[i].D(), vector.Sub(r.a.G(), r.cs[i].P()))
+	t := vector.Dot(constraint.D(), vector.Sub(r.a.G(), constraint.P()))
 	// If t_min lies beyond tl or tr, we know that t_min will fail to
 	// satisfy at least one constraint (i.e. lies outside the boundaries of
 	// at least one half-plane). The "best" we can do is to bound our
 	// solution to the parametric bounds.
+	//
+	// If t_min lies between tl and tr, then we know "optimal" t value is
+	// t_min and we can substitute directly into the result.
 	if t < tl {
-		result = vector.Add(r.cs[i].P(), vector.Scale(tl, r.cs[i].D()))
+		t = tl
 	} else if t > tr {
-		result = vector.Add(r.cs[i].P(), vector.Scale(tr, r.cs[i].D()))
-	} else {
-		// If t_min lies between tl and tr, then we know "optimal" t
-		// value is t_min and we can substitute directly into the
-		// result.
-		result = vector.Add(r.cs[i].P(), vector.Scale(t, r.cs[i].D()))
+		t = tr
 	}
-	return result, true
+	r.cs = append(r.cs, constraint)
+	return vector.Add(constraint.P(), vector.Scale(t, constraint.D())), true
 }
