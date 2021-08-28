@@ -6,8 +6,10 @@ import (
 )
 
 // HP defines a half-plane, geometrically consisting of a normal vector n to the
-// plane, and a point p which defines the origin of n. Vectors facing away from
-// n are not permissible within the half-plane.
+// plane, and a point p which defines the origin of n.
+//
+// N.B.: By arbitrary convention, vectors pointing away from N are not
+// permissible within the half-plane.
 type HP struct {
 	p vector.V
 	n vector.V
@@ -38,11 +40,11 @@ func (p HP) B() float64     { return p.bCache }
 func (p HP) D() vector.V { return *vector.New(-p.N().Y(), p.N().X()) }
 
 func (p HP) In(v vector.V) bool {
-	// Generate a vector with tail on l and pointing towards the input.
+	// Generate a vector with tail on D and pointing towards the input.
 	w := vector.Sub(v, p.P())
 
-	// Check relative orientation between w and l.
-	return vector.Determinant(w, p.D()) >= 0
+	// Check relative orientation between w and D.
+	return vector.Dot(w, p.N()) >= 0
 }
 
 func Within(a HP, b HP, tolerance float64) bool {

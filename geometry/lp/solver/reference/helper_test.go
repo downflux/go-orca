@@ -1,6 +1,8 @@
 package reference
 
 import (
+	"fmt"
+	"math"
 	"testing"
 
 	"github.com/downflux/orca/geometry/plane"
@@ -9,29 +11,121 @@ import (
 	agent "github.com/downflux/orca/agent/reference"
 )
 
+const (
+	tolerance = 1e-7
+)
+
 func TestAdd(t *testing.T) {
-	testConfigs := []struct {
+	a := *agent.New(agent.O{T: *vector.New(0, 0.9), S: 1})
+
+	type config struct {
 		name       string
 		h          Helper
 		constraint plane.HP
 		success    bool
 		want       vector.V
-	}{
-		{
-			name: "Trivial",
-			h: Helper{
-				a: *agent.New(
-					agent.O{
-						G: *vector.New(0, 1),
-						S: 1,
-					},
-				),
-			},
-			constraint: *plane.New(*vector.New(0, 0), *vector.New(0, 1)),
-			success:    true,
-			want:       *vector.New(0, 1),
-		},
 	}
+
+	var testConfigs []config
+
+	// The constraint lies tangent to the maximal speed circle, with the
+	// preferred velocity T lying inside the constraint.
+	//
+	// N.B.: The half-plane HP(P, N) has permissible values oriented in the
+	// same direction as N.
+	for _, o := range []struct {
+		name string
+		p    vector.V
+	}{
+		{name: "0", p: *vector.New(1, 0)},
+		{name: "45", p: vector.Unit(*vector.New(1, 1))},
+		{name: "90", p: *vector.New(0, 1)},
+		{name: "135", p: vector.Unit(*vector.New(-1, 1))},
+		{name: "180", p: *vector.New(-1, 0)},
+		{name: "225", p: vector.Unit(*vector.New(-1, -1))},
+		{name: "270", p: *vector.New(-1, 0)},
+		{name: "315", p: vector.Unit(*vector.New(1, -1))},
+	} {
+		// The constraint lies tangent to the maximal speed circle, with the
+		// preferred velocity T lying inside the constraint.
+		//
+		// N.B.: The half-plane HP(P, N) has permissible values oriented in the
+		// same direction as N.
+		testConfigs = append(testConfigs, config{
+			name:       fmt.Sprintf("SingleViableConstraint/Tangent/In/%v", o.name),
+			h:          Helper{a: a},
+			constraint: *plane.New(o.p, vector.Scale(-1, o.p)),
+			success:    true,
+			want:       o.p,
+		})
+		// The constraint lies tangent to the maximal speed circle, with
+		// the preferred velocity T lying outside the constraint.
+		//
+		// Since we're still looking for the minimal distance between
+		// the preferred velocity and the constraint, the calculated
+		// velocity vector should still be the same.
+		testConfigs = append(testConfigs, config{
+			name:       fmt.Sprintf("SingleViableConstraint/Tangent/Out/%v", o.name),
+			h:          Helper{a: a},
+			constraint: *plane.New(o.p, o.p),
+			success:    true,
+			want:       o.p,
+		})
+	}
+
+	// It doesn't matter if the constraint points into or away from the
+	// circle -- if there is no intersection between the two, then the two
+	// constraints invalidate one another, and we will achieve an infeasible
+	// solution.
+	testConfigs = append(
+		testConfigs,
+		config{
+			name:       "SingleNotViableConstraint/In",
+			h:          Helper{a: a},
+			constraint: *plane.New(*vector.New(a.S()+1, 0), *vector.New(-1, 0)),
+			success:    false,
+			want:       vector.V{},
+		},
+		config{
+			name:       "SingleNotViableConstraint/Out",
+			h:          Helper{a: a},
+			constraint: *plane.New(*vector.New(a.S()+1, 0), *vector.New(1, 0)),
+			success:    false,
+			want:       vector.V{},
+		},
+	)
+
+	// Given that the preferred velocity is pointing straight up, and a
+	// viable constraint intersects the circle horizontally, the optimal
+	// solution is just the Y-intersect of the constraint line.
+	//
+	// Also tests P-invariance -- that is, if our choice of P does not
+	// matter as long as it lies on the constraint line.
+	testConfigs = append(
+		testConfigs,
+		config{
+			name:       "SingleViableConstraint/Intersection/CenterP",
+			h:          Helper{a: a},
+			constraint: *plane.New(*vector.New(0, 0.5), *vector.New(0, -1)),
+			success:    true,
+			want:       *vector.New(0, 0.5),
+		},
+		config{
+			name: "SingleViableConstraint/Intersection/LeftP",
+			h:    Helper{a: a},
+			// P is tangent to the circular constraint in top left quadrant.
+			constraint: *plane.New(*vector.New(a.S()*-math.Sqrt(3)/2, 0.5), *vector.New(0, -1)),
+			success:    true,
+			want:       *vector.New(0, 0.5),
+		},
+		config{
+			name:       "SingleViableConstraint/Intersection/RightP",
+			h:          Helper{a: a},
+			constraint: *plane.New(*vector.New(a.S()*math.Sqrt(3)/2, 0.5), *vector.New(0, -1)),
+			success:    true,
+			want:       *vector.New(0, 0.5),
+		},
+	)
 
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {

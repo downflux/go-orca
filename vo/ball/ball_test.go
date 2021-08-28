@@ -370,14 +370,14 @@ func TestVOConformance(t *testing.T) {
 	const nTests = 1000
 	const delta = 1e-10
 
-	type testConfig struct {
+	type config struct {
 		name string
 		a    agent.A
 		b    agent.A
 		tau  float64
 	}
 
-	testConfigs := []testConfig{
+	testConfigs := []config{
 		{
 			name: "SimpleCase",
 			a:    *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
@@ -399,7 +399,7 @@ func TestVOConformance(t *testing.T) {
 	}
 
 	for i := 0; i < nTests; i++ {
-		testConfigs = append(testConfigs, testConfig{
+		testConfigs = append(testConfigs, config{
 			name: fmt.Sprintf("Random-%v", i),
 			a:    ra(),
 			b:    ra(),

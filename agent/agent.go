@@ -14,10 +14,10 @@ type A interface {
 	// R returns the characteristic size of the agent.
 	R() float64
 
-	// G returns the preferred velocity vector of the agent, e.g. a vector
-	// which points to the next waypoint node, with the maximum speed of the
-	// agent.
-	G() vector.V
+	// T returns the target (read: preferred) velocity vector of the agent,
+	// e.g. a vector which points to the next waypoint node, with the
+	// maximum speed of the agent.
+	T() vector.V
 
 	// S returns the maximum speed of the agent.
 	S() float64
