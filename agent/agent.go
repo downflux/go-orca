@@ -15,8 +15,8 @@ type A interface {
 	R() float64
 
 	// G returns the preferred velocity vector of the agent, e.g. a vector
-	// which points to the next waypoint node, with the maximum
-	// speed of the agent.
+	// which points to the next waypoint node, with the maximum speed of the
+	// agent.
 	G() vector.V
 
 	// S returns the maximum speed of the agent.

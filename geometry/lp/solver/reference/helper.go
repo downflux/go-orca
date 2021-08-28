@@ -1,12 +1,12 @@
 package reference
 
 import (
+	"fmt"
 	"math"
 
+	"github.com/downflux/orca/agent"
 	"github.com/downflux/orca/geometry/plane"
 	"github.com/downflux/orca/geometry/vector"
-
-	agent "github.com/downflux/orca/agent/reference"
 )
 
 const (
@@ -22,7 +22,7 @@ type Helper struct {
 
 func (r Helper) Add(constraint plane.HP) (vector.V, bool) {
 	dot := vector.Dot(constraint.P(), constraint.D())
-	discriminant := dot*dot + r.a.R()*r.a.R() - vector.SquaredMagnitude(constraint.P())
+	discriminant := dot*dot + r.a.S()*r.a.S() - vector.SquaredMagnitude(constraint.P())
 
 	if discriminant < 0 {
 		return vector.V{}, false
@@ -33,6 +33,16 @@ func (r Helper) Add(constraint plane.HP) (vector.V, bool) {
 	// these two points.
 	tl := -dot - math.Sqrt(discriminant)
 	tr := -dot + math.Sqrt(discriminant)
+
+	// TODO(minkezhang): Make a parametric.LImpl struct implementing
+	//
+	// type L interface {
+	//   T(float)     vector.V  // (x, y) coordinate for a given t value.
+	//   Intersect(L) float     // L1 t-value at which L1 and L2 intersect.
+	//   P()          vector.V  // Origin point of the line.
+	//   D()          vector.V  // Direction of the line.
+	// }
+	fmt.Printf("DEBUG: tl == %v, tr == %v\n", tl, tr)
 
 	for _, c := range r.cs {
 		d := vector.Determinant(c.D(), constraint.D())
