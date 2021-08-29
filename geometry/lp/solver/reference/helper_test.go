@@ -127,6 +127,34 @@ func TestAdd(t *testing.T) {
 		},
 	)
 
+	testConfigs = append(
+		testConfigs,
+		config{
+			name: "SimpleRefinedConstraint/Improve",
+			h: Helper{
+				a: a,
+				cs: []plane.HP{
+					*plane.New(*vector.New(0, 1), *vector.New(0, -1)),
+				},
+			},
+			constraint: *plane.New(*vector.New(0, 0.5), *vector.New(0, -1)),
+			success:    true,
+			want:       *vector.New(0, 0.5),
+		},
+		config{
+			name: "SimpleRefinedConstraint/NoImprove",
+			h: Helper{
+				a: a,
+				cs: []plane.HP{
+					*plane.New(*vector.New(0, 0.5), *vector.New(0, -1)),
+				},
+			},
+			constraint: *plane.New(*vector.New(0, 1), *vector.New(0, -1)),
+			success:    true,
+			want:       *vector.New(0, 0.5),
+		},
+	)
+
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
 			if got, success := c.h.Add(c.constraint); success != c.success || !vector.Within(got, c.want, tolerance) {
