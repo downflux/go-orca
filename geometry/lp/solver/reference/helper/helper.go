@@ -19,8 +19,12 @@ type Agent interface {
 // H implements linearProgram1 from the reference RVO2
 // implmentation.
 type H struct {
-	cs []plane.HP
 	a  Agent
+	cs []plane.HP
+}
+
+func New(a Agent) *H {
+	return &H{a: a}
 }
 
 // Add calculates a vector along the constraint that minimizes the distance to
