@@ -13,13 +13,12 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Set up Go
-      uses: actions/setup-go@v2
+    - uses: actions/setup-go@v2
       with:
         go-version: 1.17
 
-    - name: Build
+    - name: Build github.com/downflux/orca
       run: go build -v github.com/downflux/orca/...
 
-    - name: Test
+    - name: Test github.com/downflux/orca
       run: go test -v github.com/downflux/orca/... -bench .
