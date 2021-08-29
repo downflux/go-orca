@@ -141,6 +141,10 @@ func TestAdd(t *testing.T) {
 			success:    true,
 			want:       *vector.New(0, 0.5),
 		},
+		// When the new constraint generates a vector less optimal than
+		// the ones generated previously, this implementation returns an
+		// infeasible error. This feasibility check is done in
+		// linearProgram2 in the RVO2 implementation.
 		config{
 			name: "SimpleRefinedConstraint/NoImprove",
 			h: Helper{
@@ -150,8 +154,8 @@ func TestAdd(t *testing.T) {
 				},
 			},
 			constraint: *plane.New(*vector.New(0, 1), *vector.New(0, -1)),
-			success:    true,
-			want:       *vector.New(0, 0.5),
+			success:    false,
+			want:       *vector.New(0, 0),
 		},
 	)
 
