@@ -5,10 +5,8 @@ This product includes software from the "RVO2" library (https://github.com/snape
 
 Some parts of the framework, including but not limited to
 
-  vo/ball/ball.go,
-  vo/ball/ball_test.go, 
-  geometry/lp/solver/solver.go, and
-  geometry/lp/solver/solver_test.go
+  vo/ball/...
+  geometry/lp/solver/...
 
 are copied from, derived from, or inspired by the RVO2 library.
 Copyright 2013 - 2021 Jamie Snape. All Rights Reserved.
