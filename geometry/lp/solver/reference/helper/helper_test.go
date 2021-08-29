@@ -1,4 +1,4 @@
-package reference
+package helper
 
 import (
 	"fmt"
@@ -20,7 +20,7 @@ func TestAdd(t *testing.T) {
 
 	type config struct {
 		name       string
-		h          Helper
+		h          H
 		constraint plane.HP
 		success    bool
 		want       vector.V
@@ -53,7 +53,7 @@ func TestAdd(t *testing.T) {
 		// same direction as N.
 		testConfigs = append(testConfigs, config{
 			name:       fmt.Sprintf("SingleViableConstraint/Tangent/In/%v", o.name),
-			h:          Helper{a: a},
+			h:          H{a: a},
 			constraint: *plane.New(o.p, vector.Scale(-1, o.p)),
 			success:    true,
 			want:       o.p,
@@ -66,7 +66,7 @@ func TestAdd(t *testing.T) {
 		// velocity vector should still be the same.
 		testConfigs = append(testConfigs, config{
 			name:       fmt.Sprintf("SingleViableConstraint/Tangent/Out/%v", o.name),
-			h:          Helper{a: a},
+			h:          H{a: a},
 			constraint: *plane.New(o.p, o.p),
 			success:    true,
 			want:       o.p,
@@ -81,14 +81,14 @@ func TestAdd(t *testing.T) {
 		testConfigs,
 		config{
 			name:       "SingleNotViableConstraint/In",
-			h:          Helper{a: a},
+			h:          H{a: a},
 			constraint: *plane.New(*vector.New(a.S()+1, 0), *vector.New(-1, 0)),
 			success:    false,
 			want:       vector.V{},
 		},
 		config{
 			name:       "SingleNotViableConstraint/Out",
-			h:          Helper{a: a},
+			h:          H{a: a},
 			constraint: *plane.New(*vector.New(a.S()+1, 0), *vector.New(1, 0)),
 			success:    false,
 			want:       vector.V{},
@@ -105,14 +105,14 @@ func TestAdd(t *testing.T) {
 		testConfigs,
 		config{
 			name:       "SingleViableConstraint/Intersection/CenterP",
-			h:          Helper{a: a},
+			h:          H{a: a},
 			constraint: *plane.New(*vector.New(0, 0.5), *vector.New(0, -1)),
 			success:    true,
 			want:       *vector.New(0, 0.5),
 		},
 		config{
 			name: "SingleViableConstraint/Intersection/LeftP",
-			h:    Helper{a: a},
+			h:    H{a: a},
 			// P is tangent to the circular constraint in top left quadrant.
 			constraint: *plane.New(*vector.New(a.S()*-math.Sqrt(3)/2, 0.5), *vector.New(0, -1)),
 			success:    true,
@@ -120,7 +120,7 @@ func TestAdd(t *testing.T) {
 		},
 		config{
 			name:       "SingleViableConstraint/Intersection/RightP",
-			h:          Helper{a: a},
+			h:          H{a: a},
 			constraint: *plane.New(*vector.New(a.S()*math.Sqrt(3)/2, 0.5), *vector.New(0, -1)),
 			success:    true,
 			want:       *vector.New(0, 0.5),
@@ -131,7 +131,7 @@ func TestAdd(t *testing.T) {
 		testConfigs,
 		config{
 			name: "SimpleRefinedConstraint/Improve",
-			h: Helper{
+			h: H{
 				a: a,
 				cs: []plane.HP{
 					*plane.New(*vector.New(0, 1), *vector.New(0, -1)),
@@ -147,7 +147,7 @@ func TestAdd(t *testing.T) {
 		// linearProgram2 in the RVO2 implementation.
 		config{
 			name: "SimpleRefinedConstraint/NoImprove",
-			h: Helper{
+			h: H{
 				a: a,
 				cs: []plane.HP{
 					*plane.New(*vector.New(0, 0.5), *vector.New(0, -1)),

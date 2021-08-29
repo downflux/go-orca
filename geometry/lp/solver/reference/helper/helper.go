@@ -1,4 +1,4 @@
-package reference
+package helper
 
 import (
 	"math"
@@ -16,9 +16,9 @@ type Agent interface {
 	T() vector.V
 }
 
-// Helper implements linearProgram1 from the reference RVO2
+// H implements linearProgram1 from the reference RVO2
 // implmentation.
-type Helper struct {
+type H struct {
 	cs []plane.HP
 	a  Agent
 }
@@ -36,7 +36,7 @@ type Helper struct {
 // impacting our overall group consensus.
 //
 // TODO(minkezhang): Think more about this and migrate to ORCA doc.
-func (r Helper) Add(constraint plane.HP) (vector.V, bool) {
+func (r H) Add(constraint plane.HP) (vector.V, bool) {
 	dot := vector.Dot(constraint.P(), constraint.D())
 	discriminant := dot*dot + r.a.S()*r.a.S() - vector.SquaredMagnitude(constraint.P())
 
