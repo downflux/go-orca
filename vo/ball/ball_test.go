@@ -51,7 +51,8 @@ func (vo Reference) ORCA() (plane.HP, error) {
 		fallthrough
 	case Left:
 		l := vo.l()
-		// Rotate by π / 2 towards the "outside" of the VO cone.
+		// Rotate anti-clockwise by π / 2 towards the "outside" of the
+		// VO cone.
 		n = vector.Unit(*vector.New(-l.Y(), l.X()))
 	default:
 		return plane.HP{}, status.Errorf(codes.Internal, "invalid domain %v", d)

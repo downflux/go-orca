@@ -40,7 +40,7 @@ func New(a Agent) *H {
 // impacting our overall group consensus.
 //
 // TODO(minkezhang): Think more about this and migrate to ORCA doc.
-func (r H) Add(constraint plane.HP) (vector.V, bool) {
+func (r *H) Add(constraint plane.HP) (vector.V, bool) {
 	dot := vector.Dot(constraint.P(), constraint.D())
 	discriminant := dot*dot + r.a.S()*r.a.S() - vector.SquaredMagnitude(constraint.P())
 
@@ -65,9 +65,47 @@ func (r H) Add(constraint plane.HP) (vector.V, bool) {
 
 	for _, c := range r.cs {
 		d := vector.Determinant(c.D(), constraint.D())
+		// Any existing optimal solution to the system of constraints
+		// must simulaneously satisfy all constraints.
+		//
+		// Thus, if the entirety of an existing constraint lies on the
+		// "invalid" side of the new constraint, then there does not
+		// exist a solution which will simultaneously satisfy both
+		// constraints. Thus, we need a check for when this occurs and
+		// bail out.
+		//
+		// We can understand this behavior geometrically in the case of
+		// two constraints with anti-parallel normals, and with an empty
+		// set intersection -- that is, the constraint directions D()
+		// are also anti-parallel. The existing solution must lie
+		// somewhere in the allowable region of one of these
+		// constraints; WLOG, when we add the other constraint, we see
+		// that there is no solution which will satisfy both
+		// constraints.
+		//
+		// we define n as the relative orientation between the new
+		// constraint and the existing constraint being checked. By our
+		// half-plane convention, a relative point p to the "left" of
+		// the constraint direction D() is invalid, which can be tested
+		// experimentally by
+		//
+		//   D() x p > 0
+		//
+		// We construct p to be a vector pointing away from the
+		// constraint contributing the D() term; given that there exists
+		// two known points that lie on each of the two constraints, we
+		// simply take the vector difference between these.
+		//
+		// N.B.: RVO2 chooses the "right" side of D() to be invalid;
+		// thus, their check is instead for n < 0. See
+		// https://github.com/snape/RVO2/blob/57098835aa27dda6d00c43fc0800f621724884cc/src/Agent.cpp#L314
+		// for an illuminating example: given w is pointing "away" from
+		// the VO, the RVO2 implementation chooses to define D() as a
+		// clockwise normal, whereas we have chosen to define D() as an
+		// anti-clockwise normal to w.
 		n := vector.Determinant(constraint.D(), vector.Sub(c.P(), constraint.P()))
 		if d < epsilon {
-			if n < 0 {
+			if n > 0 {
 				return vector.V{}, false
 			}
 			continue

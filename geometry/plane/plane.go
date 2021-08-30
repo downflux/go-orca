@@ -37,6 +37,12 @@ func (p HP) B() float64     { return p.bCache }
 
 // D returns the characteristic line along the plane is bisected. Points to the
 // "left" of the line are not permissible.
+//
+// N.B.: RVO2 defines the "right" side of the line as non-permissible, but we
+// have considered an anti-clockwise rotation of N() (e.g. +X -> +Y) to be more
+// natural. See
+// https://github.com/snape/RVO2/blob/57098835aa27dda6d00c43fc0800f621724884cc/src/Agent.cpp#L314
+// for evidence of this distinction.
 func (p HP) D() vector.V { return *vector.New(-p.N().Y(), p.N().X()) }
 
 func (p HP) In(v vector.V) bool {
