@@ -113,6 +113,48 @@ func (r *H) Add(constraint plane.HP) (vector.V, bool) {
 
 		// Find the intersection between the two lines as a function of
 		// the constraint parameter t.
+		//
+		// Given two constraints L, M, we need to find their
+		// intersection; WLOG, let's project the intersection point onto
+		// L.
+		//
+		// We know the parametric equation form of these lines -- that
+		// is,
+		//
+		//   L = P + tD
+		//   M = Q + uE
+		//
+		// At their intersection, we know that L meets M:
+		//
+		//   L = M
+		//   => P + tD = Q + uE
+		//
+		// We want to find the projection onto L, which means we need to
+		// find a concrete value for t. the other parameter u doesn't
+		// matter so much -- let's try to get rid of it.
+		//
+		//   uE = P - Q + tD
+		//
+		// Here, we know P, D, Q, and E are vectors, and we can
+		// decompose these into a system of equations by isolating their
+		// orthogonal (e.g. horizontal and vertical) components.
+		//
+		//   uEx = Px - Qx + tDx
+		//   uEy = Py - Qy + tDy
+		//
+		// Solving for u, we get
+		//
+		//   (Px - Qx + tDx) / Ex = (Py - Qy + tDy) / Ey
+		//   => Ey (Px - Qx + tDx) = Ex (Py - Qy + tDy)
+		//
+		// We leave the task of simplifying the above terms as an
+		// exercise to the reader. Isolating t, and noting some common
+		// substitutions, we get
+		//
+		//   t = || E x (P - Q) || / || D x E ||
+		//
+		// See https://gamedev.stackexchange.com/a/44733 for more
+		// information.
 		t := n / d
 		if d > 0 {
 			// tl and tr is mutated across loop boundaries.
@@ -132,11 +174,11 @@ func (r *H) Add(constraint plane.HP) (vector.V, bool) {
 
 	// We represent the linear constraint as a vector
 	//
-	//   l := P + td
+	//   L := P + tD
 	//
-	// We want to find the point on l which is closest to the agent goal
+	// We want to find the point on L which is closest to the agent goal
 	// velocity G; this is equivalent to finding the distance between G and
-	// l, and solving for t_min.
+	// L, and solving for t_min.
 	t := vector.Dot(constraint.D(), vector.Sub(r.a.T(), constraint.P()))
 
 	// If t_min lies beyond tl or tr, we know that t_min will fail to
