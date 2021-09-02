@@ -5,13 +5,13 @@ Golang implementation of the Optimal Reciprocal Collision Avoidance (ORCA) algor
 
 ```
 go version
-> go version go1.16.6 linux/amd64
+> go version go1.17 linux/amd64
 ```
 
 ## Testing
 
 ```
-go test ./... -bench . -cpu 1,2,4,8
+ go test -v github.com/downflux/orca/... -bench . -cpu 1,2,4,8,16,32,64
 ```
 
 ### Profiling
