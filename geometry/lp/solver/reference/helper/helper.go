@@ -11,6 +11,10 @@ const (
 	epsilon = 1e-10
 )
 
+// Agent represents the circular constraint and the optimization target.
+//
+// TODO(minkezhang): Rename to be less suggestive of this always representing a
+// physical moving object.
 type Agent interface {
 	S() float64
 	T() vector.V

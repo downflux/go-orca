@@ -14,6 +14,14 @@ const (
 	tolerance = 1e-10
 )
 
+type A struct {
+	r float64
+	t vector.V
+}
+
+func (a A) S() float64  { return a.r }
+func (a A) T() vector.V { return a.t }
+
 type S struct{}
 
 func (s S) Solve(a helper.Agent, cs []plane.HP) (vector.V, bool) {
@@ -55,15 +63,24 @@ func (s S) Solve(a helper.Agent, cs []plane.HP) (vector.V, bool) {
 				}
 				ncs = append(ncs, *plane.New(p, vector.Unit(vector.Sub(d.N(), c.N()))))
 			}
-			// TODO(minkezhang): Need to set the preferred velocity a.T() to
+			// We are trying to "expand" the intersected region
+			// outwards to find a valid solution; thus, we are
+			// trying to optimize for a target
 			//
-			//   a.T() = *vector.New(c.D().Y(), -c.D().X())
+			//   T := *vector.New(c.D().Y(), -c.D().X())
 			//
-			// Which is the "invalid" side of the constraint c.
+			// pointing to the "invalid" side of the constraint c.
+			//
+			// Any solution to this problem will return a vector
+			// which minimizes the distance between the set of
+			// constraints and this rotated target.
 			//
 			// TODO(minkezhang): Implement optimizeDirection arg for
 			// LP2() and LP1().
-			solution, ok := helper.Solve(a, ncs)
+			solution, ok := helper.Solve(A{
+				r: a.S(),
+				t: *vector.New(c.D().Y(), -c.D().X()),
+			}, ncs)
 			if !ok {
 				return vector.V{}, false
 			}
