@@ -25,6 +25,14 @@ type Agent interface {
 type H struct {
 	a  Agent
 	cs []plane.HP
+
+	// knownOptimalMagnitude indicates that we should only optimize the
+	// direction of the result -- this is passed down from LinearProgram3 in
+	// the reference RVO2 implementation. LP3 is called when there is no
+	// feasible solution to the 2D constraints; in this case, we want to
+	// move the object at max speed, with a velocity directed "into" the
+	// valid v-space region.
+	knownOptimalMagnitude bool
 }
 
 func New(a Agent) *H {
@@ -161,10 +169,13 @@ func (r *H) Add(constraint plane.HP) (vector.V, bool) {
 		// information.
 		t := n / d
 		if d > 0 {
-			// tl and tr is mutated across loop boundaries.
-			//
-			// TODO(minkezhang): Reason out that this is the
-			// "memory" of the optimal result.
+			// We are "shrinking" the possible range of t-values for
+			// L that the solution may project onto. The absolute
+			// min and max t-values are initially set as the
+			// max-speed circle intersection points; as we add more
+			// constraints, we progressively refine our valid
+			// interval by the constraint-constraint intersection
+			// points.
 			tr = math.Min(tr, t)
 		} else {
 			tl = math.Max(tl, t)
@@ -174,30 +185,46 @@ func (r *H) Add(constraint plane.HP) (vector.V, bool) {
 			return vector.V{}, false
 		}
 	}
-	// TODO(minkezhang): Implment direction opitmization.
 
-	// We represent the linear constraint as a vector
-	//
-	//   L := P + tD
-	//
-	// We want to find the point on L which is closest to the agent goal
-	// velocity G; this is equivalent to finding the distance between G and
-	// L, and solving for t_min.
-	t := vector.Dot(constraint.D(), vector.Sub(r.a.T(), constraint.P()))
+	var tOpt float64
 
-	// If t_min lies beyond tl or tr, we know that t_min will fail to
-	// satisfy at least one constraint (i.e. lies outside the boundaries of
-	// at least one half-plane). The "best" we can do is to bound our
-	// solution to the parametric bounds.
+	// We are choosing the maximal valid t-value on constraints where the
+	// target vector lies in the valid region, and choosing the minimal
+	// t-value otherwise.
 	//
-	// If t_min lies between tl and tr, then we know "optimal" t value is
-	// t_min and we can substitute directly into the result.
-	if t < tl {
-		t = tl
-	} else if t > tr {
-		t = tr
+	// Note that tl and tr are orientation-invariant, i.e. if we flip the
+	// constraint direction, tl and tr are still the same values; thus, we
+	// are choosing a distinct root for each contraint orientation.
+	if r.knownOptimalMagnitude {
+		if vector.Dot(constraint.D(), r.a.T()) < 0 {
+			tOpt = tl
+		} else {
+			tOpt = tr
+		}
+	} else {
+		// We represent the linear constraint as a vector
+		//
+		//   L := P + tD
+		//
+		// We want to find the point on L which is closest to the agent goal
+		// velocity G; this is equivalent to finding the distance between G and
+		// L, and solving for t_min.
+		tOpt = vector.Dot(constraint.D(), vector.Sub(r.a.T(), constraint.P()))
+
+		// If t_min lies beyond tl or tr, we know that t_min will fail to
+		// satisfy at least one constraint (i.e. lies outside the boundaries of
+		// at least one half-plane). The "best" we can do is to bound our
+		// solution to the parametric bounds.
+		//
+		// If t_min lies between tl and tr, then we know "optimal" t value is
+		// t_min and we can substitute directly into the result.
+		if tOpt < tl {
+			tOpt = tl
+		} else if tOpt > tr {
+			tOpt = tr
+		}
 	}
 
 	r.cs = append(r.cs, constraint)
-	return vector.Add(constraint.P(), vector.Scale(t, constraint.D())), true
+	return vector.Add(constraint.P(), vector.Scale(tOpt, constraint.D())), true
 }

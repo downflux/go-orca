@@ -158,6 +158,24 @@ func TestAdd(t *testing.T) {
 		},
 	)
 
+	testConfigs = append(
+		testConfigs,
+		config{
+			name:       "SimpleConstraint/KnownOptimalMagnitude/ValidConstraint",
+			h:          H{a: a, knownOptimalMagnitude: true},
+			constraint: *plane.New(*vector.New(0, 0.5), *vector.New(0, 1)),
+			success:    true,
+			want:       *vector.New(a.S()*-math.Sqrt(3)/2, 0.5),
+		},
+		config{
+			name:       "SimpleConstraint/KnownOptimalMagnitude/InvalidConstraint",
+			h:          H{a: a, knownOptimalMagnitude: true},
+			constraint: *plane.New(*vector.New(0, 0.5), *vector.New(0, -1)),
+			success:    true,
+			want:       *vector.New(-(a.S() * -math.Sqrt(3) / 2), 0.5),
+		},
+	)
+
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
 			if got, success := c.h.Add(c.constraint); success != c.success || !vector.Within(got, c.want, tolerance) {
