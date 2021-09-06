@@ -14,6 +14,8 @@ type L struct {
 	d vector.V
 }
 
+func New(p vector.V, d vector.V) *L { return &L{p: p, d: d} }
+
 func (l L) P() vector.V          { return l.p }
 func (l L) D() vector.V          { return l.d }
 func (l L) T(t float64) vector.V { return vector.Add(l.p, vector.Scale(t, l.d)) }
