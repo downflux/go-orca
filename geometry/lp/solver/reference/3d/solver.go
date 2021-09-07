@@ -47,7 +47,8 @@ func (s S) Solve(a helper.Agent, cs []plane.HP) (vector.V, bool) {
 		//
 		// N.B.: RVO2 defines the distance vector as pointing into the
 		// plane; we are using the less confusing orientation of
-		// pointing our distance vector towards the solution.
+		// pointing our distance vector towards the solution, which
+		// causes us to flip the inequality.
 		if vector.Determinant(c.D(), vector.Sub(solution, c.P())) > distance {
 			var ncs []plane.HP
 

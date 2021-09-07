@@ -43,7 +43,8 @@ func (r S) Solve(a helper.Agent, cs []plane.HP) (vector.V, bool) {
 		//
 		// N.B.: RVO2 chooses to orient the test vector towards the
 		// plane; we are instead using the less confusing orientation of
-		// pointing our test vector towards the solution p instead.
+		// pointing our test vector towards the solution p instead; this
+		// causes us to reverse the inequality.
 		//
 		// N.B.: RVO2 chooses the "right" side of D() to be valid, and
 		// therefore checks if the determinant is negative instead.

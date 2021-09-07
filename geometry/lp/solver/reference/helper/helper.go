@@ -66,15 +66,6 @@ func (r *H) Add(constraint plane.HP) (vector.V, bool) {
 	tl := -dot - math.Sqrt(discriminant)
 	tr := -dot + math.Sqrt(discriminant)
 
-	// TODO(minkezhang): Make a parametric.LImpl struct implementing
-	//
-	// type L interface {
-	//   T(float)     vector.V  // (x, y) coordinate for a given t value.
-	//   Intersect(L) float     // L1 t-value at which L1 and L2 intersect.
-	//   P()          vector.V  // Origin point of the line.
-	//   D()          vector.V  // Direction of the line.
-	// }
-
 	for _, c := range r.cs {
 		d := vector.Determinant(c.D(), constraint.D())
 		// Any existing optimal solution to the system of constraints
