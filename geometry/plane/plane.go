@@ -28,7 +28,7 @@ func New(p vector.V, n vector.V) *HP {
 	d := *vector.New(-n.Y(), n.X())
 
 	return &HP{
-		L:      *line.New(p, d),
+		L: *line.New(p, d),
 	}
 }
 

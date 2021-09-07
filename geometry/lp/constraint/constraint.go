@@ -1,5 +1,9 @@
 package constraint
 
+import (
+	"github.com/downflux/orca/geometry/vector"
+)
+
 // C defines a linear constraint of the form
 //
 //   A • X <= B
@@ -18,15 +22,7 @@ type C interface {
 
 	// B returns the bound on the constraint.
 	B() float64
+
+	// In returns if a point in the space satisfies the constraint.
+	In(p vector.V) bool
 }
-
-type CImpl struct {
-	a []float64
-	b float64
-}
-
-func New(a []float64, b float64) *CImpl { return &CImpl{a: a, b: b} }
-
-func (c CImpl) Dimension() int { return len(c.a) }
-func (c CImpl) A() []float64   { return c.a }
-func (c CImpl) B() float64     { return c.b }

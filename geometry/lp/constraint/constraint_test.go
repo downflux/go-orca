@@ -6,37 +6,15 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/downflux/orca/geometry/lp/constraint/parametric"
+	"github.com/downflux/orca/geometry/lp/constraint/standard"
 	"github.com/downflux/orca/geometry/plane"
 	"github.com/downflux/orca/geometry/vector"
 )
 
-const tolerance = 1e-10
-
-var (
-	_ C = Reference{}
-	_ C = plane.HP{}
-	_ C = CImpl{}
+const (
+	tolerance = 1e-10
 )
-
-type Reference struct {
-	p vector.V
-	n vector.V
-}
-
-func (r Reference) Dimension() int { return 2 }
-func (r Reference) A() []float64 {
-	a := vector.Scale(-1, r.n)
-	return []float64{a.X(), a.Y()}
-}
-
-func (r Reference) B() float64 {
-	a := *vector.New(r.A()[0], r.A()[1])
-	return vector.Dot(a, r.p)
-}
-func (r Reference) In(v vector.V) bool {
-	a := *vector.New(r.A()[0], r.A()[1])
-	return vector.Dot(a, v) <= r.B()
-}
 
 // rn returns a random int between [-100, 100).
 func rn() float64 { return rand.Float64()*200 - 100 }
@@ -70,7 +48,7 @@ func TestConformance(t *testing.T) {
 	}
 	testConfigs := []testConfig{
 		{
-			name: "Horizontal",
+			name: "Vertical",
 			p:    *vector.New(0, 0),
 			n:    *vector.New(1, 0),
 			vs: []vector.V{
@@ -80,7 +58,7 @@ func TestConformance(t *testing.T) {
 			},
 		},
 		{
-			name: "Vertical",
+			name: "Horizontal",
 			p:    *vector.New(0, 0),
 			n:    *vector.New(0, 1),
 			vs: []vector.V{
@@ -125,28 +103,15 @@ func TestConformance(t *testing.T) {
 
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
-			r := Reference{p: c.p, n: c.n}
-			p := *plane.New(c.p, c.n)
+			p := *parametric.New(*plane.New(c.p, c.n))
+			s := *standard.New(p.A(), p.B())
 
 			t.Run("In", func(t *testing.T) {
 				for _, v := range c.vs {
-					want := r.In(v)
-					if got := p.In(v); got != want {
+					want := p.In(v)
+					if got := s.In(v); got != want {
 						t.Errorf("in() = %v, want = %v", got, want)
 					}
-				}
-			})
-			t.Run("A", func(t *testing.T) {
-				want := *vector.New(r.A()[0], r.A()[1])
-				got := *vector.New(p.A()[0], p.A()[1])
-				if !vector.Within(want, got, tolerance) {
-					t.Errorf("A() = %v, want = %v", got, want)
-				}
-			})
-			t.Run("B", func(t *testing.T) {
-				want := r.B()
-				if got := p.B(); !within(want, got, tolerance) {
-					t.Errorf("B() = %v, want = %v", got, want)
 				}
 			})
 		})
