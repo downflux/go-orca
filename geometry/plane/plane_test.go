@@ -20,7 +20,7 @@ func TestIn(t *testing.T) {
 		tests []check
 	}{
 		{
-			name: "Horizontal",
+			name: "Vertical",
 			hp: *New(
 				*vector.New(0, 0),
 				*vector.New(1, 0),
@@ -33,7 +33,7 @@ func TestIn(t *testing.T) {
 			},
 		},
 		{
-			name: "Vertical",
+			name: "Horizontal",
 			hp: *New(
 				*vector.New(0, 0),
 				*vector.New(0, 1),
