@@ -44,7 +44,11 @@ func (s S) Solve(a helper.Agent, cs []plane.HP) (vector.V, bool) {
 		// See
 		// https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Another_vector_formulation
 		// for more information.
-		if vector.Determinant(c.D(), vector.Sub(c.P(), solution)) < distance {
+		//
+		// N.B.: RVO2 defines the distance vector as pointing into the
+		// plane; we are using the less confusing orientation of
+		// pointing our distance vector towards the solution.
+		if vector.Determinant(c.D(), vector.Sub(solution, c.P())) > distance {
 			var ncs []plane.HP
 
 			for _, d := range cs[:i] {
@@ -84,7 +88,7 @@ func (s S) Solve(a helper.Agent, cs []plane.HP) (vector.V, bool) {
 			if !ok {
 				return vector.V{}, false
 			}
-			distance = vector.Determinant(c.D(), vector.Sub(c.P(), solution))
+			distance = vector.Determinant(c.D(), vector.Sub(solution, c.P()))
 		}
 	}
 

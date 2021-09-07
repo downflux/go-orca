@@ -35,15 +35,19 @@ func (r S) Solve(a helper.Agent, cs []plane.HP) (vector.V, bool) {
 	for _, c := range cs {
 		// Checks if the existing solution satisfies the new constraint.
 		// In our constraint implementation, we have chosen the "left"
-		// side of the plane direction D() to be valid, and so
+		// side of the plane direction D() to be invalid, and so
 		//
-		//   D() x p < 0
+		//   D() x p > 0
 		//
 		// Implies p does not satisfy the constraint.
 		//
+		// N.B.: RVO2 chooses to orient the test vector towards the
+		// plane; we are instead using the less confusing orientation of
+		// pointing our test vector towards the solution p instead.
+		//
 		// N.B.: RVO2 chooses the "right" side of D() to be valid, and
-		// therefore checks if the determinant is positive instead.
-		if vector.Determinant(c.D(), vector.Sub(c.P(), solution)) < 0 {
+		// therefore checks if the determinant is negative instead.
+		if vector.Determinant(c.D(), vector.Sub(solution, c.P())) > 0 {
 			if r, ok := h.Add(c); ok {
 				solution = r
 			} else {
