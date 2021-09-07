@@ -79,12 +79,13 @@ func (l L) Intersect(m L, tolerance float64) (float64, bool) {
 
 // Distance finds the distance between the line l and a point p.
 //
-// This is given by
+// The distance from a line L to a point Q is given by
 //
-//   d := ||D x (p - P)|| / ||D||
+//   d := || D x (Q - P) || / || D ||
 //
-// See https://mathworld.wolfram.com/Point-LineDistance2-Dimensional.html for
-// more information.
+// See
+// https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Another_vector_formulation
+// for more information.
 func (l L) Distance(p vector.V) float64 {
 	v := vector.Sub(p, l.P())
 	return math.Abs(vector.Determinant(l.D(), v) / vector.Magnitude(l.D()))
