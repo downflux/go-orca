@@ -11,6 +11,42 @@ const (
 	tolerance = 1e-10
 )
 
+func TestDistance(t *testing.T) {
+	testConfigs := []struct {
+		name string
+		l    L
+		p    vector.V
+		want float64
+	}{
+		{
+			name: "Trivial",
+			l:    L{p: *vector.New(0, 0), d: *vector.New(0, 1)},
+			p:    *vector.New(0, 0),
+			want: 0,
+		},
+		{
+			name: "SimpleUnitDirection",
+			l:    L{p: *vector.New(0, 0), d: *vector.New(0, 1)},
+			p:    *vector.New(1, 1),
+			want: 1,
+		},
+		{
+			name: "SimpleLargeDirection",
+			l:    L{p: *vector.New(0, 0), d: *vector.New(0, 100)},
+			p:    *vector.New(1, 1),
+			want: 1,
+		},
+	}
+
+	for _, c := range testConfigs {
+		t.Run(c.name, func(t *testing.T) {
+			if got := c.l.Distance(c.p); math.Abs(c.want-got) > tolerance {
+				t.Errorf("Distance() = %v, want = %v", got, c.want)
+			}
+		})
+	}
+}
+
 func TestT(t *testing.T) {
 	testConfigs := []struct {
 		name string

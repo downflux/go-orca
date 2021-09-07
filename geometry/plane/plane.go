@@ -47,8 +47,8 @@ func (hp HP) In(p vector.V) bool {
 	// Remember that by the right hand rule, if v is on the "left" of the
 	// plane,
 	//
-	//   D x B > 0, and
-	//   N • B > 0
+	//   D x v > 0, and
+	//   N • v > 0
 	//
 	// As the left half of the plane is considered invalid, we are looking
 	// instead for the complementary result.
