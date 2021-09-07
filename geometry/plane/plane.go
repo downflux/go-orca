@@ -13,14 +13,10 @@ import (
 // permissible within the half-plane.
 type HP struct {
 	line.L
-
-	aCache []float64
-	bCache float64
 }
 
+// New constructs a half-plane passing through a point P and with normal N.
 func New(p vector.V, n vector.V) *HP {
-	a := vector.Scale(-1, n)
-
 	// D returns the characteristic line along the plane is bisected. Points
 	// to the "left" of the line are not permissible.
 	//
@@ -33,27 +29,33 @@ func New(p vector.V, n vector.V) *HP {
 
 	return &HP{
 		L:      *line.New(p, d),
-		aCache: []float64{a.X(), a.Y()},
-		bCache: vector.Dot(a, p),
 	}
 }
 
 // N returns the normal vector of the plane, pointing away from the invalid
 // region.
-func (p HP) N() vector.V { return *vector.New(p.D().Y(), -p.D().X()) }
+func (hp HP) N() vector.V { return *vector.New(hp.D().Y(), -hp.D().X()) }
 
-func (p HP) Dimension() int { return 2 }
-func (p HP) A() []float64   { return p.aCache }
-func (p HP) B() float64     { return p.bCache }
-
-func (p HP) In(v vector.V) bool {
+// In checks if a given point in vector space is in valid region of the
+// half-plane.
+func (hp HP) In(p vector.V) bool {
 	// Generate a vector with tail on D and pointing towards the input.
-	w := vector.Sub(v, p.P())
+	v := vector.Sub(p, hp.P())
 
 	// Check relative orientation between w and D.
-	return vector.Dot(w, p.N()) >= 0
+	//
+	// Remember that by the right hand rule, if v is on the "left" of the
+	// plane,
+	//
+	//   D x B > 0, and
+	//   N • B > 0
+	//
+	// As the left half of the plane is considered invalid, we are looking
+	// instead for the complementary result.
+	return vector.Determinant(hp.D(), v) <= 0
 }
 
+// Within checks if two planes are equal.
 func Within(a HP, b HP, tolerance float64) bool {
 	return vector.Within(a.N(), b.N(), tolerance) && vector.Within(a.P(), b.P(), tolerance)
 }
