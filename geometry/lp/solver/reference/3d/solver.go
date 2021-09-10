@@ -27,7 +27,7 @@ type S struct{}
 func (s S) Solve(a helper.Agent, cs []plane.HP) (vector.V, bool) {
 	var distance float64
 	var solution vector.V
-	helper := s2d.S{}
+	helper := *s2d.New(true)
 
 	for i, c := range cs {
 		// Since RVO2 line direction D is anti-parallel to our
@@ -66,6 +66,9 @@ func (s S) Solve(a helper.Agent, cs []plane.HP) (vector.V, bool) {
 					t := vector.Determinant(d.D(), vector.Sub(c.P(), d.P())) / determinant
 					p = vector.Add(c.P(), vector.Scale(t, c.D()))
 				}
+				// Note the direction of the newly constructed
+				// contraint is not "in between" the two
+				// constraints c and d.
 				ncs = append(ncs, *plane.New(p, vector.Unit(vector.Sub(d.N(), c.N()))))
 			}
 			// We are trying to "expand" the intersected region

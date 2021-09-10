@@ -6,24 +6,31 @@ import (
 	"github.com/downflux/orca/geometry/vector"
 )
 
-type S struct{}
+type S struct {
+	knownOptimalMagnitude bool
+}
+
+func New(knownOptimalMagnitude bool) *S {
+	return &S{knownOptimalMagnitude: knownOptimalMagnitude}
+}
 
 type maxSpeedAgent struct {
 	helper.Agent
+	knownOptimalMagnitude bool
 }
 
 // T ensures the underlying agent preferred velocity does not exceed the maximum
 // speed of the agent.
 func (a maxSpeedAgent) T() vector.V {
-	if vector.SquaredMagnitude(a.Agent.T()) > a.Agent.S()*a.Agent.S() {
+	if a.knownOptimalMagnitude || vector.SquaredMagnitude(a.Agent.T()) > a.Agent.S()*a.Agent.S() {
 		return vector.Scale(a.Agent.S(), vector.Unit(a.Agent.T()))
 	}
 	return a.Agent.T()
 }
 
 func (r S) Solve(a helper.Agent, cs []plane.HP) (vector.V, bool) {
-	msa := maxSpeedAgent{Agent: a}
-	h := helper.New(msa)
+	msa := maxSpeedAgent{Agent: a, knownOptimalMagnitude: r.knownOptimalMagnitude}
+	h := helper.New(msa, r.knownOptimalMagnitude)
 
 	solution := msa.T()
 	for _, c := range cs {

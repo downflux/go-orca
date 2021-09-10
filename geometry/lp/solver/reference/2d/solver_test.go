@@ -35,7 +35,9 @@ func TestMaxSpeedAgent(t *testing.T) {
 
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
-			a := maxSpeedAgent{*agent.New(agent.O{T: c.t, S: c.s})}
+			a := maxSpeedAgent{
+				Agent: *agent.New(agent.O{T: c.t, S: c.s}),
+			}
 
 			if got := a.T(); !vector.Within(got, c.want, tolerance) {
 				t.Errorf("T() = %v, want = %v", got, c.want)

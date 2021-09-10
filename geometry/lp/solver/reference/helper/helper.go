@@ -35,8 +35,8 @@ type H struct {
 	knownOptimalMagnitude bool
 }
 
-func New(a Agent) *H {
-	return &H{a: a}
+func New(a Agent, knownOptimalMagnitude bool) *H {
+	return &H{a: a, knownOptimalMagnitude: knownOptimalMagnitude}
 }
 
 // Add calculates a vector along the constraint that minimizes the distance to
