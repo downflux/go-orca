@@ -1,8 +1,6 @@
 package solver
 
 import (
-	"math"
-
 	"github.com/downflux/orca/geometry/lp/solver/reference/helper"
 	"github.com/downflux/orca/geometry/plane"
 	"github.com/downflux/orca/geometry/vector"
@@ -21,10 +19,6 @@ func (a maxSpeedAgent) T() vector.V {
 		return vector.Scale(a.Agent.S(), vector.Unit(a.Agent.T()))
 	}
 	return a.Agent.T()
-	return vector.Scale(
-		math.Min(1, vector.Magnitude(a.Agent.T())/a.Agent.S()),
-		vector.Unit(a.Agent.T()),
-	)
 }
 
 func (r S) Solve(a helper.Agent, cs []plane.HP) (vector.V, bool) {
