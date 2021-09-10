@@ -90,8 +90,10 @@ func (l L) Intersect(m L, tolerance float64) (float64, bool) {
 //
 // See https://stackoverflow.com/a/1084899 for more information.
 func (l L) IntersectCircle(c circle.C) (float64, float64, bool) {
-	dot := vector.Dot(l.P(), l.D())
-	discriminant := dot*dot + c.R()*c.R() - vector.SquaredMagnitude(l.P())
+	p := vector.Sub(l.P(), c.P())
+
+	dot := vector.Dot(p, l.D())
+	discriminant := dot*dot + c.R()*c.R() - vector.SquaredMagnitude(p)
 
 	// The line does not intersect the circle.
 	if discriminant < 0 {

@@ -4,6 +4,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/downflux/orca/geometry/circle"
 	"github.com/downflux/orca/geometry/vector"
 )
 
@@ -104,7 +105,55 @@ func TestIntersection(t *testing.T) {
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
 			if got, ok := c.l.Intersect(c.m, tolerance); ok != c.success || math.Abs(got-c.want) >= tolerance {
-				t.Errorf("Intersection() = %v, %v, want = %v, %v", got, ok, c.want, c.success)
+				t.Errorf("Intersect() = %v, %v, want = %v, %v", got, ok, c.want, c.success)
+			}
+		})
+	}
+}
+
+func TestIntersectionCircle(t *testing.T) {
+	testConfigs := []struct {
+		name    string
+		l       L
+		c       circle.C
+		success bool
+		want    []float64
+	}{
+		{
+			name:    "SimpleOriginIntersection",
+			l:       L{p: *vector.New(0, 0), d: *vector.New(1, 0)},
+			c:       *circle.New(*vector.New(0, 0), 1),
+			success: true,
+			want:    []float64{-1, 1},
+		},
+		{
+			name:    "SimpleNoIntersection",
+			l:       L{p: *vector.New(0, 0), d: *vector.New(1, 0)},
+			c:       *circle.New(*vector.New(0, 2), 1),
+			success: false,
+			want:    []float64{0, 0},
+		},
+		{
+			name:    "SimpleTangent",
+			l:       L{p: *vector.New(0, 0), d: *vector.New(1, 0)},
+			c:       *circle.New(*vector.New(0, 1), 1),
+			success: true,
+			want:    []float64{0, 0},
+		},
+		{
+			name:    "OffCenterLineIntersect",
+			l:       L{p: *vector.New(0, 1), d: *vector.New(1, 0)},
+			c:       *circle.New(*vector.New(0, 0), 1),
+			success: true,
+			want:    []float64{0, 0},
+		},
+	}
+
+	for _, c := range testConfigs {
+		t.Run(c.name, func(t *testing.T) {
+			tl, tr, ok := c.l.IntersectCircle(c.c)
+			if ok != c.success || math.Abs(tl-c.want[0]) >= tolerance || math.Abs(tr-c.want[1]) >= tolerance {
+				t.Fatalf("IntersectCircle() = %v, %v, %v, want = %v, %v, %v", tl, tr, ok, c.want[0], c.want[1], c.success)
 			}
 		})
 	}

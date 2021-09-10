@@ -9,7 +9,7 @@ type C struct {
 	p vector.V
 }
 
-func New(r float64, p vector.V) *C {
+func New(p vector.V, r float64) *C {
 	return &C{r: r, p: p}
 }
 
