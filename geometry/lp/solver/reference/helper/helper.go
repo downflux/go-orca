@@ -63,6 +63,8 @@ func (r *H) Add(constraint plane.HP) (vector.V, bool) {
 	// Find two intersections between line and circle. This is equivalent to
 	// having two additional constraints which lie tangent to the circle at
 	// these two points.
+	//
+	// See https://stackoverflow.com/a/1084899 for more information.
 	tl := -dot - math.Sqrt(discriminant)
 	tr := -dot + math.Sqrt(discriminant)
 

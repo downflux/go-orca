@@ -2,8 +2,8 @@ package reference
 
 import (
 	"github.com/downflux/orca/agent"
-	"github.com/downflux/orca/geometry/vector"
 	"github.com/downflux/orca/geometry/circle"
+	"github.com/downflux/orca/geometry/vector"
 )
 
 var (
@@ -23,7 +23,7 @@ type A struct {
 	o O
 }
 
-func New(o O) *A { return &A{ o: o, c: *circle.New(o.R, o.P) } }
+func New(o O) *A { return &A{o: o, c: *circle.New(o.R, o.P)} }
 
 func (a A) P() vector.V { return a.c.P() }
 func (a A) R() float64  { return a.c.R() }

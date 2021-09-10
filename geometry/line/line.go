@@ -3,6 +3,7 @@ package line
 import (
 	"math"
 
+	"github.com/downflux/orca/geometry/circle"
 	"github.com/downflux/orca/geometry/vector"
 )
 
@@ -75,6 +76,35 @@ func (l L) Intersect(m L, tolerance float64) (float64, bool) {
 	}
 
 	return n / d, true
+}
+
+// IntersectCircle returns the t-values at which the line intersects a circle.
+// If the line does not intersect a circle, the function will return not
+// successful.
+//
+// As a line stretches to infinity in both directions, it is not possible for a
+// line to intersect the circle partway.
+//
+// If the line lies tangent to the circle, then the returned t-values are the
+// same.
+//
+// See https://stackoverflow.com/a/1084899 for more information.
+func (l L) IntersectCircle(c circle.C) (float64, float64, bool) {
+	dot := vector.Dot(l.P(), l.D())
+	discriminant := dot*dot + c.R()*c.R() - vector.SquaredMagnitude(l.P())
+
+	// The line does not intersect the circle.
+	if discriminant < 0 {
+		return 0, 0, false
+	}
+
+	// Find two intersections between line and circle. This is equivalent to
+	// having two additional constraints which lie tangent to the circle at
+	// these two points.
+	tl := -dot - math.Sqrt(discriminant)
+	tr := -dot + math.Sqrt(discriminant)
+
+	return tl, tr, true
 }
 
 // Distance finds the distance between the line l and a point p.
