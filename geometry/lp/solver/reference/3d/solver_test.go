@@ -20,6 +20,11 @@ func TestSolve(t *testing.T) {
 		success bool
 		want    vector.V
 	}{
+		// If there is no constraint, the input from the seed condition
+		// should be returned. Note that this remains the case even if
+		// the seed condition velocity vector exceeds the maximum speed
+		// (the circular constraint); this is to match existing RVO2
+		// behavior.
 		{
 			name:    "NoConstraint",
 			a:       A{r: 1, t: *vector.New(0, 1)},
