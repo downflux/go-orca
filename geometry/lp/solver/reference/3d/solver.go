@@ -26,7 +26,7 @@ type S struct{}
 
 func (s S) Solve(a helper.Agent, cs []plane.HP) (vector.V, bool) {
 	var distance float64
-	var solution vector.V
+	solution := a.T()
 	helper := *s2d.New(true)
 
 	for i, c := range cs {
