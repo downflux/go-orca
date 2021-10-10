@@ -6,6 +6,17 @@ import (
 	"github.com/downflux/orca/vector/vector"
 )
 
+type P interface {
+}
+
+type T interface {
+	Insert(p P)
+	Remove(p P)
+	Intersect(t T) []P
+	Within(v vector.V, r float64) []P
+	Near(p P, n int) []P
+}
+
 type p struct {
 	v vector.V
 }
