@@ -34,28 +34,44 @@ func TestSolve(t *testing.T) {
 			success: true,
 			want:    *vector.New(0, 1),
 		},
-	}
 
-	testConfigs = append(testConfigs,
-		config{
-			name: "SingleConstraint/NoOpt",
+		// Find a suitable solution when given solution is infeasible.
+		{
+			name: "SingleConstraint/InfeasibleOpt",
 			a:    A{r: 1, t: *vector.New(0, 0.6)},
 			cs: []plane.HP{
 				*plane.New(*vector.New(0, 0.5), *vector.New(0, -1)),
 			},
 			success: true,
-			want:    *vector.New(0, 0.6),
+			want:    *vector.New(0, -1),
 		},
-		config{
-			name: "SingleConstraint/Opt",
+
+		// If a solution is already feasible, do not optimize it.
+		{
+			name: "SingleConstraint/FeasibleNoOpt",
 			a:    A{r: 1, t: *vector.New(0, 0.6)},
 			cs: []plane.HP{
 				*plane.New(*vector.New(0, 0.5), *vector.New(0, 1)),
 			},
 			success: true,
-			want:    *vector.New(0, 1),
+			want:    *vector.New(0, 0.6),
 		},
-	)
+
+		// In the case of constraints which have no common intersection,
+		// the solver should return a target velocity vector which is
+		// pointed in a direction that is minimally intrusive into the
+		// forbidden regions.
+		{
+			name: "MultipleConstraint/MutuallyExclusive",
+			a:    A{r: 1, t: *vector.New(0, 0)},
+			cs: []plane.HP{
+				*plane.New(*vector.New(0, 0.5), *vector.New(0, 1)),
+				*plane.New(*vector.New(0, -0.5), *vector.New(0, -1)),
+			},
+			success: true,
+			want:    *vector.New(-1, 0),
+		},
+	}
 
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
@@ -63,12 +79,6 @@ func TestSolve(t *testing.T) {
 			got, ok := s.Solve(c.a, c.cs)
 			if ok != c.success || !vector.Within(got, c.want, tolerance) {
 				t.Errorf("Solve() = %v, %v, want = %v, %v", got, ok, c.want, c.success)
-			}
-			for _, p := range c.cs {
-				// TODO(minkezhang): Fix this.
-				if ok := p.In(got); !ok {
-					t.Errorf("%v.In(%v) = %v, want = %v; N() == %v, D() == %v", p, got, ok, true, p.N(), p.D())
-				}
 			}
 		})
 	}
