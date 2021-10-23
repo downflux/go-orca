@@ -6,21 +6,15 @@ import (
 	"github.com/downflux/orca/geometry/vector"
 	"github.com/downflux/orca/kd/axis"
 	"github.com/google/go-cmp/cmp"
+
+	mock "github.com/downflux/orca/kd/point/mock"
 )
 
 const (
 	tolerance = 1e-10
 )
 
-var _ P = point{}
-
-type point struct {
-	v    vector.V
-	hash string
-}
-
-func (p point) Hash() string { return p.hash }
-func (p point) V() vector.V  { return p.v }
+var _ P = mock.P{}
 
 func TestSorterLen(t *testing.T) {
 	testConfigs := []struct {
@@ -38,7 +32,7 @@ func TestSorterLen(t *testing.T) {
 		{
 			name: "Simple",
 			data: []P{
-				point{v: *vector.New(1, 1)},
+				*mock.New(*vector.New(1, 1), ""),
 			},
 			axis: axis.Axis_X,
 			want: 1,
@@ -46,8 +40,8 @@ func TestSorterLen(t *testing.T) {
 		{
 			name: "Duplicate",
 			data: []P{
-				point{v: *vector.New(1, 1)},
-				point{v: *vector.New(1, 1)},
+				*mock.New(*vector.New(1, 1), ""),
+				*mock.New(*vector.New(1, 1), ""),
 			},
 			axis: axis.Axis_X,
 			want: 2,
@@ -79,7 +73,7 @@ func TestSorterLess(t *testing.T) {
 			name: "OneElement/X",
 			s: &sorter{
 				data: []P{
-					point{v: *vector.New(1, 2)},
+					*mock.New(*vector.New(1, 2), ""),
 				},
 				axis: axis.Axis_X,
 			},
@@ -91,7 +85,7 @@ func TestSorterLess(t *testing.T) {
 			name: "OneElement/Y",
 			s: &sorter{
 				data: []P{
-					point{v: *vector.New(1, 2)},
+					*mock.New(*vector.New(1, 2), ""),
 				},
 				axis: axis.Axis_Y,
 			},
@@ -103,8 +97,8 @@ func TestSorterLess(t *testing.T) {
 			name: "Simple/X",
 			s: &sorter{
 				data: []P{
-					point{v: *vector.New(1, 2)},
-					point{v: *vector.New(2, 1)},
+					*mock.New(*vector.New(1, 2), ""),
+					*mock.New(*vector.New(2, 1), ""),
 				},
 				axis: axis.Axis_X,
 			},
@@ -116,8 +110,8 @@ func TestSorterLess(t *testing.T) {
 			name: "Simple/Y",
 			s: &sorter{
 				data: []P{
-					point{v: *vector.New(1, 2)},
-					point{v: *vector.New(2, 1)},
+					*mock.New(*vector.New(1, 2), ""),
+					*mock.New(*vector.New(2, 1), ""),
 				},
 				axis: axis.Axis_Y,
 			},
@@ -147,7 +141,7 @@ func TestSorterSwap(t *testing.T) {
 		{
 			name: "OneElement",
 			data: []P{
-				point{v: *vector.New(1, 2)},
+				*mock.New(*vector.New(1, 2), ""),
 			},
 			i: 0,
 			j: 0,
@@ -159,8 +153,8 @@ func TestSorterSwap(t *testing.T) {
 		{
 			name: "TwoElements",
 			data: []P{
-				point{v: *vector.New(1, 2)},
-				point{v: *vector.New(2, 1)},
+				*mock.New(*vector.New(1, 2), ""),
+				*mock.New(*vector.New(2, 1), ""),
 			},
 			i: 0,
 			j: 1,
@@ -183,7 +177,7 @@ func TestSorterSwap(t *testing.T) {
 			if diff := cmp.Diff(
 				c.want,
 				got,
-				cmp.AllowUnexported(point{}, vector.V{})); diff != "" {
+				cmp.AllowUnexported(mock.P{}, vector.V{})); diff != "" {
 				t.Errorf("Swap() mismatch (-want +got):\n%s", diff)
 			}
 		})
@@ -199,85 +193,85 @@ func TestSort(t *testing.T) {
 	}{
 		{
 			name: "Trivial/NoData/X",
-			data: []P{point{v: *vector.New(1, 2)}},
+			data: []P{*mock.New(*vector.New(1, 2), "")},
 			axis: axis.Axis_X,
-			want: []P{point{v: *vector.New(1, 2)}},
+			want: []P{*mock.New(*vector.New(1, 2), "")},
 		},
 		{
 			name: "Trivial/NoData/Y",
-			data: []P{point{v: *vector.New(1, 2)}},
+			data: []P{*mock.New(*vector.New(1, 2), "")},
 			axis: axis.Axis_Y,
-			want: []P{point{v: *vector.New(1, 2)}},
+			want: []P{*mock.New(*vector.New(1, 2), "")},
 		},
 
 		{
 			name: "Trivial/WithData/X",
-			data: []P{point{v: *vector.New(1, 2), hash: "foo"}},
+			data: []P{*mock.New(*vector.New(1, 2), "foo")},
 			axis: axis.Axis_X,
-			want: []P{point{v: *vector.New(1, 2), hash: "foo"}},
+			want: []P{*mock.New(*vector.New(1, 2), "foo")},
 		},
 		{
 			name: "Trivial/NoData/Y",
-			data: []P{point{v: *vector.New(1, 2), hash: "foo"}},
+			data: []P{*mock.New(*vector.New(1, 2), "foo")},
 			axis: axis.Axis_Y,
-			want: []P{point{v: *vector.New(1, 2), hash: "foo"}},
+			want: []P{*mock.New(*vector.New(1, 2), "foo")},
 		},
 
 		{
 			name: "Simple/NoData/X",
 			data: []P{
-				point{v: *vector.New(3, 1)},
-				point{v: *vector.New(2, 2)},
-				point{v: *vector.New(1, 3)},
+				*mock.New(*vector.New(3, 1), ""),
+				*mock.New(*vector.New(2, 2), ""),
+				*mock.New(*vector.New(1, 3), ""),
 			},
 			axis: axis.Axis_X,
 			want: []P{
-				point{v: *vector.New(1, 3)},
-				point{v: *vector.New(2, 2)},
-				point{v: *vector.New(3, 1)},
+				*mock.New(*vector.New(1, 3), ""),
+				*mock.New(*vector.New(2, 2), ""),
+				*mock.New(*vector.New(3, 1), ""),
 			},
 		},
 		{
 			name: "Simple/NoData/Y",
 			data: []P{
-				point{v: *vector.New(1, 3)},
-				point{v: *vector.New(2, 2)},
-				point{v: *vector.New(3, 1)},
+				*mock.New(*vector.New(1, 3), ""),
+				*mock.New(*vector.New(2, 2), ""),
+				*mock.New(*vector.New(3, 1), ""),
 			},
 			axis: axis.Axis_Y,
 			want: []P{
-				point{v: *vector.New(3, 1)},
-				point{v: *vector.New(2, 2)},
-				point{v: *vector.New(1, 3)},
+				*mock.New(*vector.New(3, 1), ""),
+				*mock.New(*vector.New(2, 2), ""),
+				*mock.New(*vector.New(1, 3), ""),
 			},
 		},
 
 		{
 			name: "Simple/WithData/X",
 			data: []P{
-				point{v: *vector.New(3, 1), hash: "foo3"},
-				point{v: *vector.New(2, 2), hash: "foo2"},
-				point{v: *vector.New(1, 3), hash: "foo1"},
+				*mock.New(*vector.New(3, 1), "foo3"),
+				*mock.New(*vector.New(2, 2), "foo2"),
+				*mock.New(*vector.New(1, 3), "foo1"),
 			},
 			axis: axis.Axis_X,
 			want: []P{
-				point{v: *vector.New(1, 3), hash: "foo1"},
-				point{v: *vector.New(2, 2), hash: "foo2"},
-				point{v: *vector.New(3, 1), hash: "foo3"},
+				*mock.New(*vector.New(1, 3), "foo1"),
+				*mock.New(*vector.New(2, 2), "foo2"),
+				*mock.New(*vector.New(3, 1), "foo3"),
 			},
 		},
 		{
 			name: "Simple/WithData/Y",
 			data: []P{
-				point{v: *vector.New(1, 3), hash: "foo1"},
-				point{v: *vector.New(2, 2), hash: "foo2"},
-				point{v: *vector.New(3, 1), hash: "foo3"},
+				*mock.New(*vector.New(1, 3), "foo1"),
+				*mock.New(*vector.New(2, 2), "foo2"),
+				*mock.New(*vector.New(3, 1), "foo3"),
 			},
 			axis: axis.Axis_Y,
 			want: []P{
-				point{v: *vector.New(3, 1), hash: "foo3"},
-				point{v: *vector.New(2, 2), hash: "foo2"},
-				point{v: *vector.New(1, 3), hash: "foo1"},
+				*mock.New(*vector.New(3, 1), "foo3"),
+				*mock.New(*vector.New(2, 2), "foo2"),
+				*mock.New(*vector.New(1, 3), "foo1"),
 			},
 		},
 	}
@@ -289,7 +283,7 @@ func TestSort(t *testing.T) {
 			if diff := cmp.Diff(
 				c.want,
 				c.data,
-				cmp.AllowUnexported(point{}, vector.V{})); diff != "" {
+				cmp.AllowUnexported(mock.P{}, vector.V{})); diff != "" {
 				t.Errorf("Swap() mismatch (-want +got):\n%s", diff)
 			}
 		})
