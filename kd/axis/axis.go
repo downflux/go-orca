@@ -7,7 +7,7 @@ import (
 type Type int
 
 const (
-	Axis_X Type = 0
+	Axis_X Type = iota
 	Axis_Y
 )
 
