@@ -47,7 +47,12 @@ func (n *N) Data() []point.P {
 
 // Insert inserts a data point into the node. The point may be stored inside a
 // child node.
-func (n *N) Insert(p point.P) {
+func (n *N) Insert(p point.P, tolerance float64) {
+	if vector.Within(p.V(), n.v, tolerance) {
+		n.data = append(n.data, p)
+		return
+	}
+
 	x := axis.X(p.V(), n.axis())
 	nx := axis.X(n.v, n.axis())
 
@@ -58,39 +63,39 @@ func (n *N) Insert(p point.P) {
 				v:     p.V(),
 			}
 		}
-		n.l.Insert(p)
-	} else if x > nx {
-		if n.r == nil {
-			n.r = &N{
-				depth: n.depth + 1,
-				v:     p.V(),
-			}
-		}
-		n.r.Insert(p)
-	} else {
-		n.data = append(n.data, p)
+		n.l.Insert(p, tolerance)
 	}
+
+	if n.r == nil {
+		n.r = &N{
+			depth: n.depth + 1,
+			v:     p.V(),
+		}
+	}
+	n.r.Insert(p, tolerance)
 }
 
 // Remove deletes a data point from the node or child nodes. A returned value of
 // false indicates the given point was not found.
-func (n *N) Remove(p point.P) bool {
+func (n *N) Remove(p point.P, tolerance float64) bool {
+	if vector.Within(p.V(), n.v, tolerance) {
+		for i := range n.data {
+			if p.Hash() == n.data[i].Hash() {
+				n.data[len(n.data)-1], n.data[i] = nil, n.data[len(n.data)-1]
+				return true
+			}
+		}
+		// TODO(minkezhang): Handle node removal when data is nil.
+	}
+
 	x := axis.X(p.V(), n.axis())
 	nx := axis.X(n.v, n.axis())
 
 	if x < nx {
-		return n.l != nil && n.l.Remove(p)
-	} else if x > nx {
-		return n.r != nil && n.r.Remove(p)
+		return n.l != nil && n.l.Remove(p, tolerance)
 	}
 
-	for i := range n.data {
-		if p.Hash() == n.data[i].Hash() {
-			n.data[len(n.data)-1], n.data[i] = nil, n.data[len(n.data)-1]
-			return true
-		}
-	}
-	return false
+	return n.r != nil && n.r.Remove(p, tolerance)
 }
 
 // New returns a new K-D tree node instance.
@@ -99,6 +104,14 @@ func New(data []point.P, depth int, tolerance float64) *N {
 		return nil
 	}
 
+	// Sort is not stable -- the order may be shuffled, meaning that while
+	// the axis coordinates are in order, the complement dimension is not.
+	//
+	// That is, give we are sorting on the x-axis,
+	//
+	//   [(1, 3), (1, 1)]
+	//
+	// is a valid ordering.
 	point.Sort(data, axis.A(depth))
 
 	m := len(data) / 2
