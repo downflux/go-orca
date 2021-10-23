@@ -55,7 +55,6 @@ func (hp HP) In(p vector.V) bool {
 	return vector.Determinant(hp.D(), v) <= 0
 }
 
-// Within checks if two planes are equal.
 func Within(a HP, b HP, tolerance float64) bool {
 	return vector.Within(a.N(), b.N(), tolerance) && vector.Within(a.P(), b.P(), tolerance)
 }

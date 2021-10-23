@@ -94,7 +94,7 @@ func (n *N) Remove(p point.P) bool {
 }
 
 // New returns a new K-D tree node instance.
-func New(data []point.P, depth int) *N {
+func New(data []point.P, depth int, tolerance float64) *N {
 	if len(data) == 0 {
 		return nil
 	}
@@ -104,20 +104,23 @@ func New(data []point.P, depth int) *N {
 	m := len(data) / 2
 	v := data[m].V()
 
-	l := m
-	r := m
-
-	for l := m; m >= 0 && v == data[l].V(); l-- {
+	// Find adjacent elements in the sorted list that have the same
+	// coordinates as the median, as they all should be in the same node.
+	var l int
+	var r int
+	for i := m; i >= 0 && vector.Within(v, data[i].V(), tolerance); i-- {
+		l = i
 	}
+	for i := m; i < len(data) && vector.Within(v, data[i].V(), tolerance); i++ {
+		r = i
+	}
+
 	l = int(math.Max(0, float64(l)))
-
-	for r := m; m < len(data) && v == data[r].V(); r++ {
-	}
-	r = int(math.Min(float64(len(data)), float64(r)))
+	r = int(math.Min(float64(len(data)-1), float64(r)))
 
 	return &N{
-		l:     New(data[:l], depth+1),
-		r:     New(data[r+1:], depth+1),
+		l:     New(data[:l], depth+1, tolerance),
+		r:     New(data[r+1:], depth+1, tolerance),
 		depth: depth,
 
 		v:    v,

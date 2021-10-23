@@ -30,6 +30,4 @@ func Rotate(theta float64, v V) V {
 	}
 }
 
-func Within(a V, b V, tolerance float64) bool {
-	return Magnitude(Sub(a, b)) < tolerance
-}
+func Within(a V, b V, tolerance float64) bool { return Magnitude(Sub(a, b)) < tolerance }
