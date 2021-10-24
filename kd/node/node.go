@@ -27,6 +27,26 @@ type N struct {
 	// data is a list of data points stored in this node. All data here are
 	// located at the same spacial coordinate.
 	data []point.P
+
+	// sizeCache keeps a count of the number of meaningful nodes in the current subtree.
+	// A size of 0 or 1 indicates this is a leaf node.
+	sizeCache int
+}
+
+func (n *N) leaf() bool { return n.size() <= 1 }
+func (n *N) size() int {
+	if n == nil {
+		return 0
+	}
+	return n.sizeCache
+}
+
+func (n *N) setSize() {
+	s := n.l.size() + n.r.size()
+	if len(n.data) > 0 {
+		s += 1
+	}
+	n.sizeCache = s
 }
 
 func (n *N) axis() axis.Type { return axis.A(n.depth) }
@@ -49,6 +69,10 @@ func (n *N) Data() []point.P {
 // Insert inserts a data point into the node. The point may be stored inside a
 // child node.
 func (n *N) Insert(p point.P, tolerance float64) {
+	// The number of meaningful child nodes may increase after this
+	// operation, so we need to ensure this cache is updated.
+	defer n.setSize()
+
 	if vector.Within(p.V(), n.v, tolerance) {
 		n.data = append(n.data, p)
 		return
@@ -84,6 +108,10 @@ func (n *N) Insert(p point.P, tolerance float64) {
 // k-d trees to be relatively stable once created, and that insert and remove
 // operations are kept at a minimum.
 func (n *N) Remove(p point.P, tolerance float64) bool {
+	// The number of meaningful child nodes may decrease after this
+	// operation, so we need to ensure this cache is updated.
+	defer n.setSize()
+
 	if vector.Within(p.V(), n.v, tolerance) {
 		for i := range n.data {
 			if p.Equal(n.data[i]) {
@@ -144,7 +172,7 @@ func New(data []point.P, depth int, tolerance float64) *N {
 	l = int(math.Max(0, float64(l)))
 	r = int(math.Min(float64(len(data)-1), float64(r)))
 
-	return &N{
+	n := &N{
 		l:     New(data[:l], depth+1, tolerance),
 		r:     New(data[r+1:], depth+1, tolerance),
 		depth: depth,
@@ -152,4 +180,7 @@ func New(data []point.P, depth int, tolerance float64) *N {
 		v:    v,
 		data: data[l : r+1],
 	}
+	n.setSize()
+
+	return n
 }
