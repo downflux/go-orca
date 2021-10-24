@@ -48,6 +48,7 @@ func TestNew(t *testing.T) {
 					data: []point.P{
 						*mock.New(v, ""),
 					},
+					sizeCache: 1,
 				},
 			},
 		)
@@ -66,9 +67,10 @@ func TestNew(t *testing.T) {
 			data:  duplicateCoordinates,
 			depth: 0,
 			want: &N{
-				depth: 0,
-				v:     *vector.New(1, 2),
-				data:  duplicateCoordinates,
+				depth:     0,
+				v:         *vector.New(1, 2),
+				data:      duplicateCoordinates,
+				sizeCache: 1,
 			},
 		},
 		config{
@@ -76,9 +78,10 @@ func TestNew(t *testing.T) {
 			data:  duplicateCoordinatesWithData,
 			depth: 0,
 			want: &N{
-				depth: 0,
-				v:     *vector.New(1, 2),
-				data:  duplicateCoordinatesWithData,
+				depth:     0,
+				v:         *vector.New(1, 2),
+				data:      duplicateCoordinatesWithData,
+				sizeCache: 1,
 			},
 		},
 	)
@@ -100,12 +103,14 @@ func TestNew(t *testing.T) {
 					data: []point.P{
 						*mock.New(*vector.New(1, 2), "B"),
 					},
+					sizeCache: 1,
 				},
 				depth: 0,
 				v:     *vector.New(2, 1),
 				data: []point.P{
 					*mock.New(*vector.New(2, 1), "A"),
 				},
+				sizeCache: 2,
 			},
 		},
 		config{
@@ -122,12 +127,14 @@ func TestNew(t *testing.T) {
 					data: []point.P{
 						*mock.New(*vector.New(2, 1), "A"),
 					},
+					sizeCache: 1,
 				},
 				depth: 1,
 				v:     *vector.New(1, 2),
 				data: []point.P{
 					*mock.New(*vector.New(1, 2), "B"),
 				},
+				sizeCache: 2,
 			},
 		},
 
@@ -148,12 +155,14 @@ func TestNew(t *testing.T) {
 					data: []point.P{
 						*mock.New(*vector.New(1, 2), "B"),
 					},
+					sizeCache: 1,
 				},
 				depth: 0,
 				v:     *vector.New(2, 1),
 				data: []point.P{
 					*mock.New(*vector.New(2, 1), "A"),
 				},
+				sizeCache: 2,
 			},
 		},
 
@@ -172,6 +181,7 @@ func TestNew(t *testing.T) {
 					data: []point.P{
 						*mock.New(*vector.New(1, 3), ""),
 					},
+					sizeCache: 1,
 				},
 				r: &N{
 					depth: 1,
@@ -179,12 +189,14 @@ func TestNew(t *testing.T) {
 					data: []point.P{
 						*mock.New(*vector.New(3, 1), ""),
 					},
+					sizeCache: 1,
 				},
 				depth: 0,
 				v:     *vector.New(2, 2),
 				data: []point.P{
 					*mock.New(*vector.New(2, 2), ""),
 				},
+				sizeCache: 3,
 			},
 		},
 		config{
@@ -202,6 +214,7 @@ func TestNew(t *testing.T) {
 					data: []point.P{
 						*mock.New(*vector.New(3, 1), ""),
 					},
+					sizeCache: 1,
 				},
 				r: &N{
 					depth: 2,
@@ -209,12 +222,14 @@ func TestNew(t *testing.T) {
 					data: []point.P{
 						*mock.New(*vector.New(1, 3), ""),
 					},
+					sizeCache: 1,
 				},
 				depth: 1,
 				v:     *vector.New(2, 2),
 				data: []point.P{
 					*mock.New(*vector.New(2, 2), ""),
 				},
+				sizeCache: 3,
 			},
 		},
 	)
@@ -259,12 +274,14 @@ func TestInsert(t *testing.T) {
 					data: []point.P{
 						*mock.New(*vector.New(2, 1), ""),
 					},
+					sizeCache: 1,
 				},
 				depth: 0,
 				v:     *vector.New(1, 2),
 				data: []point.P{
 					*mock.New(*vector.New(1, 2), ""),
 				},
+				sizeCache: 2,
 			},
 		},
 
@@ -284,6 +301,7 @@ func TestInsert(t *testing.T) {
 				data: []point.P{
 					*mock.New(*vector.New(1, 2), ""),
 				},
+				sizeCache: 3,
 
 				r: &N{
 					depth: 1,
@@ -291,6 +309,7 @@ func TestInsert(t *testing.T) {
 					data: []point.P{
 						*mock.New(*vector.New(2, 1), ""),
 					},
+					sizeCache: 2,
 
 					r: &N{
 						depth: 2,
@@ -298,6 +317,7 @@ func TestInsert(t *testing.T) {
 						data: []point.P{
 							*mock.New(*vector.New(1, 3), ""),
 						},
+						sizeCache: 1,
 					},
 				},
 			},
@@ -319,6 +339,7 @@ func TestInsert(t *testing.T) {
 					*mock.New(*vector.New(1, 2), "A"),
 					*mock.New(*vector.New(1, 2), "B"),
 				},
+				sizeCache: 1,
 			},
 		},
 
@@ -347,7 +368,9 @@ func TestInsert(t *testing.T) {
 					data: []point.P{
 						*mock.New(*vector.New(1, 3), ""),
 					},
+					sizeCache: 1,
 				},
+				sizeCache: 2,
 			},
 		},
 	}
@@ -389,9 +412,10 @@ func TestRemove(t *testing.T) {
 				*mock.New(*vector.New(1, 2), ""),
 			},
 			want: &N{
-				depth: 0,
-				v:     *vector.New(1, 2),
-				data:  []point.P{},
+				depth:     0,
+				v:         *vector.New(1, 2),
+				data:      []point.P{},
+				sizeCache: 0,
 			},
 		},
 
@@ -410,6 +434,7 @@ func TestRemove(t *testing.T) {
 				data: []point.P{
 					*mock.New(*vector.New(1, 2), ""),
 				},
+				sizeCache: 1,
 			},
 		},
 
@@ -434,6 +459,7 @@ func TestRemove(t *testing.T) {
 					v:     *vector.New(1, 2),
 					data:  []point.P{},
 				},
+				sizeCache: 1,
 			},
 		},
 
@@ -453,6 +479,7 @@ func TestRemove(t *testing.T) {
 				data: []point.P{
 					*mock.New(*vector.New(1, 2), ""),
 				},
+				sizeCache: 1,
 			},
 		},
 		{
@@ -471,6 +498,7 @@ func TestRemove(t *testing.T) {
 				data: []point.P{
 					*mock.New(*vector.New(1, 2), "B"),
 				},
+				sizeCache: 1,
 			},
 		},
 	}
