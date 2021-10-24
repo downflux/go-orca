@@ -2,6 +2,7 @@ package point
 
 import (
 	"github.com/downflux/orca/geometry/vector"
+	"github.com/downflux/orca/kd/point"
 )
 
 type P struct {
@@ -9,7 +10,7 @@ type P struct {
 	hash string
 }
 
-func (p P) Hash() string { return p.hash }
-func (p P) V() vector.V  { return p.v }
+func (p P) Equal(q point.P) bool { return p.hash == q.(P).hash }
+func (p P) V() vector.V          { return p.v }
 
 func New(v vector.V, hash string) *P { return &P{v: v, hash: hash} }

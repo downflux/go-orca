@@ -7,6 +7,7 @@ import (
 	"github.com/downflux/orca/geometry/vector"
 	"github.com/downflux/orca/kd/axis"
 	"github.com/downflux/orca/kd/point"
+	"github.com/downflux/orca/kd/point/sorter"
 )
 
 // N represents a K-D tree node. Child nodes are sorted along the same axis,
@@ -77,15 +78,19 @@ func (n *N) Insert(p point.P, tolerance float64) {
 
 // Remove deletes a data point from the node or child nodes. A returned value of
 // false indicates the given point was not found.
+//
+// N.B.: Remove does not actually delete the underlying k-d tree node. Manually
+// removing and shifting the nodes is a non-trivial task. We generally expect
+// k-d trees to be relatively stable once created, and that insert and remove
+// operations are kept at a minimum.
 func (n *N) Remove(p point.P, tolerance float64) bool {
 	if vector.Within(p.V(), n.v, tolerance) {
 		for i := range n.data {
-			if p.Hash() == n.data[i].Hash() {
+			if p.Equal(n.data[i]) {
 				n.data[len(n.data)-1], n.data[i] = nil, n.data[len(n.data)-1]
 				return true
 			}
 		}
-		// TODO(minkezhang): Handle node removal when data is nil.
 	}
 
 	x := axis.X(p.V(), n.axis())
@@ -112,7 +117,7 @@ func New(data []point.P, depth int, tolerance float64) *N {
 	//   [(1, 3), (1, 1)]
 	//
 	// is a valid ordering.
-	point.Sort(data, axis.A(depth))
+	sorter.Sort(data, axis.A(depth))
 
 	m := len(data) / 2
 	v := data[m].V()

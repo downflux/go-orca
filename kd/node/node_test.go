@@ -238,11 +238,11 @@ func TestInsert(t *testing.T) {
 		name  string
 		data  []point.P
 		depth int
-		p []point.P
+		p     []point.P
 		want  *N
 	}
 
-	testConfigs := []config {
+	testConfigs := []config{
 		{
 			name: "Simple",
 			data: []point.P{
@@ -255,13 +255,13 @@ func TestInsert(t *testing.T) {
 			want: &N{
 				r: &N{
 					depth: 1,
-					v: *vector.New(2, 1),
+					v:     *vector.New(2, 1),
 					data: []point.P{
 						*mock.New(*vector.New(2, 1), ""),
 					},
 				},
 				depth: 0,
-				v: *vector.New(1, 2),
+				v:     *vector.New(1, 2),
 				data: []point.P{
 					*mock.New(*vector.New(1, 2), ""),
 				},
@@ -280,21 +280,21 @@ func TestInsert(t *testing.T) {
 			},
 			want: &N{
 				depth: 0,
-				v: *vector.New(1, 2),
+				v:     *vector.New(1, 2),
 				data: []point.P{
 					*mock.New(*vector.New(1, 2), ""),
 				},
 
 				r: &N{
 					depth: 1,
-					v: *vector.New(2, 1),
+					v:     *vector.New(2, 1),
 					data: []point.P{
 						*mock.New(*vector.New(2, 1), ""),
 					},
 
 					r: &N{
 						depth: 2,
-						v: *vector.New(1, 3),
+						v:     *vector.New(1, 3),
 						data: []point.P{
 							*mock.New(*vector.New(1, 3), ""),
 						},
@@ -314,7 +314,7 @@ func TestInsert(t *testing.T) {
 			},
 			want: &N{
 				depth: 0,
-				v: *vector.New(1, 2),
+				v:     *vector.New(1, 2),
 				data: []point.P{
 					*mock.New(*vector.New(1, 2), "A"),
 					*mock.New(*vector.New(1, 2), "B"),
@@ -337,13 +337,13 @@ func TestInsert(t *testing.T) {
 			},
 			want: &N{
 				depth: 0,
-				v: *vector.New(1, 2),
+				v:     *vector.New(1, 2),
 				data: []point.P{
 					*mock.New(*vector.New(1, 2), ""),
 				},
 				r: &N{
 					depth: 1,
-					v: *vector.New(1, 3),
+					v:     *vector.New(1, 3),
 					data: []point.P{
 						*mock.New(*vector.New(1, 3), ""),
 					},
@@ -374,7 +374,7 @@ func TestRemove(t *testing.T) {
 		name  string
 		data  []point.P
 		depth int
-		p[] point.P
+		p     []point.P
 		want  *N
 	}
 }
