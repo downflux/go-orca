@@ -33,6 +33,7 @@ type N struct {
 	sizeCache int
 }
 
+func (n *N) leaf() bool { return n.size() <= 1 }
 func (n *N) size() int {
 	if n == nil {
 		return 0
