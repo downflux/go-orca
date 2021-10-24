@@ -28,12 +28,16 @@ type N struct {
 	// located at the same spacial coordinate.
 	data []point.P
 
-	// sizeCache keeps a count of the number of meaningful nodes in the current subtree.
-	// A size of 0 or 1 indicates this is a leaf node.
+	// sizeCache tracks the current size of the subtree to prevent recursive
+	// calculations for every size query.
 	sizeCache int
 }
 
 func (n *N) leaf() bool { return n.size() <= 1 }
+
+
+// size returns the number of meaningful nodes in the current subtree. A size of
+// 0 or 1 indicates n is a leaf node.
 func (n *N) size() int {
 	if n == nil {
 		return 0
