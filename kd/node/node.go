@@ -35,7 +35,6 @@ type N struct {
 
 func (n *N) leaf() bool { return n.size() <= 1 }
 
-
 // size returns the number of meaningful nodes in the current subtree. A size of
 // 0 or 1 indicates n is a leaf node.
 func (n *N) size() int {
@@ -188,3 +187,56 @@ func New(data []point.P, depth int, tolerance float64) *N {
 
 	return n
 }
+
+// N.B.: This bypasses a node with matching coordinates; this is necessary for
+// finding multiple closest neighbors, as we care about points in the tree which
+// are further away from a given point.
+func (n *N) nnsPath(v vector.V, tolerance float64) []*N {
+	if n == nil {
+		return nil
+	}
+
+	if n.leaf() {
+		return []*N{n}
+	}
+
+	x := axis.X(v, n.axis())
+	nx := axis.X(n.v, n.axis())
+
+	if x < nx {
+		return append(n.l.path(v, tolerance), n)
+	}
+	return append(n.r.path(v, tolerance), n)
+}
+
+/*
+func NNS(n *N, v vector.V) ([]point.P, float64) {
+	if n == nil {
+		return nil, math.Inf()
+	}
+
+	var path []*N
+	var data []point.P
+	var dist float64
+
+        if vector.Within(v, n.v, tolerance) {
+		dist = vector.Magnitude(vector.Sub(v, n.v))
+                data = n.data
+        }
+
+	// Find k-d tree node which would contain the input coordinates.
+	x :=
+	nx
+
+        x := axis.X(p.V(), n.axis())
+        nx := axis.X(n.v, n.axis())
+
+	if n.leaf() {
+		nd := vector.Magnitude(vector.Sub(n.v, v))
+		if nd < d {
+			d
+		}
+	}
+	return nil
+}
+*/
