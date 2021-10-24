@@ -87,7 +87,15 @@ func (n *N) Remove(p point.P, tolerance float64) bool {
 	if vector.Within(p.V(), n.v, tolerance) {
 		for i := range n.data {
 			if p.Equal(n.data[i]) {
-				n.data[len(n.data)-1], n.data[i] = nil, n.data[len(n.data)-1]
+				// Remove the i-th element and set the data to
+				// be a shortened slice.
+				//
+				// N.B.: we can mutate the data slice in this
+				// manner only because we are guaranteed to
+				// return from the function immediately after,
+				// skipping any subsequent iterations.
+				n.data[i], n.data[len(n.data)-1] = n.data[len(n.data)-1], nil
+				n.data = n.data[:len(n.data)-1]
 				return true
 			}
 		}

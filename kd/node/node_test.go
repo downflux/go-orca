@@ -377,4 +377,118 @@ func TestRemove(t *testing.T) {
 		p     []point.P
 		want  *N
 	}
+
+	testConfigs := []config{
+		{
+			name: "Trivial",
+			data: []point.P{
+				*mock.New(*vector.New(1, 2), ""),
+			},
+			depth: 0,
+			p: []point.P{
+				*mock.New(*vector.New(1, 2), ""),
+			},
+			want: &N{
+				depth: 0,
+				v:     *vector.New(1, 2),
+				data:  []point.P{},
+			},
+		},
+
+		{
+			name: "NotFound",
+			data: []point.P{
+				*mock.New(*vector.New(1, 2), ""),
+			},
+			depth: 0,
+			p: []point.P{
+				*mock.New(*vector.New(2, 2), "does-not-exist"),
+			},
+			want: &N{
+				depth: 0,
+				v:     *vector.New(1, 2),
+				data: []point.P{
+					*mock.New(*vector.New(1, 2), ""),
+				},
+			},
+		},
+
+		{
+			name: "SinglePoint",
+			data: []point.P{
+				*mock.New(*vector.New(2, 2), ""),
+				*mock.New(*vector.New(1, 2), ""),
+			},
+			depth: 0,
+			p: []point.P{
+				*mock.New(*vector.New(1, 2), ""),
+			},
+			want: &N{
+				depth: 0,
+				v:     *vector.New(2, 2),
+				data: []point.P{
+					*mock.New(*vector.New(2, 2), ""),
+				},
+				l: &N{
+					depth: 1,
+					v:     *vector.New(1, 2),
+					data:  []point.P{},
+				},
+			},
+		},
+
+		{
+			name: "Simple/Duplicates",
+			data: []point.P{
+				*mock.New(*vector.New(1, 2), ""),
+				*mock.New(*vector.New(1, 2), ""),
+			},
+			depth: 0,
+			p: []point.P{
+				*mock.New(*vector.New(1, 2), ""),
+			},
+			want: &N{
+				depth: 0,
+				v:     *vector.New(1, 2),
+				data: []point.P{
+					*mock.New(*vector.New(1, 2), ""),
+				},
+			},
+		},
+		{
+			name: "Simple/DegenerateCoordinates",
+			data: []point.P{
+				*mock.New(*vector.New(1, 2), "A"),
+				*mock.New(*vector.New(1, 2), "B"),
+			},
+			depth: 0,
+			p: []point.P{
+				*mock.New(*vector.New(1, 2), "A"),
+			},
+			want: &N{
+				depth: 0,
+				v:     *vector.New(1, 2),
+				data: []point.P{
+					*mock.New(*vector.New(1, 2), "B"),
+				},
+			},
+		},
+	}
+
+	for _, c := range testConfigs {
+		t.Run(c.name, func(t *testing.T) {
+			n := New(c.data, c.depth, tolerance)
+
+			for _, p := range c.p {
+				n.Remove(p, tolerance)
+			}
+
+			if diff := cmp.Diff(
+				c.want,
+				n,
+				cmp.AllowUnexported(N{}, vector.V{}, mock.P{})); diff != "" {
+				t.Errorf("New() mismatch (-want +got):\n%v", diff)
+			}
+		})
+	}
 }
