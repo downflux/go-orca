@@ -56,7 +56,7 @@ func (n *N) axis() axis.Type { return axis.A(n.depth) }
 
 // Data returns all data contained in the current and child nodes.
 func (n *N) Data() []point.P {
-	if n == nil {
+	if n.size() == 0 {
 		return nil
 	}
 
@@ -195,8 +195,10 @@ func New(data []point.P, depth int, tolerance float64) *N {
 // coordinates; this is necessary for finding multiple closest neighbors, as we
 // care about points in the tree which do not have to coincide with the point
 // coordinates.
+//
+// TODO(minkezhang): Rename knnQueue.
 func knnPath(n *N, v vector.V, tolerance float64) []*N {
-	if n == nil {
+	if n.size() == 0 {
 		return nil
 	}
 
@@ -213,36 +215,37 @@ func knnPath(n *N, v vector.V, tolerance float64) []*N {
 	return append(knnPath(n.r, v, tolerance), n)
 }
 
-/*
-func KNN(n *N, v vector.V, tolerance float64) ([]point.P, float64) {
-	if n == nil {
+func NNS(n *N, v vector.V, tolerance float64) ([]point.P, float64) {
+	if n.size() == 0 {
 		return nil, math.Inf(0)
 	}
 
-	path := knnPath(n, v, tolerance)
+	queue := knnPath(n, v, tolerance)
 
+	// TODO(minkezhang): Replace with PQ for KNN instead.
 	var data []point.P
-	var dist float64
+	dist := math.Inf(0)
 
-        if vector.Within(v, n.v, tolerance) {
-		dist = vector.Magnitude(vector.Sub(v, n.v))
-                data = n.data
-        }
+	for _, n := range queue {
+		var d float64
+		if d = vector.Magnitude(vector.Sub(v, n.v)); d < dist {
+			dist = d
+			data = n.data
+		}
 
-	/*
-	// Find k-d tree node which would contain the input coordinates.
-	x :=
-	nx
+		x := axis.X(v, n.axis())
+		nx := axis.X(n.v, n.axis())
 
-        x := axis.X(p.V(), n.axis())
-        nx := axis.X(n.v, n.axis())
-
-	if n.leaf() {
-		nd := vector.Magnitude(vector.Sub(n.v, v))
-		if nd < d {
-			d
+		// The minimal distance so far exceeds the current node split
+		// plane -- we need to expand into the child nodes.
+		if d-math.Abs(nx-x) > 0 {
+			if x < nx && n.l.size() > 0 {
+				data, dist = NNS(n.l, v, tolerance)
+			} else if n.r.size() > 0 {
+				data, dist = NNS(n.r, v, tolerance)
+			}
 		}
 	}
-	return nil
+
+	return data, dist
 }
-*/
