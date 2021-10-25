@@ -249,15 +249,13 @@ func TestNew(t *testing.T) {
 }
 
 func TestInsert(t *testing.T) {
-	type config struct {
+	testConfigs := []struct {
 		name  string
 		data  []point.P
 		depth int
 		p     []point.P
 		want  *N
-	}
-
-	testConfigs := []config{
+	}{
 		{
 			name: "Simple",
 			data: []point.P{
@@ -393,15 +391,13 @@ func TestInsert(t *testing.T) {
 }
 
 func TestRemove(t *testing.T) {
-	type config struct {
+	testConfigs := []struct {
 		name  string
 		data  []point.P
 		depth int
 		p     []point.P
 		want  *N
-	}
-
-	testConfigs := []config{
+	}{
 		{
 			name: "Trivial",
 			data: []point.P{
@@ -516,6 +512,167 @@ func TestRemove(t *testing.T) {
 				n,
 				cmp.AllowUnexported(N{}, vector.V{}, mock.P{})); diff != "" {
 				t.Errorf("New() mismatch (-want +got):\n%v", diff)
+			}
+		})
+	}
+}
+
+func TestKNNPath(t *testing.T) {
+	testConfigs := []struct {
+		name string
+		n    *N
+		v    vector.V
+		want []*N
+	}{
+		{
+			name: "Null",
+			n:    nil,
+			v:    *vector.New(1, 2),
+			want: nil,
+		},
+
+		{
+			name: "Leaf/Match",
+			n: New(
+				[]point.P{
+					*mock.New(*vector.New(1, 2), ""),
+				},
+				0,
+				tolerance,
+			),
+			v: *vector.New(1, 2),
+			want: []*N{
+				&N{
+					depth: 0,
+					v:     *vector.New(1, 2),
+					data: []point.P{
+						*mock.New(*vector.New(1, 2), ""),
+					},
+					sizeCache: 1,
+				},
+			},
+		},
+		{
+			name: "Leaf/NoMatch",
+			n: New(
+				[]point.P{
+					*mock.New(*vector.New(1, 2), ""),
+				},
+				0,
+				tolerance,
+			),
+			v: *vector.New(0, 2),
+			want: []*N{
+				&N{
+					depth: 0,
+					v:     *vector.New(1, 2),
+					data: []point.P{
+						*mock.New(*vector.New(1, 2), ""),
+					},
+					sizeCache: 1,
+				},
+			},
+		},
+
+		// Ensure the generated path starts from the leaf node.
+		{
+			name: "AssertLeafFirst",
+			n: New(
+				[]point.P{
+					*mock.New(*vector.New(1, 2), ""),
+					*mock.New(*vector.New(2, 2), ""),
+				},
+				0,
+				tolerance,
+			),
+			v: *vector.New(1, 2),
+			want: []*N{
+				&N{
+					depth: 1,
+					v:     *vector.New(1, 2),
+					data: []point.P{
+						*mock.New(*vector.New(1, 2), ""),
+					},
+					sizeCache: 1,
+				},
+				&N{
+					depth: 0,
+					v:     *vector.New(2, 2),
+					data: []point.P{
+						*mock.New(*vector.New(2, 2), ""),
+					},
+					sizeCache: 2,
+					l: &N{
+						depth: 1,
+						v:     *vector.New(1, 2),
+						data: []point.P{
+							*mock.New(*vector.New(1, 2), ""),
+						},
+						sizeCache: 1,
+					},
+				},
+			},
+		},
+
+		// Ensure that even if a non-leaf node matches the query, the
+		// path continues to generate towards a leaf node.
+		{
+			name: "AssertAlwaysLeaf",
+			n: New(
+				[]point.P{
+					*mock.New(*vector.New(1, 2), ""),
+					*mock.New(*vector.New(2, 2), ""),
+					*mock.New(*vector.New(3, 2), ""),
+				},
+				0,
+				tolerance,
+			),
+			v: *vector.New(2, 2),
+			want: []*N{
+				&N{
+					depth: 1,
+					v:     *vector.New(3, 2),
+					data: []point.P{
+						*mock.New(*vector.New(3, 2), ""),
+					},
+					sizeCache: 1,
+				},
+				&N{
+					depth: 0,
+					v:     *vector.New(2, 2),
+					data: []point.P{
+						*mock.New(*vector.New(2, 2), ""),
+					},
+					sizeCache: 3,
+					l: &N{
+						depth: 1,
+						v:     *vector.New(1, 2),
+						data: []point.P{
+							*mock.New(*vector.New(1, 2), ""),
+						},
+						sizeCache: 1,
+					},
+					r: &N{
+						depth: 1,
+						v:     *vector.New(3, 2),
+						data: []point.P{
+							*mock.New(*vector.New(3, 2), ""),
+						},
+						sizeCache: 1,
+					},
+				},
+			},
+		},
+	}
+
+	for _, c := range testConfigs {
+		t.Run(c.name, func(t *testing.T) {
+			got := knnPath(c.n, c.v, tolerance)
+			if diff := cmp.Diff(
+				c.want,
+				got,
+				cmp.AllowUnexported(N{}, vector.V{}, mock.P{})); diff != "" {
+				t.Errorf("knnPath() mismatch (-want +got):\n%v", diff)
 			}
 		})
 	}

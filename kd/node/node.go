@@ -188,10 +188,14 @@ func New(data []point.P, depth int, tolerance float64) *N {
 	return n
 }
 
-// N.B.: This bypasses a node with matching coordinates; this is necessary for
-// finding multiple closest neighbors, as we care about points in the tree which
-// are further away from a given point.
-func (n *N) nnsPath(v vector.V, tolerance float64) []*N {
+// knnPath generates a list of nodes to the root, starting from a leaf node,
+// with a node guaranteed to contain the input coordinates.
+//
+// N.B.: We do not stop the recursion if we reach a node with matching
+// coordinates; this is necessary for finding multiple closest neighbors, as we
+// care about points in the tree which do not have to coincide with the point
+// coordinates.
+func knnPath(n *N, v vector.V, tolerance float64) []*N {
 	if n == nil {
 		return nil
 	}
@@ -204,18 +208,19 @@ func (n *N) nnsPath(v vector.V, tolerance float64) []*N {
 	nx := axis.X(n.v, n.axis())
 
 	if x < nx {
-		return append(n.l.path(v, tolerance), n)
+		return append(knnPath(n.l, v, tolerance), n)
 	}
-	return append(n.r.path(v, tolerance), n)
+	return append(knnPath(n.r, v, tolerance), n)
 }
 
 /*
-func NNS(n *N, v vector.V) ([]point.P, float64) {
+func KNN(n *N, v vector.V, tolerance float64) ([]point.P, float64) {
 	if n == nil {
-		return nil, math.Inf()
+		return nil, math.Inf(0)
 	}
 
-	var path []*N
+	path := knnPath(n, v, tolerance)
+
 	var data []point.P
 	var dist float64
 
@@ -224,6 +229,7 @@ func NNS(n *N, v vector.V) ([]point.P, float64) {
                 data = n.data
         }
 
+	/*
 	// Find k-d tree node which would contain the input coordinates.
 	x :=
 	nx
