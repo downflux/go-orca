@@ -240,9 +240,13 @@ func NNS(n *N, v vector.V, tolerance float64) ([]point.P, float64) {
 		// plane -- we need to expand into the child nodes.
 		if d-math.Abs(nx-x) > 0 {
 			if x < nx && n.l.size() > 0 {
-				data, dist = NNS(n.l, v, tolerance)
+				if newData, newDist := NNS(n.l, v, tolerance); newDist < dist {
+					data, dist = newData, newDist
+				}
 			} else if n.r.size() > 0 {
-				data, dist = NNS(n.r, v, tolerance)
+				if newData, newDist := NNS(n.r, v, tolerance); newDist < dist {
+					data, dist = newData, newDist
+				}
 			}
 		}
 	}
