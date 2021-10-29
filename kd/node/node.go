@@ -213,3 +213,15 @@ func New(data []point.P, depth int, tolerance float64) *N {
 
 	return n
 }
+
+// Points returns all data stored in the node and subnodes.
+func Points(n *N) []point.P {
+	ps := n.Data()
+	if n.L() != nil {
+		ps = append(ps, Points(n.L())...)
+	}
+	if n.R() != nil {
+		ps = append(ps, Points(n.R())...)
+	}
+	return ps
+}

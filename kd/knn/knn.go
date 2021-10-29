@@ -34,8 +34,12 @@ func queue(n *node.N, v vector.V, tolerance float64) []*node.N {
 	return append(queue(n.R(), v, tolerance), n)
 }
 
-// TODO(minkezhang): Replace with KNN instead.
-func NNS(n *node.N, v vector.V, tolerance float64) ([]*node.N, float64) {
+func KNN(n *node.N, v vector.V, k int, tolerance float64) []*node.N {
+	ns, _ := knn(n, v, k, tolerance)
+	return ns
+}
+
+func knn(n *node.N, v vector.V, k int, tolerance float64) ([]*node.N, float64) {
 	if n == nil {
 		return nil, math.Inf(0)
 	}
@@ -60,11 +64,11 @@ func NNS(n *node.N, v vector.V, tolerance float64) ([]*node.N, float64) {
 		// plane -- we need to expand into the child nodes.
 		if d > math.Abs(nx-x) {
 			if x < nx {
-				if newData, newDist := NNS(n.L(), v, tolerance); newDist < dist {
+				if newData, newDist := knn(n.L(), v, k, tolerance); newDist < dist {
 					data, dist = newData, newDist
 				}
 			} else {
-				if newData, newDist := NNS(n.R(), v, tolerance); newDist < dist {
+				if newData, newDist := knn(n.R(), v, k, tolerance); newDist < dist {
 					data, dist = newData, newDist
 				}
 			}

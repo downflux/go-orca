@@ -1,6 +1,8 @@
 package knn
 
 import (
+	"fmt"
+	"sort"
 	"testing"
 
 	"github.com/downflux/orca/geometry/vector"
@@ -120,6 +122,132 @@ func TestQueue(t *testing.T) {
 				got,
 				cmp.AllowUnexported(node.N{}, vector.V{}, mock.P{})); diff != "" {
 				t.Errorf("queue() mismatch (-want +got):\n%v", diff)
+			}
+		})
+	}
+}
+
+type s struct {
+	ps []point.P
+	v  vector.V
+}
+
+func (s *s) Dist(i int) float64 { return vector.Magnitude(vector.Sub(s.ps[i].V(), s.v)) }
+func (s *s) Len() int           { return len(s.ps) }
+func (s *s) Less(i, j int) bool { return s.Dist(i) < s.Dist(j) }
+func (s *s) Swap(i, j int)      { s.ps[i], s.ps[j] = s.ps[j], s.ps[i] }
+
+func TestKNN(t *testing.T) {
+	type config struct {
+		name string
+		n    *node.N
+		v    vector.V
+		k    int
+		want []*node.N
+	}
+
+	testConfigs := []config{
+		{
+			name: "Null",
+			n:    nil,
+			v:    *vector.New(1, 2),
+			k:    1,
+			want: nil,
+		},
+	}
+
+	testConfigs = append(
+		testConfigs,
+
+		// Ensure for a single element, the input query point does not
+		// matter.
+		func() []config {
+			n := node.New(
+				[]point.P{
+					*mock.New(*vector.New(1, 2), ""),
+				},
+				0,
+				tolerance,
+			)
+			return []config{
+				config{
+					name: "Trivial/Near",
+					n:    n,
+					v:    n.V(),
+					k:    1,
+					want: []*node.N{n},
+				},
+				config{
+					name: "Trivial/Far",
+					n:    n,
+					v:    *vector.New(1000, 1000),
+					k:    1,
+					want: []*node.N{n},
+				},
+			}
+		}()...,
+	)
+
+	testConfigs = append(
+		testConfigs,
+
+		func() []config {
+			//     C
+			//    / \
+			//   A   D
+			//  /   /
+			// B   E
+			n := node.New(
+				[]point.P{
+					*mock.New(*vector.New(1, 60), "A"),
+					*mock.New(*vector.New(2, 42), "B"),
+					*mock.New(*vector.New(3, 40), "C"),
+					*mock.New(*vector.New(4, 39), "D"),
+					*mock.New(*vector.New(5, 20), "E"),
+				},
+				0,
+				tolerance,
+			)
+			fmt.Printf("DEBUG: n == %v\n", cmp.Diff(
+				nil,
+				n,
+				cmp.AllowUnexported(node.N{}, vector.V{}, mock.P{}),
+			))
+			return []config{
+				config{
+					name: "Multiple/Near",
+					n:    n,
+					v:    *vector.New(4, 39),
+					k:    1,
+					want: []*node.N{
+						n.R(),
+					},
+				},
+			}
+		}()...,
+	)
+
+	for _, c := range testConfigs {
+		t.Run(c.name, func(t *testing.T) {
+			got := KNN(c.n, c.v, c.k, tolerance)
+
+			ps := node.Points(c.n)
+
+			l := &s{ps: ps, v: c.v}
+			sort.Sort(l)
+
+			for i, p := range got {
+				d := vector.Magnitude(vector.Sub(p.V(), c.v))
+				if want := l.Dist(i); d > want {
+					t.Errorf("Dist() = %v, want = %v", d, want)
+				}
+			}
+
+			if diff := cmp.Diff(
+				c.want,
+				got,
+				cmp.AllowUnexported(node.N{}, vector.V{}, mock.P{})); diff != "" {
+				t.Errorf("KNN() mismatch (-want +got):\n%v", diff)
 			}
 		})
 	}
