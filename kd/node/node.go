@@ -215,6 +215,7 @@ func knnPath(n *N, v vector.V, tolerance float64) []*N {
 	return append(knnPath(n.r, v, tolerance), n)
 }
 
+// TODO(minkezhang): Replace with KNN instead.
 func NNS(n *N, v vector.V, tolerance float64) ([]point.P, float64) {
 	if n.size() == 0 {
 		return nil, math.Inf(0)
