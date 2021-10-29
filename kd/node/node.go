@@ -33,7 +33,7 @@ type N struct {
 	sizeCache int
 }
 
-func (n *N) leaf() bool { return n.size() <= 1 }
+func (n *N) Leaf() bool { return n.size() <= 1 }
 
 // size returns the number of meaningful nodes in the current subtree. A size of
 // 0 or 1 indicates n is a leaf node.
@@ -52,21 +52,47 @@ func (n *N) setSize() {
 	n.sizeCache = s
 }
 
-func (n *N) axis() axis.Type { return axis.A(n.depth) }
+// Axis is the discriminant dimension for this tree node -- if the node is
+// split on the X-axis, then all points left of this node in the XY-plane are in
+// the left child, and all points on or right of this node are in the right
+// child.
+func (n *N) Axis() axis.Type {
+	if n == nil {
+		return axis.Axis_X
+	}
+	return axis.A(n.depth)
+}
 
-// Data returns all data contained in the current and child nodes.
+// V is the point on the XY-plane to which this node is embedded. All data in
+// this node are located at the same spacial coordinate, within a small margin
+// of error.
+func (n *N) V() vector.V {
+	if n == nil {
+		return vector.V{}
+	}
+	return n.v
+}
+
+// Data is the data stored in this node.
 func (n *N) Data() []point.P {
-	if n.size() == 0 {
+	if n == nil {
 		return nil
 	}
+	return n.data
+}
 
-	var data []point.P
-
-	for _, ps := range [][]point.P{n.l.Data(), n.data, n.r.Data()} {
-		data = append(data, ps...)
+func (n *N) L() *N {
+	if n == nil || n.l.size() == 0 {
+		return nil
 	}
+	return n.l
+}
 
-	return data
+func (n *N) R() *N {
+	if n == nil || n.r.size() == 0 {
+		return nil
+	}
+	return n.r
 }
 
 // Insert inserts a data point into the node. The point may be stored inside a
@@ -76,13 +102,13 @@ func (n *N) Insert(p point.P, tolerance float64) {
 	// operation, so we need to ensure this cache is updated.
 	defer n.setSize()
 
-	if vector.Within(p.V(), n.v, tolerance) {
+	if vector.Within(p.V(), n.V(), tolerance) {
 		n.data = append(n.data, p)
 		return
 	}
 
-	x := axis.X(p.V(), n.axis())
-	nx := axis.X(n.v, n.axis())
+	x := axis.X(p.V(), n.Axis())
+	nx := axis.X(n.V(), n.Axis())
 
 	if x < nx {
 		if n.l == nil {
@@ -115,7 +141,7 @@ func (n *N) Remove(p point.P, tolerance float64) bool {
 	// operation, so we need to ensure this cache is updated.
 	defer n.setSize()
 
-	if vector.Within(p.V(), n.v, tolerance) {
+	if vector.Within(p.V(), n.V(), tolerance) {
 		for i := range n.data {
 			if p.Equal(n.data[i]) {
 				// Remove the i-th element and set the data to
@@ -132,8 +158,8 @@ func (n *N) Remove(p point.P, tolerance float64) bool {
 		}
 	}
 
-	x := axis.X(p.V(), n.axis())
-	nx := axis.X(n.v, n.axis())
+	x := axis.X(p.V(), n.Axis())
+	nx := axis.X(n.V(), n.Axis())
 
 	if x < nx {
 		return n.l != nil && n.l.Remove(p, tolerance)
@@ -186,71 +212,4 @@ func New(data []point.P, depth int, tolerance float64) *N {
 	n.setSize()
 
 	return n
-}
-
-// knnPath generates a list of nodes to the root, starting from a leaf node,
-// with a node guaranteed to contain the input coordinates.
-//
-// N.B.: We do not stop the recursion if we reach a node with matching
-// coordinates; this is necessary for finding multiple closest neighbors, as we
-// care about points in the tree which do not have to coincide with the point
-// coordinates.
-//
-// TODO(minkezhang): Rename knnQueue.
-func knnPath(n *N, v vector.V, tolerance float64) []*N {
-	if n.size() == 0 {
-		return nil
-	}
-
-	if n.leaf() {
-		return []*N{n}
-	}
-
-	x := axis.X(v, n.axis())
-	nx := axis.X(n.v, n.axis())
-
-	if x < nx {
-		return append(knnPath(n.l, v, tolerance), n)
-	}
-	return append(knnPath(n.r, v, tolerance), n)
-}
-
-// TODO(minkezhang): Replace with KNN instead.
-func NNS(n *N, v vector.V, tolerance float64) ([]point.P, float64) {
-	if n.size() == 0 {
-		return nil, math.Inf(0)
-	}
-
-	queue := knnPath(n, v, tolerance)
-
-	// TODO(minkezhang): Replace with PQ for KNN instead.
-	var data []point.P
-	dist := math.Inf(0)
-
-	for _, n := range queue {
-		var d float64
-		if d = vector.Magnitude(vector.Sub(v, n.v)); d < dist {
-			dist = d
-			data = n.data
-		}
-
-		x := axis.X(v, n.axis())
-		nx := axis.X(n.v, n.axis())
-
-		// The minimal distance so far exceeds the current node split
-		// plane -- we need to expand into the child nodes.
-		if d-math.Abs(nx-x) > 0 {
-			if x < nx && n.l.size() > 0 {
-				if newData, newDist := NNS(n.l, v, tolerance); newDist < dist {
-					data, dist = newData, newDist
-				}
-			} else if n.r.size() > 0 {
-				if newData, newDist := NNS(n.r, v, tolerance); newDist < dist {
-					data, dist = newData, newDist
-				}
-			}
-		}
-	}
-
-	return data, dist
 }
