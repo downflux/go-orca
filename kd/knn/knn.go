@@ -7,7 +7,6 @@ import (
 	"github.com/downflux/orca/geometry/vector"
 	"github.com/downflux/orca/kd/axis"
 	"github.com/downflux/orca/kd/node"
-	"github.com/downflux/orca/kd/point"
 )
 
 // queue generates a list of nodes to the root, starting from a leaf node,
@@ -36,7 +35,7 @@ func queue(n *node.N, v vector.V, tolerance float64) []*node.N {
 }
 
 // TODO(minkezhang): Replace with KNN instead.
-func NNS(n *node.N, v vector.V, tolerance float64) ([]point.P, float64) {
+func NNS(n *node.N, v vector.V, tolerance float64) ([]*node.N, float64) {
 	if n == nil {
 		return nil, math.Inf(0)
 	}
@@ -44,14 +43,14 @@ func NNS(n *node.N, v vector.V, tolerance float64) ([]point.P, float64) {
 	q := queue(n, v, tolerance)
 
 	// TODO(minkezhang): Replace with PQ for KNN instead.
-	var data []point.P
+	var data []*node.N
 	dist := math.Inf(0)
 
 	for _, n := range q {
 		var d float64
 		if d = vector.Magnitude(vector.Sub(v, n.V())); d < dist {
 			dist = d
-			data = n.Data()
+			data = []*node.N{n}
 		}
 
 		x := axis.X(v, n.Axis())
@@ -59,7 +58,7 @@ func NNS(n *node.N, v vector.V, tolerance float64) ([]point.P, float64) {
 
 		// The minimal distance so far exceeds the current node split
 		// plane -- we need to expand into the child nodes.
-		if d-math.Abs(nx-x) > 0 {
+		if d > math.Abs(nx-x) {
 			if x < nx {
 				if newData, newDist := NNS(n.L(), v, tolerance); newDist < dist {
 					data, dist = newData, newDist
