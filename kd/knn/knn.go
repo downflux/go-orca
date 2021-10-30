@@ -2,7 +2,6 @@
 package knn
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/downflux/orca/geometry/vector"
@@ -47,7 +46,6 @@ func knn(n *node.N, v vector.V, k int, tolerance float64) ([]*node.N, float64) {
 	if n == nil {
 		return nil, math.Inf(0)
 	}
-	fmt.Printf("DEBUG: knn(n == %v)\n", n.V())
 
 	q := queue(n, v, tolerance)
 
@@ -57,7 +55,6 @@ func knn(n *node.N, v vector.V, k int, tolerance float64) ([]*node.N, float64) {
 
 	for _, n := range q {
 		if d := vector.Magnitude(vector.Sub(v, n.V())); d < dist {
-			fmt.Printf("DEBUG: knn: d == %v < [min]dist == %v\n", vector.Magnitude(vector.Sub(v, n.V())), dist)
 			dist = d
 			data = []*node.N{n}
 		}
@@ -68,12 +65,19 @@ func knn(n *node.N, v vector.V, k int, tolerance float64) ([]*node.N, float64) {
 		// The minimal distance so far exceeds the current node split
 		// plane -- we need to expand into the child nodes.
 		if dist > math.Abs(nx-x) {
-			fmt.Printf("DEBUG: knn distance to node plane == %v < [min]dist == %v; x == %v, nx == %v\n", math.Abs(nx-x), dist, x, nx)
+			// We normally will expand the left child node if
+			// x < nx; however, this was already expanded while
+			// generating the queue; therefore, we want to expand to
+			// the unexplored, complement child instead.
+			var c *node.N
+			if x < nx {
+				c = n.R()
+			} else {
+				c = n.L()
+			}
 
-			if c := n.Child(v, tolerance); c != nil {
-				if newData, newDist := knn(c, v, k, tolerance); newDist < dist {
-					data, dist = newData, newDist
-				}
+			if newData, newDist := knn(c, v, k, tolerance); newDist < dist {
+				data, dist = newData, newDist
 			}
 		}
 	}

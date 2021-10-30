@@ -170,6 +170,8 @@ func rv() vector.V { return *vector.New(rn(), rn()) }
 func rp() point.P  { return *mock.New(rv(), "") }
 
 func TestKNN(t *testing.T) {
+	const k = 1000
+
 	type config struct {
 		name string
 		n    *node.N
@@ -239,51 +241,29 @@ func TestKNN(t *testing.T) {
 			// B   E
 			n := node.New(ps, 0, tolerance)
 
-			var cs []config
-
-			/*
-				cs := []config {
-					config{
-						name: "Multiple/K=1/Near",
-						n:    n,
-						v:    *vector.New(4, 39),
-						k:    1,
-						want: sortNodes(n, *vector.New(4, 39))[:1],
-					},
-				}
-			*/
-
-			vp := *vector.New(-88.51192953143435, -81.86898807748256)
-			for _, n := range sortNodes(n, vp) {
-				fmt.Printf("DEBUG: n.V() == %v, d == %v\n", n.V(), vector.Magnitude(vector.Sub(n.V(), vp)))
+			cs := []config{
+				config{
+					name: "Multiple/k=1/Near",
+					n:    n,
+					v:    *vector.New(4, 39),
+					k:    1,
+					want: sortNodes(n, *vector.New(4, 39))[:1],
+				},
 			}
 
-			cs = append(
-				cs,
-				config{
-					name: "Multiple/K=1/998",
-					n:    n,
-					v:    vp,
-					k:    1,
-					want: sortNodes(n, vp)[:1],
-				},
-			)
-
-			/*
-				for i := 0; i < 1000; i++ {
-					v := rv()
-					cs = append(
-						cs,
-						config{
-							name: fmt.Sprintf("Multiple/K=1/%v", i),
-							n: n,
-							v: v,
-							k: 1,
-							want: sortNodes(n, v)[:1],
-						},
-					)
-				}
-			*/
+			for i := 0; i < k; i++ {
+				v := rv()
+				cs = append(
+					cs,
+					config{
+						name: fmt.Sprintf("Multiple/k=1/%v", i),
+						n:    n,
+						v:    v,
+						k:    1,
+						want: sortNodes(n, v)[:1],
+					},
+				)
+			}
 
 			return cs
 		}()...,
