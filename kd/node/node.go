@@ -36,19 +36,19 @@ type N struct {
 	// As calculating the tree size may only occur when during an insert or
 	// delete operation, and such operations are rarely called in a K-D
 	// tree, it is sensible to provide a size cache.
-	sizeCache int
+	sizeCache      int
+	sizeCacheValid bool
 }
 
 func (n *N) Leaf() bool { return n.size() <= 1 }
 
 // size returns the number of meaningful nodes in the current subtree. A size of
 // 0 or 1 indicates n is a leaf node.
-func (n *N) size() int { return n.sizeCache }
+func (n *N) size() int {
+	if n.sizeCacheValid {
+		return n.sizeCache
+	}
 
-// setSize recalculates the size of the subtree.
-//
-// N.B.: This assumes the node children subtree sizes are correct.
-func (n *N) setSize() {
 	var s int
 
 	if l := n.L(); l != nil {
@@ -62,7 +62,10 @@ func (n *N) setSize() {
 		s += 1
 	}
 
+	n.sizeCacheValid = true
 	n.sizeCache = s
+
+	return n.sizeCache
 }
 
 // Axis is the discriminant dimension for this tree node -- if the node is
@@ -119,7 +122,7 @@ func (n *N) R() *N {
 func (n *N) Insert(p point.P, tolerance float64) {
 	// The number of meaningful child nodes may increase after this
 	// operation, so we need to ensure this cache is updated.
-	defer n.setSize()
+	defer func() { n.sizeCacheValid = false }()
 
 	if vector.Within(p.V(), n.V(), tolerance) {
 		n.data = append(n.data, p)
@@ -158,7 +161,7 @@ func (n *N) Insert(p point.P, tolerance float64) {
 func (n *N) Remove(p point.P, tolerance float64) bool {
 	// The number of meaningful child nodes may decrease after this
 	// operation, so we need to ensure this cache is updated.
-	defer n.setSize()
+	defer func() { n.sizeCacheValid = false }()
 
 	if vector.Within(p.V(), n.V(), tolerance) {
 		for i := range n.data {
@@ -223,7 +226,6 @@ func New(data []point.P, depth int, tolerance float64) *N {
 		v:    v,
 		data: data[l : r+1],
 	}
-	n.setSize()
 
 	return n
 }
