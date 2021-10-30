@@ -28,8 +28,14 @@ type N struct {
 	// located at the same spacial coordinate.
 	data []point.P
 
-	// sizeCache tracks the current size of the subtree to prevent recursive
-	// calculations for every size query.
+	// sizeCache tracks the current subtree size of the current node. A size
+	// of 1 indicates this is a leaf node.
+	//
+	// A node contributes to the tree size if it contains some data.
+	//
+	// As calculating the tree size may only occur when during an insert or
+	// delete operation, and such operations are rarely called in a K-D
+	// tree, it is sensible to provide a size cache.
 	sizeCache int
 }
 
@@ -39,6 +45,9 @@ func (n *N) Leaf() bool { return n.size() <= 1 }
 // 0 or 1 indicates n is a leaf node.
 func (n *N) size() int { return n.sizeCache }
 
+// setSize recalculates the size of the subtree.
+//
+// N.B.: This assumes the node children subtree sizes are correct.
 func (n *N) setSize() {
 	var s int
 
@@ -70,6 +79,9 @@ func (n *N) V() vector.V { return n.v }
 // Data is the data stored in this node.
 func (n *N) Data() []point.P { return n.data }
 
+// Child is the appropriately expanded child node given the input coordinates --
+// that is, this function wraps the normal branching pattern for e.g. search
+// operations.
 func (n *N) Child(v vector.V, tolerance float64) *N {
 	if vector.Within(n.V(), v, tolerance) {
 		return nil
@@ -84,6 +96,9 @@ func (n *N) Child(v vector.V, tolerance float64) *N {
 	return n.R()
 }
 
+// L is the meaningful left child node of the current node.
+//
+// This function returns nil if the left node does not contain any data.
 func (n *N) L() *N {
 	if n.l == nil || n.l.size() == 0 {
 		return nil
@@ -91,6 +106,7 @@ func (n *N) L() *N {
 	return n.l
 }
 
+// R is the meaningful right child node of the current node.
 func (n *N) R() *N {
 	if n.r == nil || n.r.size() == 0 {
 		return nil
