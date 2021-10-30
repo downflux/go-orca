@@ -188,6 +188,19 @@ func TestKNN(t *testing.T) {
 			k:    1,
 			want: nil,
 		},
+		{
+			name: "Null/k=0",
+			n: node.New(
+				[]point.P{
+					*mock.New(*vector.New(1, 2), ""),
+				},
+				0,
+				tolerance,
+			),
+			v:    *vector.New(1, 2),
+			k:    0,
+			want: nil,
+		},
 	}
 
 	testConfigs = append(
@@ -252,15 +265,16 @@ func TestKNN(t *testing.T) {
 			}
 
 			for i := 0; i < k; i++ {
+				k := rand.Intn(len(ps)) + 1
 				v := rv()
 				cs = append(
 					cs,
 					config{
-						name: fmt.Sprintf("Multiple/k=1/%v", i),
+						name: fmt.Sprintf("Multiple/k=%v/%v", k, i),
 						n:    n,
 						v:    v,
-						k:    1,
-						want: sortNodes(n, v)[:1],
+						k:    k,
+						want: sortNodes(n, v)[:k],
 					},
 				)
 			}

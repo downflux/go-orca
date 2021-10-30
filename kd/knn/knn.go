@@ -62,7 +62,7 @@ func knn(n *node.N, v vector.V, q *pq.Q, tolerance float64) {
 	p := path(n, v, tolerance)
 
 	for _, n := range p {
-		if d := vector.Magnitude(vector.Sub(v, n.V())); d < q.Priority() {
+		if d := vector.Magnitude(vector.Sub(v, n.V())); !q.Full() || d < q.Priority() {
 			q.Push(n, d)
 		}
 
