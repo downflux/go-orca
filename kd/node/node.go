@@ -79,8 +79,12 @@ func (n *N) Axis() axis.Type { return axis.A(n.depth) }
 // of error.
 func (n *N) V() vector.V { return n.v }
 
-// Data is the data stored in this node.
-func (n *N) Data() []point.P { return n.data }
+// Data returns a list of data stored in this node.
+func (n *N) Data() []point.P {
+	ps := make([]point.P, len(n.data))
+	copy(ps, n.data)
+	return ps
+}
 
 // Child is the appropriately expanded child node given the input coordinates --
 // that is, this function wraps the normal branching pattern for e.g. search
