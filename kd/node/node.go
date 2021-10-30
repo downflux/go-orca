@@ -37,18 +37,22 @@ func (n *N) Leaf() bool { return n.size() <= 1 }
 
 // size returns the number of meaningful nodes in the current subtree. A size of
 // 0 or 1 indicates n is a leaf node.
-func (n *N) size() int {
-	if n == nil {
-		return 0
-	}
-	return n.sizeCache
-}
+func (n *N) size() int { return n.sizeCache }
 
 func (n *N) setSize() {
-	s := n.l.size() + n.r.size()
+	var s int
+
+	if l := n.L(); l != nil {
+		s += l.size()
+	}
+	if r := n.R(); r != nil {
+		s += r.size()
+	}
+
 	if len(n.data) > 0 {
 		s += 1
 	}
+
 	n.sizeCache = s
 }
 
@@ -56,40 +60,39 @@ func (n *N) setSize() {
 // split on the X-axis, then all points left of this node in the XY-plane are in
 // the left child, and all points on or right of this node are in the right
 // child.
-func (n *N) Axis() axis.Type {
-	if n == nil {
-		return axis.Axis_X
-	}
-	return axis.A(n.depth)
-}
+func (n *N) Axis() axis.Type { return axis.A(n.depth) }
 
 // V is the point on the XY-plane to which this node is embedded. All data in
 // this node are located at the same spacial coordinate, within a small margin
 // of error.
-func (n *N) V() vector.V {
-	if n == nil {
-		return vector.V{}
-	}
-	return n.v
-}
+func (n *N) V() vector.V { return n.v }
 
 // Data is the data stored in this node.
-func (n *N) Data() []point.P {
-	if n == nil {
+func (n *N) Data() []point.P { return n.data }
+
+func (n *N) Child(v vector.V, tolerance float64) *N {
+	if vector.Within(n.V(), v, tolerance) {
 		return nil
 	}
-	return n.data
+
+	x := axis.X(v, n.Axis())
+	nx := axis.X(n.V(), n.Axis())
+
+	if x < nx {
+		return n.L()
+	}
+	return n.R()
 }
 
 func (n *N) L() *N {
-	if n == nil || n.l.size() == 0 {
+	if n.l == nil || n.l.size() == 0 {
 		return nil
 	}
 	return n.l
 }
 
 func (n *N) R() *N {
-	if n == nil || n.r.size() == 0 {
+	if n.r == nil || n.r.size() == 0 {
 		return nil
 	}
 	return n.r
@@ -118,8 +121,8 @@ func (n *N) Insert(p point.P, tolerance float64) {
 			}
 		}
 		n.l.Insert(p, tolerance)
+		return
 	}
-
 	if n.r == nil {
 		n.r = &N{
 			depth: n.depth + 1,
@@ -158,14 +161,9 @@ func (n *N) Remove(p point.P, tolerance float64) bool {
 		}
 	}
 
-	x := axis.X(p.V(), n.Axis())
-	nx := axis.X(n.V(), n.Axis())
+	c := n.Child(p.V(), tolerance)
 
-	if x < nx {
-		return n.l != nil && n.l.Remove(p, tolerance)
-	}
-
-	return n.r != nil && n.r.Remove(p, tolerance)
+	return c != nil && c.Remove(p, tolerance)
 }
 
 // New returns a new K-D tree node instance.

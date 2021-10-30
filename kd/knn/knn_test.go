@@ -2,6 +2,7 @@ package knn
 
 import (
 	"fmt"
+	"math/rand"
 	"sort"
 	"testing"
 
@@ -127,15 +128,46 @@ func TestQueue(t *testing.T) {
 	}
 }
 
-type s struct {
-	ps []point.P
+func flatten(n *node.N) []*node.N {
+	if n == nil {
+		return nil
+	}
+
+	ns := []*node.N{n}
+	if l := n.L(); l != nil {
+		ns = append(flatten(l), ns...)
+	}
+	if r := n.R(); r != nil {
+		ns = append(flatten(r), ns...)
+	}
+
+	return ns
+}
+
+type nl struct {
+	ns []*node.N
 	v  vector.V
 }
 
-func (s *s) Dist(i int) float64 { return vector.Magnitude(vector.Sub(s.ps[i].V(), s.v)) }
-func (s *s) Len() int           { return len(s.ps) }
-func (s *s) Less(i, j int) bool { return s.Dist(i) < s.Dist(j) }
-func (s *s) Swap(i, j int)      { s.ps[i], s.ps[j] = s.ps[j], s.ps[i] }
+func (s *nl) Dist(i int) float64 { return vector.Magnitude(vector.Sub(s.ns[i].V(), s.v)) }
+func (s *nl) Len() int           { return len(s.ns) }
+func (s *nl) Less(i, j int) bool { return s.Dist(i) < s.Dist(j) }
+func (s *nl) Swap(i, j int)      { s.ns[i], s.ns[j] = s.ns[j], s.ns[i] }
+
+func sortNodes(n *node.N, v vector.V) []*node.N {
+	s := &nl{
+		ns: flatten(n),
+		v:  v,
+	}
+
+	sort.Sort(s)
+
+	return s.ns
+}
+
+func rn() float64  { return rand.Float64()*200 - 100 }
+func rv() vector.V { return *vector.New(rn(), rn()) }
+func rp() point.P  { return *mock.New(rv(), "") }
 
 func TestKNN(t *testing.T) {
 	type config struct {
@@ -192,62 +224,79 @@ func TestKNN(t *testing.T) {
 		testConfigs,
 
 		func() []config {
+			ps := []point.P{
+				*mock.New(*vector.New(1, 60), "A"),
+				*mock.New(*vector.New(2, 42), "B"),
+				*mock.New(*vector.New(3, 40), "C"),
+				*mock.New(*vector.New(4, 39), "D"),
+				*mock.New(*vector.New(5, 20), "E"),
+			}
+
 			//     C
 			//    / \
 			//   A   D
 			//  /   /
 			// B   E
-			n := node.New(
-				[]point.P{
-					*mock.New(*vector.New(1, 60), "A"),
-					*mock.New(*vector.New(2, 42), "B"),
-					*mock.New(*vector.New(3, 40), "C"),
-					*mock.New(*vector.New(4, 39), "D"),
-					*mock.New(*vector.New(5, 20), "E"),
-				},
-				0,
-				tolerance,
-			)
-			fmt.Printf("DEBUG: n == %v\n", cmp.Diff(
-				nil,
-				n,
-				cmp.AllowUnexported(node.N{}, vector.V{}, mock.P{}),
-			))
-			return []config{
-				config{
-					name: "Multiple/Near",
-					n:    n,
-					v:    *vector.New(4, 39),
-					k:    1,
-					want: []*node.N{
-						n.R(),
+			n := node.New(ps, 0, tolerance)
+
+			var cs []config
+
+			/*
+				cs := []config {
+					config{
+						name: "Multiple/K=1/Near",
+						n:    n,
+						v:    *vector.New(4, 39),
+						k:    1,
+						want: sortNodes(n, *vector.New(4, 39))[:1],
 					},
-				},
+				}
+			*/
+
+			vp := *vector.New(-88.51192953143435, -81.86898807748256)
+			for _, n := range sortNodes(n, vp) {
+				fmt.Printf("DEBUG: n.V() == %v, d == %v\n", n.V(), vector.Magnitude(vector.Sub(n.V(), vp)))
 			}
+
+			cs = append(
+				cs,
+				config{
+					name: "Multiple/K=1/998",
+					n:    n,
+					v:    vp,
+					k:    1,
+					want: sortNodes(n, vp)[:1],
+				},
+			)
+
+			/*
+				for i := 0; i < 1000; i++ {
+					v := rv()
+					cs = append(
+						cs,
+						config{
+							name: fmt.Sprintf("Multiple/K=1/%v", i),
+							n: n,
+							v: v,
+							k: 1,
+							want: sortNodes(n, v)[:1],
+						},
+					)
+				}
+			*/
+
+			return cs
 		}()...,
 	)
 
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
 			got := KNN(c.n, c.v, c.k, tolerance)
-
-			ps := node.Points(c.n)
-
-			l := &s{ps: ps, v: c.v}
-			sort.Sort(l)
-
-			for i, p := range got {
-				d := vector.Magnitude(vector.Sub(p.V(), c.v))
-				if want := l.Dist(i); d > want {
-					t.Errorf("Dist() = %v, want = %v", d, want)
-				}
-			}
-
 			if diff := cmp.Diff(
 				c.want,
 				got,
 				cmp.AllowUnexported(node.N{}, vector.V{}, mock.P{})); diff != "" {
-				t.Errorf("KNN() mismatch (-want +got):\n%v", diff)
+				t.Errorf("KNN(n=%v, v=%v, k=%v) mismatch (-want +got):\n%v", c.n, c.v, c.k, diff)
 			}
 		})
 	}

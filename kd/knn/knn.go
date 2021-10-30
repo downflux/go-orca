@@ -2,6 +2,7 @@
 package knn
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/downflux/orca/geometry/vector"
@@ -25,6 +26,9 @@ func queue(n *node.N, v vector.V, tolerance float64) []*node.N {
 		return []*node.N{n}
 	}
 
+	// Note that we are bypassing the v == n.V() stop condition check -- we
+	// are always continuing to the leaf node.
+
 	x := axis.X(v, n.Axis())
 	nx := axis.X(n.V(), n.Axis())
 
@@ -43,6 +47,7 @@ func knn(n *node.N, v vector.V, k int, tolerance float64) ([]*node.N, float64) {
 	if n == nil {
 		return nil, math.Inf(0)
 	}
+	fmt.Printf("DEBUG: knn(n == %v)\n", n.V())
 
 	q := queue(n, v, tolerance)
 
@@ -51,8 +56,8 @@ func knn(n *node.N, v vector.V, k int, tolerance float64) ([]*node.N, float64) {
 	dist := math.Inf(0)
 
 	for _, n := range q {
-		var d float64
-		if d = vector.Magnitude(vector.Sub(v, n.V())); d < dist {
+		if d := vector.Magnitude(vector.Sub(v, n.V())); d < dist {
+			fmt.Printf("DEBUG: knn: d == %v < [min]dist == %v\n", vector.Magnitude(vector.Sub(v, n.V())), dist)
 			dist = d
 			data = []*node.N{n}
 		}
@@ -62,13 +67,11 @@ func knn(n *node.N, v vector.V, k int, tolerance float64) ([]*node.N, float64) {
 
 		// The minimal distance so far exceeds the current node split
 		// plane -- we need to expand into the child nodes.
-		if d > math.Abs(nx-x) {
-			if x < nx {
-				if newData, newDist := knn(n.L(), v, k, tolerance); newDist < dist {
-					data, dist = newData, newDist
-				}
-			} else {
-				if newData, newDist := knn(n.R(), v, k, tolerance); newDist < dist {
+		if dist > math.Abs(nx-x) {
+			fmt.Printf("DEBUG: knn distance to node plane == %v < [min]dist == %v; x == %v, nx == %v\n", math.Abs(nx-x), dist, x, nx)
+
+			if c := n.Child(v, tolerance); c != nil {
+				if newData, newDist := knn(c, v, k, tolerance); newDist < dist {
 					data, dist = newData, newDist
 				}
 			}
