@@ -18,7 +18,7 @@ const (
 	tolerance = 1e-10
 )
 
-func TestQueue(t *testing.T) {
+func TestPath(t *testing.T) {
 	type config struct {
 		name string
 		n    *node.N
@@ -117,7 +117,7 @@ func TestQueue(t *testing.T) {
 
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
-			got := queue(c.n, c.v, tolerance)
+			got := path(c.n, c.v, tolerance)
 			if diff := cmp.Diff(
 				c.want,
 				got,

@@ -6,17 +6,18 @@ import (
 
 	"github.com/downflux/orca/geometry/vector"
 	"github.com/downflux/orca/kd/axis"
+	"github.com/downflux/orca/kd/knn/pq"
 	"github.com/downflux/orca/kd/node"
 )
 
-// queue generates a list of nodes to the root, starting from a leaf node,
+// path generates a list of nodes to the root, starting from a leaf node,
 // with a node guaranteed to contain the input coordinates.
 //
 // N.B.: We do not stop the recursion if we reach a node with matching
 // coordinates; this is necessary for finding multiple closest neighbors, as we
 // care about points in the tree which do not have to coincide with the point
 // coordinates.
-func queue(n *node.N, v vector.V, tolerance float64) []*node.N {
+func path(n *node.N, v vector.V, tolerance float64) []*node.N {
 	if n == nil {
 		return nil
 	}
@@ -32,31 +33,37 @@ func queue(n *node.N, v vector.V, tolerance float64) []*node.N {
 	nx := axis.X(n.V(), n.Axis())
 
 	if x < nx {
-		return append(queue(n.L(), v, tolerance), n)
+		return append(path(n.L(), v, tolerance), n)
 	}
-	return append(queue(n.R(), v, tolerance), n)
+	return append(path(n.R(), v, tolerance), n)
 }
 
 func KNN(n *node.N, v vector.V, k int, tolerance float64) []*node.N {
-	ns, _ := knn(n, v, k, tolerance)
+	q := pq.New(k)
+	knn(n, v, q, tolerance)
+
+	var ns []*node.N
+	for !q.Empty() {
+		ns = append(ns, q.Pop())
+	}
+
+	// Return nearest nodes first by reversing the flattened queue order.
+	for i, j := 0, len(ns)-1; i < j; i, j = i+1, j-1 {
+		ns[i], ns[j] = ns[j], ns[i]
+	}
 	return ns
 }
 
-func knn(n *node.N, v vector.V, k int, tolerance float64) ([]*node.N, float64) {
+func knn(n *node.N, v vector.V, q *pq.Q, tolerance float64) {
 	if n == nil {
-		return nil, math.Inf(0)
+		return
 	}
 
-	q := queue(n, v, tolerance)
+	p := path(n, v, tolerance)
 
-	// TODO(minkezhang): Replace with PQ for KNN instead.
-	var data []*node.N
-	dist := math.Inf(0)
-
-	for _, n := range q {
-		if d := vector.Magnitude(vector.Sub(v, n.V())); d < dist {
-			dist = d
-			data = []*node.N{n}
+	for _, n := range p {
+		if d := vector.Magnitude(vector.Sub(v, n.V())); d < q.Priority() {
+			q.Push(n, d)
 		}
 
 		x := axis.X(v, n.Axis())
@@ -64,7 +71,7 @@ func knn(n *node.N, v vector.V, k int, tolerance float64) ([]*node.N, float64) {
 
 		// The minimal distance so far exceeds the current node split
 		// plane -- we need to expand into the child nodes.
-		if dist > math.Abs(nx-x) {
+		if q.Priority() > math.Abs(nx-x) {
 			// We normally will expand the left child node if
 			// x < nx; however, this was already expanded while
 			// generating the queue; therefore, we want to expand to
@@ -76,11 +83,7 @@ func knn(n *node.N, v vector.V, k int, tolerance float64) ([]*node.N, float64) {
 				c = n.L()
 			}
 
-			if newData, newDist := knn(c, v, k, tolerance); newDist < dist {
-				data, dist = newData, newDist
-			}
+			knn(c, v, q, tolerance)
 		}
 	}
-
-	return data, dist
 }

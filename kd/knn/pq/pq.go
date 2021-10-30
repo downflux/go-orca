@@ -1,6 +1,7 @@
 package pq
 
 import (
+	"math"
 	"container/heap"
 
 	"github.com/downflux/orca/kd/node"
@@ -67,7 +68,7 @@ func (q *Q) Empty() bool { return q.h.Len() == 0 }
 // Priority calculates the current highest priority of queue.
 func (q *Q) Priority() float64 {
 	if q.Empty() {
-		return 0
+		return math.Inf(0)
 	}
 	// See https://groups.google.com/g/golang-nuts/c/sy1p8SfyPoY.
 	return q.h.data[0].priority
