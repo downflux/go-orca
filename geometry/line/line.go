@@ -67,6 +67,8 @@ func (l L) T(t float64) vector.V { return vector.Add(l.p, vector.Scale(t, l.d)) 
 //   t = || E x (P - Q) || / || D x E ||
 //
 // See https://gamedev.stackexchange.com/a/44733 for more information.
+//
+// TODO(minkezhang): Return a vector of the intersection point instead.
 func (l L) Intersect(m L, tolerance float64) (float64, bool) {
 	d := vector.Determinant(l.D(), m.D())
 	n := vector.Determinant(m.D(), vector.Sub(l.P(), m.P()))
