@@ -27,3 +27,6 @@ func New(v vector.V, u vector.V) *R {
 func (r R) Min() vector.V { return r.min }
 func (r R) Max() vector.V { return r.max }
 func (r R) D() vector.V   { return *vector.New(r.Max().X()-r.Min().X(), r.Max().Y()-r.Min().Y()) }
+func (r R) In(v vector.V) bool {
+	return (r.Min().X() < v.X()) && (v.X() < r.Max().X()) && (r.Min().Y() < v.Y()) && (v.Y() < r.Max().Y())
+}

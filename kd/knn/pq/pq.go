@@ -1,8 +1,8 @@
 package pq
 
 import (
-	"math"
 	"container/heap"
+	"math"
 
 	"github.com/downflux/orca/kd/node"
 )
@@ -64,7 +64,7 @@ func New(size int) *Q {
 }
 
 func (q *Q) Empty() bool { return q.h.Len() == 0 }
-func (q *Q) Full() bool { return q.h.Len() >= q.size }
+func (q *Q) Full() bool  { return q.h.Len() >= q.size }
 
 // Priority calculates the current highest priority of queue.
 func (q *Q) Priority() float64 {
