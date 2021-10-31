@@ -38,6 +38,7 @@ func path(n *node.N, v vector.V, tolerance float64) []*node.N {
 	return append(path(n.R(), v, tolerance), n)
 }
 
+// KNN returns the k-nearest neighbors of a given node.
 func KNN(n *node.N, v vector.V, k int, tolerance float64) []*node.N {
 	q := pq.New(k)
 	knn(n, v, q, tolerance)
@@ -54,6 +55,8 @@ func KNN(n *node.N, v vector.V, k int, tolerance float64) []*node.N {
 	return ns
 }
 
+// knn recursively searches for the k-nearest neighbors of a node. The priority
+// queue input effectively tracks the searched space.
 func knn(n *node.N, v vector.V, q *pq.Q, tolerance float64) {
 	if n == nil {
 		return
