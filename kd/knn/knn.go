@@ -38,7 +38,9 @@ func path(n *node.N, v vector.V, tolerance float64) []*node.N {
 	return append(path(n.R(), v, tolerance), n)
 }
 
-// KNN returns the k-nearest neighbors of a given node.
+// KNN returns the k-nearest neighbors of a given node. Nodes are returned in
+// sorted order, with nodes closest to the input vector at the head of the
+// slice.
 func KNN(n *node.N, v vector.V, k int, tolerance float64) []*node.N {
 	q := pq.New(k)
 	knn(n, v, q, tolerance)
