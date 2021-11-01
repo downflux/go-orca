@@ -24,7 +24,7 @@ func Search(n *node.N, r rectangle.R) []*node.N {
 // input rectangle. The bounding rectangle is a recursion artifact which keeps
 // track of the bounding box of the current node.
 func search(n *node.N, r rectangle.R, bound rectangle.R) []*node.N {
-	if _, ok := r.Intersect(bound); !ok {
+	if _, ok := r.Intersect(bound); n == nil || !ok {
 		return nil
 	}
 

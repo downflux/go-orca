@@ -11,6 +11,7 @@ import (
 	"github.com/downflux/orca/kd/point"
 	"github.com/google/go-cmp/cmp"
 
+	test "github.com/downflux/orca/kd/node/test"
 	mock "github.com/downflux/orca/kd/point/mock"
 )
 
@@ -128,22 +129,6 @@ func TestPath(t *testing.T) {
 	}
 }
 
-func flatten(n *node.N) []*node.N {
-	if n == nil {
-		return nil
-	}
-
-	ns := []*node.N{n}
-	if l := n.L(); l != nil {
-		ns = append(flatten(l), ns...)
-	}
-	if r := n.R(); r != nil {
-		ns = append(flatten(r), ns...)
-	}
-
-	return ns
-}
-
 type nl struct {
 	ns []*node.N
 	v  vector.V
@@ -156,7 +141,7 @@ func (s *nl) Swap(i, j int)      { s.ns[i], s.ns[j] = s.ns[j], s.ns[i] }
 
 func sortNodes(n *node.N, v vector.V) []*node.N {
 	s := &nl{
-		ns: flatten(n),
+		ns: test.Flatten(n),
 		v:  v,
 	}
 
@@ -290,7 +275,7 @@ func TestKNN(t *testing.T) {
 				c.want,
 				got,
 				cmp.AllowUnexported(node.N{}, vector.V{}, mock.P{})); diff != "" {
-				t.Errorf("KNN(n=%v, v=%v, k=%v) mismatch (-want +got):\n%v", c.n, c.v, c.k, diff)
+				t.Errorf("KNN() mismatch (-want +got):\n%v", diff)
 			}
 		})
 	}
