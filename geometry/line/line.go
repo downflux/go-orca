@@ -91,6 +91,8 @@ func (l L) Intersect(m L, tolerance float64) (float64, bool) {
 // same.
 //
 // See https://stackoverflow.com/a/1084899 for more information.
+//
+// TODO(minkezhang): Return a vector tuple of the intersection points instead.
 func (l L) IntersectCircle(c circle.C) (float64, float64, bool) {
 	p := vector.Sub(l.P(), c.P())
 
