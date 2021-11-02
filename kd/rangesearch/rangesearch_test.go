@@ -9,7 +9,6 @@ import (
 	"github.com/downflux/orca/kd/point"
 	"github.com/google/go-cmp/cmp"
 
-	// test "github.com/downflux/orca/kd/node/test"
 	mock "github.com/downflux/orca/kd/point/mock"
 )
 
@@ -77,6 +76,7 @@ func TestSearch(t *testing.T) {
 				cmp.AllowUnexported(
 					node.N{},
 					vector.V{},
+					mock.P{},
 				),
 			); diff != "" {
 				t.Errorf("Search() mismatch (-want +got):\n%v", diff)

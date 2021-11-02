@@ -158,14 +158,14 @@ func (n *N) Insert(p point.P, tolerance float64) {
 // removing and shifting the nodes is a non-trivial task. We generally expect
 // k-d trees to be relatively stable once created, and that insert and remove
 // operations are kept at a minimum.
-func (n *N) Remove(p point.P, tolerance float64) bool {
+func (n *N) Remove(v vector.V, f func(p point.P) bool, tolerance float64) bool {
 	// The number of meaningful child nodes may decrease after this
 	// operation, so we need to ensure this cache is updated.
 	defer func() { n.sizeCacheValid = false }()
 
-	if vector.Within(p.V(), n.V(), tolerance) {
+	if vector.Within(v, n.V(), tolerance) {
 		for i := range n.data {
-			if p.Equal(n.data[i]) {
+			if f(n.data[i]) {
 				// Remove the i-th element and set the data to
 				// be a shortened slice.
 				//
@@ -180,9 +180,9 @@ func (n *N) Remove(p point.P, tolerance float64) bool {
 		}
 	}
 
-	c := n.Child(p.V(), tolerance)
+	c := n.Child(v, tolerance)
 
-	return c != nil && c.Remove(p, tolerance)
+	return c != nil && c.Remove(v, f, tolerance)
 }
 
 // New returns a new K-D tree node instance.

@@ -10,7 +10,8 @@ type P struct {
 	hash string
 }
 
-func (p P) Equal(q point.P) bool { return p.hash == q.(P).hash }
-func (p P) V() vector.V          { return p.v }
+func (p P) V() vector.V  { return p.v }
+func (p P) Hash() string { return p.hash }
 
-func New(v vector.V, hash string) *P { return &P{v: v, hash: hash} }
+func New(v vector.V, hash string) *P     { return &P{v: v, hash: hash} }
+func CheckHash(p point.P, h string) bool { return p.(P).hash == h }

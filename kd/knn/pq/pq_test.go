@@ -182,7 +182,7 @@ func TestHeap(t *testing.T) {
 			if diff := cmp.Diff(
 				c.want,
 				got,
-				cmp.AllowUnexported(node.N{}, vector.V{}),
+				cmp.AllowUnexported(node.N{}, vector.V{}, mock.P{}),
 			); diff != "" {
 				t.Errorf("Pop() mismatch (-want +got):\n%v", diff)
 			}

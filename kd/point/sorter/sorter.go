@@ -1,3 +1,5 @@
+// Package sorter provides a way to sort a list of points pivoting on a
+// specified axis.
 package sorter
 
 import (

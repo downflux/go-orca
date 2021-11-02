@@ -475,7 +475,9 @@ func TestRemove(t *testing.T) {
 			n := New(c.data, c.depth, tolerance)
 
 			for _, p := range c.p {
-				n.Remove(p, tolerance)
+				n.Remove(p.V(), func(p point.P) bool {
+					return mock.CheckHash(p, p.(mock.P).Hash())
+				}, tolerance)
 			}
 
 			if diff := cmp.Diff(
