@@ -4,7 +4,6 @@ Copyright 2021 DownFlux
 This product includes software from
 
 * the "RVO2" library (https://github.com/snape/RVO2); and
-* the "kyroy/kdtree" library (https://github.com/kyroy/kdtree).
 
 Some parts of the framework, including but not limited to
 
@@ -13,10 +12,3 @@ Some parts of the framework, including but not limited to
 
 are copied from, derived from, or inspired by the RVO2 library.
 Copyright 2013 - 2021 Jamie Snape. All Rights Reserved.
-
-Some parts of the framework, including but not limited to
-
-* kd/...
-
-are copied from, derived from, or inspired by the kyroy/kdtree library.
-Copyright 2018 - 2021 Dennis Kuhnert. All Rights Reserved.
