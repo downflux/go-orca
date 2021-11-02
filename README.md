@@ -9,6 +9,13 @@ go version
 > go version go1.17 linux/amd64
 ```
 
+## Updating
+
+```
+go get -u ./...
+go mod tidy
+```
+
 ## Testing
 
 ```
