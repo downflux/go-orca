@@ -1,9 +1,9 @@
 package solver
 
 import (
+	"github.com/downflux/go-geometry/plane"
+	"github.com/downflux/go-geometry/vector"
 	"github.com/downflux/orca/geometry/lp/solver/reference/helper"
-	"github.com/downflux/orca/geometry/plane"
-	"github.com/downflux/orca/geometry/vector"
 )
 
 type S struct {

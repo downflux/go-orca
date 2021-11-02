@@ -5,8 +5,8 @@ import (
 	"math"
 	"testing"
 
-	"github.com/downflux/orca/geometry/plane"
-	"github.com/downflux/orca/geometry/vector"
+	"github.com/downflux/go-geometry/plane"
+	"github.com/downflux/go-geometry/vector"
 
 	agent "github.com/downflux/orca/agent/reference"
 )

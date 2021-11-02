@@ -1,7 +1,7 @@
 package constraint
 
 import (
-	"github.com/downflux/orca/geometry/vector"
+	"github.com/downflux/go-geometry/vector"
 )
 
 // C defines a linear constraint of the form

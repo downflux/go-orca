@@ -3,8 +3,8 @@ package helper
 import (
 	"math"
 
-	"github.com/downflux/orca/geometry/plane"
-	"github.com/downflux/orca/geometry/vector"
+	"github.com/downflux/go-geometry/plane"
+	"github.com/downflux/go-geometry/vector"
 )
 
 const (

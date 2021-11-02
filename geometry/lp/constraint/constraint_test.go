@@ -6,10 +6,10 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/downflux/go-geometry/plane"
+	"github.com/downflux/go-geometry/vector"
 	"github.com/downflux/orca/geometry/lp/constraint/parametric"
 	"github.com/downflux/orca/geometry/lp/constraint/standard"
-	"github.com/downflux/orca/geometry/plane"
-	"github.com/downflux/orca/geometry/vector"
 )
 
 const (

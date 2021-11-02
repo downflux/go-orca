@@ -1,7 +1,7 @@
 package vo
 
 import (
-	"github.com/downflux/orca/geometry/plane"
+	"github.com/downflux/go-geometry/plane"
 )
 
 type VO interface {
