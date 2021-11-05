@@ -1,4 +1,4 @@
-module github.com/downflux/orca
+module github.com/downflux/go-orca
 
 go 1.17
 

@@ -1,7 +1,7 @@
 package solver
 
 import (
-	"github.com/downflux/orca/geometry/lp/constraint"
+	"github.com/downflux/go-orca/internal/constraint"
 	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/optimize/convex/lp"
 )

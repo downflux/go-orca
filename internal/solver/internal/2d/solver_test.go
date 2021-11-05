@@ -6,9 +6,9 @@ import (
 
 	"github.com/downflux/go-geometry/plane"
 	"github.com/downflux/go-geometry/vector"
-	"github.com/downflux/orca/geometry/lp/solver/reference/helper"
+	"github.com/downflux/go-orca/internal/solver/internal/helper"
 
-	agent "github.com/downflux/orca/agent/reference"
+	mock "github.com/downflux/go-orca/internal/agent/testdata/mock"
 )
 
 const (
@@ -40,7 +40,7 @@ func TestMaxSpeedAgent(t *testing.T) {
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
 			a := maxSpeedAgent{
-				Agent:                 *agent.New(agent.O{T: c.t, S: c.s}),
+				Agent:                 *mock.New(mock.O{T: c.t, S: c.s}),
 				knownOptimalMagnitude: c.opt,
 			}
 
@@ -55,7 +55,7 @@ func TestSolve(t *testing.T) {
 	testConfigs := []struct {
 		name string
 		cs   []plane.HP
-		a    agent.A
+		a    mock.A
 		opt  bool
 		want vector.V
 	}{
@@ -64,7 +64,7 @@ func TestSolve(t *testing.T) {
 			// solver ignores a later (valid) constraint when it is
 			// superseded by an existing solution.
 			name: "SimpleRefinedConstraintNoImproveSolver",
-			a:    *agent.New(agent.O{T: *vector.New(0, 1), S: 5}),
+			a:    *mock.New(mock.O{T: *vector.New(0, 1), S: 5}),
 			cs: []plane.HP{
 				*plane.New(*vector.New(0, -0.5), *vector.New(0, -1)),
 
@@ -90,7 +90,7 @@ func TestSolve(t *testing.T) {
 		},
 		{
 			name: "SimpleDirOptSolver",
-			a:    *agent.New(agent.O{T: *vector.New(0, 1), S: 5}),
+			a:    *mock.New(mock.O{T: *vector.New(0, 1), S: 5}),
 			cs: []plane.HP{
 				// D() points in the positive X direction.
 				*plane.New(*vector.New(0, -0.5), *vector.New(0, -1)),

@@ -23,7 +23,7 @@ import (
 
 	"github.com/downflux/go-geometry/plane"
 	"github.com/downflux/go-geometry/vector"
-	"github.com/downflux/orca/agent"
+	"github.com/downflux/go-orca/agent"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

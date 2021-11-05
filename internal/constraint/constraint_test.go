@@ -8,8 +8,8 @@ import (
 
 	"github.com/downflux/go-geometry/plane"
 	"github.com/downflux/go-geometry/vector"
-	"github.com/downflux/orca/geometry/lp/constraint/parametric"
-	"github.com/downflux/orca/geometry/lp/constraint/standard"
+	"github.com/downflux/go-orca/internal/constraint/parametric"
+	"github.com/downflux/go-orca/internal/constraint/standard"
 )
 
 const (

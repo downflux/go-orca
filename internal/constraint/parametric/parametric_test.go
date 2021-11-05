@@ -1,7 +1,7 @@
 package parametric
 
 import (
-	"github.com/downflux/orca/geometry/lp/constraint"
+	"github.com/downflux/go-orca/internal/constraint"
 )
 
 var (

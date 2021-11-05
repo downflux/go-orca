@@ -1,9 +1,9 @@
-package reference
+package agent
 
 import (
 	"github.com/downflux/go-geometry/circle"
 	"github.com/downflux/go-geometry/vector"
-	"github.com/downflux/orca/agent"
+	"github.com/downflux/go-orca/agent"
 )
 
 var (

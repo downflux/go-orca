@@ -5,7 +5,7 @@ import (
 
 	"github.com/downflux/go-geometry/plane"
 	"github.com/downflux/go-geometry/vector"
-	"github.com/downflux/orca/geometry/lp/solver/reference/helper"
+	"github.com/downflux/go-orca/internal/solver/internal/helper"
 )
 
 var (

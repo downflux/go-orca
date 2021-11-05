@@ -8,7 +8,7 @@ import (
 	"github.com/downflux/go-geometry/plane"
 	"github.com/downflux/go-geometry/vector"
 
-	agent "github.com/downflux/orca/agent/reference"
+	mock "github.com/downflux/go-orca/internal/agent/testdata/mock"
 )
 
 const (
@@ -16,7 +16,7 @@ const (
 )
 
 func TestAdd(t *testing.T) {
-	a := *agent.New(agent.O{T: *vector.New(0, 0.9), S: 1})
+	a := *mock.New(mock.O{T: *vector.New(0, 0.9), S: 1})
 
 	type config struct {
 		name       string

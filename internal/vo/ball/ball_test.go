@@ -8,11 +8,11 @@ import (
 
 	"github.com/downflux/go-geometry/plane"
 	"github.com/downflux/go-geometry/vector"
-	"github.com/downflux/orca/vo"
+	"github.com/downflux/go-orca/internal/vo"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	agent "github.com/downflux/orca/agent/reference"
+	mock "github.com/downflux/go-orca/internal/agent/testdata/mock"
 )
 
 var (
@@ -25,8 +25,8 @@ const tolerance = 1e-10
 // Reference implements the official RVO2 spec. See
 // https://gamma.cs.unc.edu/RVO2/ for more information.
 type Reference struct {
-	a   agent.A
-	b   agent.A
+	a   mock.A
+	b   mock.A
 	tau float64
 }
 
@@ -149,9 +149,9 @@ func (vo Reference) check() Domain {
 func rn() float64 { return rand.Float64()*200 - 100 }
 
 // ra returns an agent with randomized dimensions.
-func ra() agent.A {
-	return *agent.New(
-		agent.O{
+func ra() mock.A {
+	return *mock.New(
+		mock.O{
 			P: *vector.New(rn(), rn()),
 			V: *vector.New(rn(), rn()),
 			R: math.Abs(rn()),
@@ -164,8 +164,8 @@ func ra() agent.A {
 func within(got float64, want float64, tolerance float64) bool { return math.Abs(got-want) < tolerance }
 
 func TestOrientation(t *testing.T) {
-	a := *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1})
-	b := *agent.New(agent.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2})
+	a := *mock.New(mock.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1})
+	b := *mock.New(mock.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2})
 
 	t.Run("P", func(t *testing.T) {
 		want := *vector.New(0, 5)
@@ -208,16 +208,16 @@ func TestOrientation(t *testing.T) {
 // TestVOReference asserts a simple RVO2 agent-agent setup will return correct
 // values from hand calculations.
 func TestVOReference(t *testing.T) {
-	a := *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1})
-	b := *agent.New(agent.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2})
+	a := *mock.New(mock.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1})
+	b := *mock.New(mock.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2})
 
 	testConfigs := []struct {
 		name   string
 		tau    float64
 		domain Domain
 		u      vector.V
-		a      agent.A
-		b      agent.A
+		a      mock.A
+		b      mock.A
 		orca   plane.HP
 	}{
 		{
@@ -310,29 +310,29 @@ func TestVOReference(t *testing.T) {
 func TestVOT(t *testing.T) {
 	testConfigs := []struct {
 		name string
-		a    agent.A
-		b    agent.A
+		a    mock.A
+		b    mock.A
 		tau  float64
 		want vector.V
 	}{
 		{
 			name: "345",
-			a:    *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
-			b:    *agent.New(agent.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
+			a:    *mock.New(mock.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
+			b:    *mock.New(mock.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
 			tau:  1,
 			want: *vector.New(-2.4, 3.2),
 		},
 		{
 			name: "345LargeTau",
-			a:    *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
-			b:    *agent.New(agent.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
+			a:    *mock.New(mock.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
+			b:    *mock.New(mock.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
 			tau:  3,
 			want: vector.Scale(1.0/3, *vector.New(-2.4, 3.2)),
 		},
 		{
 			name: "Inverse345",
-			a:    *agent.New(agent.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
-			b:    *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
+			a:    *mock.New(mock.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
+			b:    *mock.New(mock.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
 			tau:  1,
 			want: vector.Scale(
 				-1,
@@ -341,8 +341,8 @@ func TestVOT(t *testing.T) {
 		},
 		{
 			name: "Inverse345LargeTau",
-			a:    *agent.New(agent.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
-			b:    *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
+			a:    *mock.New(mock.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
+			b:    *mock.New(mock.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
 			tau:  3,
 			want: vector.Scale(
 				-1,
@@ -373,28 +373,28 @@ func TestVOConformance(t *testing.T) {
 
 	type config struct {
 		name string
-		a    agent.A
-		b    agent.A
+		a    mock.A
+		b    mock.A
 		tau  float64
 	}
 
 	testConfigs := []config{
 		{
 			name: "SimpleCase",
-			a:    *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
-			b:    *agent.New(agent.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
+			a:    *mock.New(mock.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
+			b:    *mock.New(mock.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
 			tau:  1,
 		},
 		{
 			name: "SimpleCaseLargeTimeStep",
-			a:    *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
-			b:    *agent.New(agent.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
+			a:    *mock.New(mock.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
+			b:    *mock.New(mock.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
 			tau:  3,
 		},
 		{
 			name: "Collision",
-			a:    *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
-			b:    *agent.New(agent.O{P: *vector.New(0, 3), V: *vector.New(1, -1), R: 2}),
+			a:    *mock.New(mock.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
+			b:    *mock.New(mock.O{P: *vector.New(0, 3), V: *vector.New(1, -1), R: 2}),
 			tau:  1,
 		},
 	}
@@ -483,15 +483,15 @@ func TestVOConformance(t *testing.T) {
 func BenchmarkORCA(t *testing.B) {
 	testConfigs := []struct {
 		name        string
-		constructor func(a, b agent.A) vo.VO
+		constructor func(a, b mock.A) vo.VO
 	}{
 		{
 			name:        "VOReference",
-			constructor: func(a, b agent.A) vo.VO { return Reference{a: a, b: b, tau: 1} },
+			constructor: func(a, b mock.A) vo.VO { return Reference{a: a, b: b, tau: 1} },
 		},
 		{
 			name: "VO",
-			constructor: func(a, b agent.A) vo.VO {
+			constructor: func(a, b mock.A) vo.VO {
 				v, _ := New(a, b, 1)
 				return v
 			},
