@@ -56,6 +56,9 @@ func (r *H) Add(constraint plane.HP) (vector.V, bool) {
 	dot := vector.Dot(constraint.P(), constraint.D())
 	discriminant := dot*dot + r.a.S()*r.a.S() - vector.SquaredMagnitude(constraint.P())
 
+	// The input contraint does not intersect circluar constraint defined by
+	// the maximum agent speed, indicating that the input constraint cannot
+	// satisfy the linear programming problem.
 	if discriminant < 0 {
 		return vector.V{}, false
 	}
