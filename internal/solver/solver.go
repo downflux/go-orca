@@ -3,8 +3,10 @@ package solver
 import (
 	"math"
 
+	"github.com/downflux/go-geometry/plane"
+	"github.com/downflux/go-geometry/segment"
 	"github.com/downflux/go-geometry/vector"
-	"github.com/downflux/go-orca/internal/constraint"
+	"github.com/downflux/go-orca/internal/solver/constraint"
 )
 
 type S struct {
@@ -19,6 +21,18 @@ func New(cs []constraint.C, tolerance float64) *S {
 	}
 }
 
+/*
+func segment(c constraint.C, cs []constraint.C) (segment.S, bool) {
+	if len(cs) == 0 {
+		return *segment.New(c.L(), math.Inf(-1), math.Inf(0))
+	}
+
+	d := cs[len(cs) - 1]
+
+	v, ok := c.HP().L().Intersect(s.cs[j].HP().L(), s.tolerance)
+}
+*/
+
 // Solve attempts to find a vector which satisfies all constraints and minimizes
 // the distance to the input preferred vector v.
 func (s *S) Solve(v vector.V) vector.V {
@@ -26,19 +40,35 @@ func (s *S) Solve(v vector.V) vector.V {
 
 	for i, c := range s.cs {
 		if !c.In(res) {
-			tmin := math.Inf(-1)
-			tmax := math.Inf(0)
+			seg := *segment.New(c.HP().L(), math.Inf(-1), math.Inf(0))
 
 			for j := 0; j < i; j++ {
-				// TODO(minkezhang): Check for disjoint planes.
+				v, ok := c.HP().L().Intersect(s.cs[j].HP().L(), s.tolerance)
 
-				v, ok := c.Intersect(s.cs[j].HP.L, s.tolerance)
-
-				if !ok {
-					// TODO(minkezhang): Check for parallel lines.
+				// Check for disjoint planes.
+				//
+				// If the two planes are disjoint, or the new
+				// contraint "relaxes" the previous constraint,
+				// we can no longer find a point on the current
+				// constraint which satisfies all previous
+				// constraints.
+				//
+				// Note that we should never call this loop to
+				// relax parallel lines -- the previous
+				// feasibility check should avoid the call.
+				//
+				// TODO(minkezhang): Throw error in this case.
+				if plane.Disjoint(c.HP(), s.cs[j].HP(), s.tolerance) || !ok && !s.cs[j].In(c.HP().P()) {
 				}
 
-				t := c.Project(v)
+				// The new constraint fully invalidates the
+				// previous parallel constraint -- we can safely
+				// ignore the old constraint in this case.
+				if !ok {
+					continue
+				}
+
+				t := c.HP().L().Project(v)
 
 				// If a valid value in the new constraint is
 				// also valid in an existing constraint, then t
@@ -47,10 +77,10 @@ func (s *S) Solve(v vector.V) vector.V {
 				// We are iteratively finding the segment of the
 				// new constraint which lies on the intersecting
 				// convex polygon.
-				if vector.Determinant(s.cs[j].D(), c.D()) > 0 {
-					tmax = math.Min(tmax, t)
+				if vector.Determinant(s.cs[j].HP().D(), c.HP().D()) > 0 {
+					seg = *segment.New(c.HP().L(), math.Min(seg.TMax(), t), seg.TMin())
 				} else {
-					tmin = math.Max(tmin, t)
+					seg = *segment.New(c.HP().L(), seg.TMax(), math.Max(seg.TMin(), t))
 				}
 			}
 
@@ -58,17 +88,18 @@ func (s *S) Solve(v vector.V) vector.V {
 			// t-value interval [tmin, tmax]. If the given interval
 			// is invalid, it means that a valid solution to the
 			// system does not exist.
-			if tmin > tmax {
-				// TODO(minkezhang): Implement this.
+			//
+			// TODO(minkezhang): Throw error.
+			if !seg.Feasible() {
 			}
 
-			t := c.Project(v)
-			if t < tmin {
-				t = tmin
-			} else if t > tmax {
-				t = tmax
-			}
-			res = vector.Add(c.P(), vector.Scale(t, c.D()))
+			res = vector.Add(
+				c.HP().P(),
+				vector.Scale(
+					seg.Project(v),
+					c.HP().D(),
+				),
+			)
 		}
 	}
 

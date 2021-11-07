@@ -9,7 +9,7 @@ import (
 	"github.com/downflux/go-geometry/plane"
 	"github.com/downflux/go-geometry/vector"
 
-	mock "github.com/downflux/go-orca/internal/constraint/testdata/mock"
+	mock "github.com/downflux/go-orca/internal/solver/constraint/testdata/mock"
 )
 
 const (

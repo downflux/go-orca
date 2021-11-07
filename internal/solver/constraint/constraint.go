@@ -13,18 +13,18 @@ import (
 //
 //   a_x * x + a_y * y <= b
 type C struct {
-	plane.HP
+	hp plane.HP
 }
 
 func New(hp plane.HP) *C {
 	return &C{
-		HP: hp,
+		hp: hp,
 	}
 }
 
 // A returns the A vector of the contraint; returns [a, b] in the 2D case.
 func (c C) A() []float64 {
-	a := vector.Scale(-1, c.N())
+	a := vector.Scale(-1, c.HP().N())
 	return []float64{
 		a.X(),
 		a.Y(),
@@ -33,6 +33,10 @@ func (c C) A() []float64 {
 
 // B returns the bound on the constraint.
 func (c C) B() float64 {
-	a := vector.Scale(-1, c.N())
-	return vector.Dot(a, c.P())
+	a := vector.Scale(-1, c.HP().N())
+	return vector.Dot(a, c.HP().P())
 }
+
+func (c C) In(v vector.V) bool { return c.HP().In(v) }
+
+func (c C) HP() plane.HP { return c.hp }
