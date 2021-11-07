@@ -1,9 +1,9 @@
 package solver
 
 import (
+	"github.com/downflux/go-geometry/circle"
+	"github.com/downflux/go-geometry/vector"
 	"github.com/downflux/go-orca/internal/constraint"
-	"gonum.org/v1/gonum/mat"
-	"gonum.org/v1/gonum/optimize/convex/lp"
 )
 
 type S struct {
@@ -18,32 +18,8 @@ func New(cs []constraint.C, tolerance float64) *S {
 	}
 }
 
-func (s *S) AddConstraint(c constraint.C) {
-	s.cs = append(s.cs, c)
-}
-
-func (s *S) Minimize(c []float64) ([]float64, error) {
-	if len(c) == 0 {
-		return nil, nil
-	}
-	a := mat.NewDense(len(s.cs), s.cs[0].Dimension(), nil)
-	var b []float64
-
-	for i, c := range s.cs {
-		a.SetRow(i, c.A())
-		b = append(b, c.B())
-	}
-
-	_, x, err := lp.Simplex(c, a, b, s.tolerance, nil)
-	if err != nil {
-		return nil, err
-	}
-	return x, err
-}
-
-func (s *S) Maximize(c []float64) ([]float64, error) {
-	for i, cx := range c {
-		c[i] = -cx
-	}
-	return s.Minimize(c)
+// Solve attempts to find a vector which satisfies all constraints and minimizes
+// the distance to the input preferred vector v.
+func (s *S) Solve(v vector.V, c circle.C) vector.V {
+	return vector.V{}
 }

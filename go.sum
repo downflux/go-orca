@@ -22,6 +22,8 @@ github.com/cncf/xds/go v0.0.0-20211011173535-cb28da3451f1/go.mod h1:eXthEFrGJvWH
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/downflux/go-geometry v0.1.0 h1:V0x5fhb703FDnDr20UMC0rrEIRz5b1U8ZlZop8RwiX0=
 github.com/downflux/go-geometry v0.1.0/go.mod h1:bOw8DHBLJWY8Q7erBWH0Dk4R1poNt5v3huDhUNfxqDU=
+github.com/downflux/go-geometry v0.2.0 h1:lqzXucjf/Huo+HqqB7nIl6b4x5kEXdnvUCYBWfuZ8/Y=
+github.com/downflux/go-geometry v0.2.0/go.mod h1:bOw8DHBLJWY8Q7erBWH0Dk4R1poNt5v3huDhUNfxqDU=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.4/go.mod h1:6rpuAdCZL397s3pYoYcLgu1mIlRU8Am5FuJP05cCM98=

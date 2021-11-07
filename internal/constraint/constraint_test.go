@@ -8,8 +8,8 @@ import (
 
 	"github.com/downflux/go-geometry/plane"
 	"github.com/downflux/go-geometry/vector"
-	"github.com/downflux/go-orca/internal/constraint/parametric"
-	"github.com/downflux/go-orca/internal/constraint/standard"
+
+	mock "github.com/downflux/go-orca/internal/constraint/testdata/mock"
 )
 
 const (
@@ -103,14 +103,14 @@ func TestConformance(t *testing.T) {
 
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
-			p := *parametric.New(*plane.New(c.p, c.n))
-			s := *standard.New(p.A(), p.B())
+			p := *New(*plane.New(c.p, c.n))
+			s := *mock.New(p.A(), p.B())
 
 			t.Run("In", func(t *testing.T) {
 				for _, v := range c.vs {
 					want := p.In(v)
 					if got := s.In(v); got != want {
-						t.Errorf("in() = %v, want = %v", got, want)
+						t.Errorf("In() = %v, want = %v", got, want)
 					}
 				}
 			})
