@@ -73,7 +73,7 @@ func generateSegment(c constraint.C, cs []constraint.C, tolerance float64) (segm
 		// lines -- the previous feasibility check should avoid the
 		// call.
 		if plane.Disjoint(c.HP(), d.HP(), tolerance) || (!ok && !d.In(c.HP().P())) {
-			return s, false
+			return segment.S{}, false
 		}
 
 		// The new constraint fully invalidates the previous parallel
@@ -85,16 +85,36 @@ func generateSegment(c constraint.C, cs []constraint.C, tolerance float64) (segm
 
 		t := c.HP().L().Project(i)
 
-		// If a valid value in the new constraint is also valid in an
-		// existing constraint, then t is an upper bound on the the
-		// feasible region.
-		//
 		// We are iteratively finding the segment of the new constraint
 		// which lies on the intersecting convex polygon.
-		if vector.Determinant(d.HP().D(), c.HP().D()) > 0 {
-			s = *segment.New(c.HP().L(), math.Min(s.TMax(), t), s.TMin())
+		//
+		// Consider the new constraint being added C, and the current
+		// looped constraint variable D; we wish to determine if the
+		// projected parametric t-value onto C of the C-D intersection
+		// should be used to refine our lower or upper bound for the
+		// feasible line segment.
+		//
+		// By definition, the feasible line segment of C satisfies all
+		// previous constraints, including D -- we wish to see if
+		//
+		// C.T(t) ∈ F(D) ⇒ C.T(t + 𝛿) ∈ F(D)
+		//
+		// where F(D) is the feasible domain of D.
+		//
+		// Note that we can make a vector out of the two points C.T(t)
+		// and C.T(t + 𝛿); by orienting this vector towards C.T(t + 𝛿),
+		// and noting that this is just C.D(), we can check the validity
+		// of the implication statment above by checking the feasibility
+		// of C.D() in the F(D) directly.
+		//
+		// Should C.D() lie in F(D), this means all points on the line
+		// with parametric t-values greater than our intersection value
+		// t also lie in F(D) -- and thus, t is a lower bound for the
+		// feasibility segment.
+		if d.In(c.HP().D()) {
+			s = *segment.New(c.HP().L(), math.Max(s.TMin(), t), s.TMax())
 		} else {
-			s = *segment.New(c.HP().L(), s.TMax(), math.Max(s.TMin(), t))
+			s = *segment.New(c.HP().L(), s.TMin(), math.Min(s.TMax(), t))
 		}
 	}
 
