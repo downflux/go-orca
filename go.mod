@@ -3,7 +3,8 @@ module github.com/downflux/go-orca
 go 1.17
 
 require (
-	github.com/downflux/go-geometry v0.2.1-0.20211107235139-65ac6d75a4cf
+	github.com/downflux/go-geometry v0.3.0
+	github.com/google/go-cmp v0.5.6
 	google.golang.org/grpc v1.42.0
 )
 
