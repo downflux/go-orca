@@ -21,18 +21,6 @@ func New(cs []constraint.C, tolerance float64) *S {
 	}
 }
 
-/*
-func segment(c constraint.C, cs []constraint.C) (segment.S, bool) {
-	if len(cs) == 0 {
-		return *segment.New(c.L(), math.Inf(-1), math.Inf(0))
-	}
-
-	d := cs[len(cs) - 1]
-
-	v, ok := c.HP().L().Intersect(s.cs[j].HP().L(), s.tolerance)
-}
-*/
-
 // Solve attempts to find a vector which satisfies all constraints and minimizes
 // the distance to the input preferred vector v.
 func (s *S) Solve(v vector.V) vector.V {
@@ -40,68 +28,78 @@ func (s *S) Solve(v vector.V) vector.V {
 
 	for i, c := range s.cs {
 		if !c.In(res) {
-			seg := *segment.New(c.HP().L(), math.Inf(-1), math.Inf(0))
+			seg, ok := generateSegment(c, s.cs[:i], s.tolerance)
 
-			for j := 0; j < i; j++ {
-				v, ok := c.HP().L().Intersect(s.cs[j].HP().L(), s.tolerance)
-
-				// Check for disjoint planes.
-				//
-				// If the two planes are disjoint, or the new
-				// contraint "relaxes" the previous constraint,
-				// we can no longer find a point on the current
-				// constraint which satisfies all previous
-				// constraints.
-				//
-				// Note that we should never call this loop to
-				// relax parallel lines -- the previous
-				// feasibility check should avoid the call.
-				//
-				// TODO(minkezhang): Throw error in this case.
-				if plane.Disjoint(c.HP(), s.cs[j].HP(), s.tolerance) || !ok && !s.cs[j].In(c.HP().P()) {
-				}
-
-				// The new constraint fully invalidates the
-				// previous parallel constraint -- we can safely
-				// ignore the old constraint in this case.
-				if !ok {
-					continue
-				}
-
-				t := c.HP().L().Project(v)
-
-				// If a valid value in the new constraint is
-				// also valid in an existing constraint, then t
-				// is an upper bound on the the feasible region.
-				//
-				// We are iteratively finding the segment of the
-				// new constraint which lies on the intersecting
-				// convex polygon.
-				if vector.Determinant(s.cs[j].HP().D(), c.HP().D()) > 0 {
-					seg = *segment.New(c.HP().L(), math.Min(seg.TMax(), t), seg.TMin())
-				} else {
-					seg = *segment.New(c.HP().L(), seg.TMax(), math.Max(seg.TMin(), t))
-				}
-			}
-
-			// A line segment of some line L is bounded by the
-			// t-value interval [tmin, tmax]. If the given interval
-			// is invalid, it means that a valid solution to the
-			// system does not exist.
-			//
 			// TODO(minkezhang): Throw error.
-			if !seg.Feasible() {
+			if !ok {
 			}
 
-			res = vector.Add(
-				c.HP().P(),
-				vector.Scale(
-					seg.Project(v),
-					c.HP().D(),
-				),
-			)
+			// Find the projected parametric t-value which minimizes
+			// the distance to the optimal vector. If the t-value
+			// lies outside the line segment, return the segment
+			// boundary value instead.
+			t := seg.Project(v)
+
+			res = c.HP().L().T(t)
 		}
 	}
 
 	return res
+}
+
+// generateSegment creates a new feasible interval for the given constraint,
+// given an existing set of constraints which already have been processed by the
+// solver.
+//
+// N.B.: This function is not order-invariant, specifically in the case where
+// the new constraint is parallel and contains points external to an existing
+// constraint. The calling function should make sure to not call this function
+// in these cases, i.e. when the iterative optimal solution is alerady feasible
+// for the new constraint.
+func generateSegment(c constraint.C, cs []constraint.C, tolerance float64) (segment.S, bool) {
+	s := *segment.New(c.HP().L(), math.Inf(-1), math.Inf(0))
+
+	for _, d := range cs {
+		i, ok := c.HP().L().Intersect(d.HP().L(), tolerance)
+
+		// Check for disjoint planes.
+		//
+		// If the two planes are disjoint, or the new contraint
+		// "relaxes" the previous constraint, we can no longer find a
+		// point on the current constraint which satisfies all previous
+		// constraints.
+		//
+		// Note that we should never call this loop to relax parallel
+		// lines -- the previous feasibility check should avoid the
+		// call.
+		if plane.Disjoint(c.HP(), d.HP(), tolerance) || !ok && !d.In(c.HP().P()) {
+			return s, false
+		}
+
+		// The new constraint fully invalidates the previous parallel
+		// constraint -- we can safely ignore the old constraint in this
+		// case.
+		if !ok {
+			continue
+		}
+
+		t := c.HP().L().Project(i)
+
+		// If a valid value in the new constraint is also valid in an
+		// existing constraint, then t is an upper bound on the the
+		// feasible region.
+		//
+		// We are iteratively finding the segment of the new constraint
+		// which lies on the intersecting convex polygon.
+		if vector.Determinant(d.HP().D(), c.HP().D()) > 0 {
+			s = *segment.New(c.HP().L(), math.Min(s.TMax(), t), s.TMin())
+		} else {
+			s = *segment.New(c.HP().L(), s.TMax(), math.Max(s.TMin(), t))
+		}
+	}
+
+	// A line segment of some line L is bounded by the t-value interval
+	// [tmin, tmax]. If the given interval is invalid, it means that a valid
+	// solution to the system does not exist.
+	return s, s.Feasible()
 }
