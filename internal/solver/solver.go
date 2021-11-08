@@ -72,7 +72,7 @@ func generateSegment(c constraint.C, cs []constraint.C, tolerance float64) (segm
 		// Note that we should never call this loop to relax parallel
 		// lines -- the previous feasibility check should avoid the
 		// call.
-		if plane.Disjoint(c.HP(), d.HP(), tolerance) || !ok && !d.In(c.HP().P()) {
+		if plane.Disjoint(c.HP(), d.HP(), tolerance) || (!ok && !d.In(c.HP().P())) {
 			return s, false
 		}
 
