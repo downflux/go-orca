@@ -24,38 +24,68 @@ func New(cs []constraint.C, tolerance float64) *S {
 // Solve attempts to find a vector which satisfies all constraints and minimizes
 // the distance to the input preferred vector v.
 func (s *S) Solve(v vector.V) vector.V {
-	res := v
-
-	for i, c := range s.cs {
-		if !c.In(res) {
-			seg, ok := generateSegment(c, s.cs[:i], s.tolerance)
-
-			// TODO(minkezhang): Throw error.
-			if !ok {
-			}
-
-			// Find the projected parametric t-value which minimizes
-			// the distance to the optimal vector. If the t-value
-			// lies outside the line segment, return the segment
-			// boundary value instead.
-			t := seg.Project(v)
-
-			res = c.HP().L().T(t)
-		}
+	res, ok := generateResult(v, s.cs, s.tolerance)
+	if !ok {
+		panic("Cannot generate a feasible result with the given constraints; need to implement the 3D solver.")
 	}
 
 	return res
 }
 
-// generateSegment creates a new feasible interval for the given constraint,
+// generateResult attempts to calculate a new vector which is as close to the
+// input vector as possible while satisfying all ORCA half-planes. If there is
+// no shared region between all half-planes, this function will return
+// infeasible.
+//
+// The order by which constraints are given to this function does not matter; we
+// are adding the constraints iteratively, and refining our solution similar to
+// the simplex approach, though applied to a non-linear constraint due to the
+// distance optimization target.
+//
+// This is analogous to Agent.linearProgram2 in the official RVO2
+// implementation.
+func generateResult(v vector.V, cs []constraint.C, tolerance float64) (vector.V, bool) {
+	res := v
+	for i, c := range cs {
+		if !c.In(res) {
+			seg, ok := generateSegment(c, cs[:i], tolerance)
+			if !ok {
+				return vector.V{}, false
+			}
+
+			// Find the projected parametric t-value which minimizes
+			// the distance to the optimal vector. If the t-value
+			// lies outside the line segment, use the nearest
+			// segment boundary value instead.
+			t := seg.Project(v)
+
+			res = c.HP().L().T(t)
+		}
+	}
+	return res, true
+}
+
+// generateSegment creates a new feasible interval for the input constraint,
 // given an existing set of constraints which already have been processed by the
 // solver.
 //
-// N.B.: This function is not order-invariant, specifically in the case where
-// the new constraint is parallel and contains points external to an existing
-// constraint. The calling function should make sure to not call this function
-// in these cases, i.e. when the iterative optimal solution is alerady feasible
-// for the new constraint.
+// This function is called when the new constraint C invalidates the iterative
+// solution -- that is, the current solution lies outside the valid region of C,
+// and WLOG so too does the target minimization vector. Because this solver
+// attempts to find a solution a minimal distance away from the target vector,
+// we know that any returned solution must lie on the new constraint line
+// itself, and not further away in the feasible zone; thus, this solution works
+// with the characteristic line of C for the majority of the computing logic
+// here.
+//
+// This is analogous to Agent.linearProgram1 in the official RVO2
+// implementation.
+//
+// N.B.: This function is not order-invariant, especially notable in the case
+// where the new constraint is parallel to and contains points external to an
+// existing constraint. The calling function is responsible for ensuring this
+// function is not called for this specific edge case by e.g. checking for when
+// the iterative optimal solution is already feasible for the new constraint.
 func generateSegment(c constraint.C, cs []constraint.C, tolerance float64) (segment.S, bool) {
 	s := *segment.New(c.HP().L(), math.Inf(-1), math.Inf(0))
 
