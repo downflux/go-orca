@@ -13,3 +13,5 @@ require (
 	google.golang.org/genproto v0.0.0-20211104193956-4c6863e31247 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 )
+
+replace github.com/downflux/go-geometry => ../go-geometry

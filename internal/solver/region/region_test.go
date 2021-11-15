@@ -4,12 +4,15 @@ import (
 	"math"
 	"testing"
 
-	"github.com/downflux/go-geometry/line"
-	"github.com/downflux/go-geometry/plane"
-	"github.com/downflux/go-geometry/segment"
-	"github.com/downflux/go-geometry/vector"
+	"github.com/downflux/go-geometry/2d/segment"
+	"github.com/downflux/go-geometry/nd/hyperplane"
+	"github.com/downflux/go-geometry/nd/line"
+	"github.com/downflux/go-geometry/nd/vector"
 	"github.com/downflux/go-orca/internal/solver/constraint"
 	"github.com/google/go-cmp/cmp"
+
+	l2d "github.com/downflux/go-geometry/2d/line"
+	v2d "github.com/downflux/go-geometry/2d/vector"
 )
 
 const (
@@ -29,35 +32,32 @@ func TestAdd(t *testing.T) {
 
 		func() config {
 			c := *constraint.New(
-				*plane.New(
+				*hyperplane.New(
 					*vector.New(1, 0),
 					*vector.New(0, 1),
 				),
 			)
 
+			l := *l2d.New(v2d.V(c.HP().P()), v2d.V(c.HP().N()))
 			return config{
 				name:    "FirstConstraint",
 				c:       c,
 				cs:      []constraint.C{},
 				success: true,
-				want: *segment.New(
-					c.HP().L(),
-					math.Inf(-1),
-					math.Inf(0),
-				),
+				want:    *segment.New(l, math.Inf(-1), math.Inf(0)),
 			}
 		}(),
 
 		func() config {
 			c := *constraint.New(
-				*plane.New(
+				*hyperplane.New(
 					*vector.New(1, 0),
 					*vector.New(1, 0),
 				),
 			)
 
 			d := *constraint.New(
-				*plane.New(
+				*hyperplane.New(
 					*vector.New(-1, 0),
 					*vector.New(-1, 0),
 				),
@@ -79,28 +79,26 @@ func TestAdd(t *testing.T) {
 			p := *vector.New(1, 0)
 
 			c := *constraint.New(
-				*plane.New(
+				*hyperplane.New(
 					p,
 					*vector.New(1, -1),
 				),
 			)
 
 			d := *constraint.New(
-				*plane.New(
+				*hyperplane.New(
 					p,
 					*vector.New(1, 0),
 				),
 			)
+
+			l := *l2d.New(v2d.V(c.HP().P()), v2d.V(c.HP().N()))
 			return config{
 				name:    "SingleConstraint/Feasible/SetTMin",
 				c:       c,
 				cs:      []constraint.C{d},
 				success: true,
-				want: *segment.New(
-					c.HP().L(),
-					0,
-					math.Inf(0),
-				),
+				want:    *segment.New(l, 0, math.Inf(0)),
 			}
 		}(),
 
@@ -112,28 +110,26 @@ func TestAdd(t *testing.T) {
 			p := *vector.New(1, 0)
 
 			c := *constraint.New(
-				*plane.New(
+				*hyperplane.New(
 					p,
 					*vector.New(1, 1),
 				),
 			)
 
 			d := *constraint.New(
-				*plane.New(
+				*hyperplane.New(
 					p,
 					*vector.New(1, 0),
 				),
 			)
+
+			l := *l2d.New(v2d.V(c.HP().P()), v2d.V(c.HP().N()))
 			return config{
 				name:    "SingleConstraint/Feasible/SetTMax",
 				c:       c,
 				cs:      []constraint.C{d},
 				success: true,
-				want: *segment.New(
-					c.HP().L(),
-					math.Inf(-1),
-					0,
-				),
+				want:    *segment.New(l, math.Inf(-1), 0),
 			}
 		}(),
 	}
@@ -155,18 +151,20 @@ func TestAdd(t *testing.T) {
 		// return an infeasibility error.
 		func() []config {
 			c := *constraint.New(
-				*plane.New(
+				*hyperplane.New(
 					*vector.New(1, 0),
 					*vector.New(1, 0),
 				),
 			)
 
 			d := *constraint.New(
-				*plane.New(
+				*hyperplane.New(
 					*vector.New(2, 0),
 					*vector.New(1, 0),
 				),
 			)
+
+			m := *l2d.New(v2d.V(d.HP().P()), v2d.V(d.HP().N()))
 			return []config{
 				{
 					name:    "SingleConstraint/Infeasible/RelaxedParallelConstraint",
@@ -180,11 +178,7 @@ func TestAdd(t *testing.T) {
 					c:       d,
 					cs:      []constraint.C{c},
 					success: true,
-					want: *segment.New(
-						d.HP().L(),
-						math.Inf(-1),
-						math.Inf(0),
-					),
+					want:    *segment.New(m, math.Inf(-1), math.Inf(0)),
 				},
 			}
 		}()...)
@@ -194,7 +188,7 @@ func TestAdd(t *testing.T) {
 			r := &R{
 				constraints: c.cs,
 			}
-			got, ok := r.Add(c.c, tolerance)
+			got, ok := r.Add(c.c)
 			if ok != c.success {
 				t.Errorf("generateSegment() = _, %v, want = _, %v", ok, c.success)
 			}
@@ -205,7 +199,7 @@ func TestAdd(t *testing.T) {
 				cmp.AllowUnexported(
 					segment.S{},
 					line.L{},
-					vector.V{})); diff != "" {
+					l2d.L{})); diff != "" {
 				t.Errorf("generateSegment() mismatch (-want +got):\n%v", diff)
 			}
 		})

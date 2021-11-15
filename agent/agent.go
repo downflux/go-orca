@@ -1,7 +1,7 @@
 package agent
 
 import (
-	"github.com/downflux/go-geometry/vector"
+	"github.com/downflux/go-geometry/2d/vector"
 )
 
 type A interface {

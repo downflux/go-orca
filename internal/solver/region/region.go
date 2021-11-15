@@ -3,9 +3,12 @@ package region
 import (
 	"math"
 
-	"github.com/downflux/go-geometry/plane"
-	"github.com/downflux/go-geometry/segment"
+	"github.com/downflux/go-geometry/2d/hyperplane"
+	"github.com/downflux/go-geometry/2d/line"
+	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-orca/internal/solver/constraint"
+
+	v2d "github.com/downflux/go-geometry/2d/vector"
 )
 
 type R struct {
@@ -13,10 +16,10 @@ type R struct {
 	infeasible  bool
 }
 
-func New(cs []constraint.C, tolerance float64) *R {
+func New(cs []constraint.C) *R {
 	r := &R{}
 	for _, c := range cs {
-		r.Add(c, tolerance)
+		r.Add(c)
 	}
 	return r
 }
@@ -43,16 +46,18 @@ func (r *R) Feasible() bool { return !r.infeasible }
 // existing constraint. The calling function is responsible for ensuring this
 // function is not called for this specific edge case by e.g. checking for when
 // the iterative optimal solution is already feasible for the new constraint.
-func (r *R) Add(c constraint.C, tolerance float64) (segment.S, bool) {
+func (r *R) Add(c constraint.C) (segment.S, bool) {
 	defer func() { r.constraints = append(r.constraints, c) }()
 
 	if !r.Feasible() {
 		return segment.S{}, r.Feasible()
 	}
 
-	s := *segment.New(c.HP().L(), math.Inf(-1), math.Inf(0))
+	l := *line.New(v2d.V(c.HP().P()), v2d.V(c.HP().N()))
+	s := *segment.New(l, math.Inf(-1), math.Inf(0))
 	for _, d := range r.constraints {
-		i, ok := c.HP().L().Intersect(d.HP().L(), tolerance)
+		m := *line.New(v2d.V(d.HP().P()), v2d.V(d.HP().N()))
+		i, ok := l.Intersect(m)
 
 		// Check for disjoint planes.
 		//
@@ -64,7 +69,7 @@ func (r *R) Add(c constraint.C, tolerance float64) (segment.S, bool) {
 		// Note that we should never call this loop to relax parallel
 		// lines -- the previous feasibility check should avoid the
 		// call.
-		if plane.Disjoint(c.HP(), d.HP(), tolerance) || (!ok && !d.In(c.HP().P())) {
+		if hyperplane.Disjoint(hyperplane.HP(c.HP()), hyperplane.HP(d.HP())) || (!ok && !d.In(c.HP().P())) {
 			r.infeasible = true
 			return segment.S{}, r.Feasible()
 		}
@@ -76,7 +81,7 @@ func (r *R) Add(c constraint.C, tolerance float64) (segment.S, bool) {
 			continue
 		}
 
-		t := c.HP().L().Project(i)
+		t := l.T(i)
 
 		// We are iteratively finding the segment of the new constraint
 		// which lies on the intersecting convex polygon.
@@ -104,10 +109,10 @@ func (r *R) Add(c constraint.C, tolerance float64) (segment.S, bool) {
 		// with parametric t-values greater than our intersection value
 		// t also lie in F(D) -- and thus, t is a lower bound for the
 		// feasibility segment.
-		if d.In(c.HP().D()) {
-			s = *segment.New(c.HP().L(), math.Max(s.TMin(), t), s.TMax())
+		if d.In(c.HP().N()) {
+			s = *segment.New(l, math.Max(s.TMin(), t), s.TMax())
 		} else {
-			s = *segment.New(c.HP().L(), s.TMin(), math.Min(s.TMax(), t))
+			s = *segment.New(l, s.TMin(), math.Min(s.TMax(), t))
 		}
 	}
 

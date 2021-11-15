@@ -1,8 +1,8 @@
 package agent
 
 import (
-	"github.com/downflux/go-geometry/circle"
-	"github.com/downflux/go-geometry/vector"
+	"github.com/downflux/go-geometry/2d/hypersphere"
+	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-orca/agent"
 )
 
@@ -19,11 +19,11 @@ type O struct {
 }
 
 type A struct {
-	c circle.C
+	c hypersphere.C
 	o O
 }
 
-func New(o O) *A { return &A{o: o, c: *circle.New(o.P, o.R)} }
+func New(o O) *A { return &A{o: o, c: *hypersphere.New(o.P, o.R)} }
 
 func (a A) P() vector.V { return a.c.P() }
 func (a A) R() float64  { return a.c.R() }
