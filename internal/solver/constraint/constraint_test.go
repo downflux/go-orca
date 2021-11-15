@@ -2,18 +2,13 @@ package constraint
 
 import (
 	"fmt"
-	"math"
 	"math/rand"
 	"testing"
 
-	"github.com/downflux/go-geometry/plane"
-	"github.com/downflux/go-geometry/vector"
+	"github.com/downflux/go-geometry/nd/hyperplane"
+	"github.com/downflux/go-geometry/nd/vector"
 
 	mock "github.com/downflux/go-orca/internal/solver/constraint/testdata/mock"
-)
-
-const (
-	tolerance = 1e-10
 )
 
 // rn returns a random int between [-100, 100).
@@ -25,16 +20,12 @@ func rv() vector.V {
 	var v vector.V
 	for {
 		v = *vector.New(rn(), rn())
-		if !vector.Within(v, vector.V{}, tolerance) {
+		if !vector.Within(v, *vector.New(0, 0)) {
 			break
 		}
 	}
 	return v
 }
-
-// within checks that two numeric values are within a small range of one
-// another.
-func within(got float64, want float64, tolerance float64) bool { return math.Abs(got-want) < tolerance }
 
 func TestConformance(t *testing.T) {
 	const nTests = 1000
@@ -103,7 +94,7 @@ func TestConformance(t *testing.T) {
 
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
-			p := *New(*plane.New(c.p, c.n))
+			p := *New(*hyperplane.New(c.p, c.n))
 			s := *mock.New(p.A(), p.B())
 
 			t.Run("In", func(t *testing.T) {

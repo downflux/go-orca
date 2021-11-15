@@ -3,21 +3,22 @@ package solver
 import (
 	"math"
 
-	"github.com/downflux/go-geometry/plane"
-	"github.com/downflux/go-geometry/segment"
-	"github.com/downflux/go-geometry/vector"
+	"github.com/downflux/go-geometry/2d/hyperplane"
+	"github.com/downflux/go-geometry/2d/line"
+	"github.com/downflux/go-geometry/2d/segment"
+	"github.com/downflux/go-geometry/nd/vector"
 	"github.com/downflux/go-orca/internal/solver/constraint"
+
+	v2d "github.com/downflux/go-geometry/2d/vector"
 )
 
 type S struct {
-	cs        []constraint.C
-	tolerance float64
+	cs []constraint.C
 }
 
-func New(cs []constraint.C, tolerance float64) *S {
+func New(cs []constraint.C) *S {
 	return &S{
-		cs:        cs,
-		tolerance: tolerance,
+		cs: cs,
 	}
 }
 
@@ -35,15 +36,24 @@ func segment(c constraint.C, cs []constraint.C) (segment.S, bool) {
 
 // Solve attempts to find a vector which satisfies all constraints and minimizes
 // the distance to the input preferred vector v.
-func (s *S) Solve(v vector.V) vector.V {
+func (s *S) Solve(v v2d.V) v2d.V {
 	res := v
 
 	for i, c := range s.cs {
-		if !c.In(res) {
-			seg := *segment.New(c.HP().L(), math.Inf(-1), math.Inf(0))
+		if !c.In(vector.V(res)) {
+			l := *line.New(
+				v2d.V(c.HP().P()),
+				v2d.V(c.HP().N()),
+			)
+
+			seg := *segment.New(l, math.Inf(-1), math.Inf(0))
 
 			for j := 0; j < i; j++ {
-				v, ok := c.HP().L().Intersect(s.cs[j].HP().L(), s.tolerance)
+				m := *line.New(
+					v2d.V(s.cs[j].HP().P()),
+					v2d.V(s.cs[j].HP().N()),
+				)
+				v, ok := l.Intersect(m)
 
 				// Check for disjoint planes.
 				//
@@ -58,7 +68,7 @@ func (s *S) Solve(v vector.V) vector.V {
 				// feasibility check should avoid the call.
 				//
 				// TODO(minkezhang): Throw error in this case.
-				if plane.Disjoint(c.HP(), s.cs[j].HP(), s.tolerance) || !ok && !s.cs[j].In(c.HP().P()) {
+				if hyperplane.Disjoint(hyperplane.HP(c.HP()), hyperplane.HP(s.cs[j].HP())) || !ok && !s.cs[j].In(c.HP().P()) {
 				}
 
 				// The new constraint fully invalidates the
@@ -68,7 +78,7 @@ func (s *S) Solve(v vector.V) vector.V {
 					continue
 				}
 
-				t := c.HP().L().Project(v)
+				t := l.T(v)
 
 				// If a valid value in the new constraint is
 				// also valid in an existing constraint, then t
@@ -77,10 +87,10 @@ func (s *S) Solve(v vector.V) vector.V {
 				// We are iteratively finding the segment of the
 				// new constraint which lies on the intersecting
 				// convex polygon.
-				if vector.Determinant(s.cs[j].HP().D(), c.HP().D()) > 0 {
-					seg = *segment.New(c.HP().L(), math.Min(seg.TMax(), t), seg.TMin())
+				if v2d.Determinant(v2d.V(s.cs[j].HP().N()), v2d.V(c.HP().N())) > 0 {
+					seg = *segment.New(l, math.Min(seg.TMax(), t), seg.TMin())
 				} else {
-					seg = *segment.New(c.HP().L(), seg.TMax(), math.Max(seg.TMin(), t))
+					seg = *segment.New(l, seg.TMax(), math.Max(seg.TMin(), t))
 				}
 			}
 
@@ -93,11 +103,11 @@ func (s *S) Solve(v vector.V) vector.V {
 			if !seg.Feasible() {
 			}
 
-			res = vector.Add(
-				c.HP().P(),
-				vector.Scale(
-					seg.Project(v),
-					c.HP().D(),
+			res = v2d.Add(
+				v2d.V(c.HP().P()),
+				v2d.Scale(
+					seg.T(v),
+					v2d.V(c.HP().N()),
 				),
 			)
 		}

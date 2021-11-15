@@ -1,7 +1,7 @@
 package standard
 
 import (
-	"github.com/downflux/go-geometry/vector"
+	"github.com/downflux/go-geometry/nd/vector"
 )
 
 // C implements constraint.C using the standard form
