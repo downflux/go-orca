@@ -1,3 +1,4 @@
+// Package region specifies a 2D subspace in 2D ambient space.
 package region
 
 import (
