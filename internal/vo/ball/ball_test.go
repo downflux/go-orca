@@ -6,8 +6,9 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/downflux/go-geometry/plane"
-	"github.com/downflux/go-geometry/vector"
+	"github.com/downflux/go-geometry/2d/hyperplane"
+	"github.com/downflux/go-geometry/2d/vector"
+	"github.com/downflux/go-geometry/epsilon"
 	"github.com/downflux/go-orca/internal/vo"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -20,8 +21,6 @@ var (
 	_ vo.VO = Reference{}
 )
 
-const tolerance = 1e-10
-
 // Reference implements the official RVO2 spec. See
 // https://gamma.cs.unc.edu/RVO2/ for more information.
 type Reference struct {
@@ -30,10 +29,10 @@ type Reference struct {
 	tau float64
 }
 
-func (vo Reference) ORCA() (plane.HP, error) {
+func (vo Reference) ORCA() (hyperplane.HP, error) {
 	u, err := vo.u()
 	if err != nil {
-		return plane.HP{}, err
+		return hyperplane.HP{}, err
 	}
 
 	var n vector.V
@@ -55,9 +54,9 @@ func (vo Reference) ORCA() (plane.HP, error) {
 		// VO cone.
 		n = vector.Unit(*vector.New(-l.Y(), l.X()))
 	default:
-		return plane.HP{}, status.Errorf(codes.Internal, "invalid domain %v", d)
+		return hyperplane.HP{}, status.Errorf(codes.Internal, "invalid domain %v", d)
 	}
-	return *plane.New(
+	return *hyperplane.New(
 		vector.Add(vo.a.V(), vector.Scale(0.5, u)),
 		n,
 	), nil
@@ -159,47 +158,43 @@ func ra() mock.A {
 	)
 }
 
-// within checks that two numeric values are within a small range of one
-// another.
-func within(got float64, want float64, tolerance float64) bool { return math.Abs(got-want) < tolerance }
-
 func TestOrientation(t *testing.T) {
 	a := *mock.New(mock.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1})
 	b := *mock.New(mock.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2})
 
 	t.Run("P", func(t *testing.T) {
 		want := *vector.New(0, 5)
-		if got := p(a, b, 1); !vector.Within(got, want, tolerance) {
+		if got := p(a, b, 1); !vector.Within(got, want) {
 			t.Errorf("p() = %v, want = %v", got, want)
 		}
-		if got := p(b, a, 1); !vector.Within(got, vector.Scale(-1, want), tolerance) {
+		if got := p(b, a, 1); !vector.Within(got, vector.Scale(-1, want)) {
 			t.Errorf("p() = %v, want = %v", got, vector.Scale(-1, want))
 		}
 	})
 	t.Run("R", func(t *testing.T) {
 		want := 3.0
-		if got := r(a, b, 1); !within(got, want, tolerance) {
+		if got := r(a, b, 1); !epsilon.Within(got, want) {
 			t.Errorf("r() = %v, want = %v", got, want)
 		}
-		if got := r(b, a, 1); !within(got, want, tolerance) {
+		if got := r(b, a, 1); !epsilon.Within(got, want) {
 			t.Errorf("r() = %v, want = %v", got, want)
 		}
 	})
 	t.Run("V", func(t *testing.T) {
 		want := *vector.New(-1, 1)
-		if got := v(a, b); !vector.Within(got, want, tolerance) {
+		if got := v(a, b); !vector.Within(got, want) {
 			t.Errorf("v() = %v, want = %v", got, want)
 		}
-		if got := v(b, a); !vector.Within(got, vector.Scale(-1, want), tolerance) {
+		if got := v(b, a); !vector.Within(got, vector.Scale(-1, want)) {
 			t.Errorf("v() = %v, want = %v", got, vector.Scale(-1, want))
 		}
 	})
 	t.Run("W", func(t *testing.T) {
 		want := *vector.New(-1, -4)
-		if got := w(a, b, 1); !vector.Within(got, want, tolerance) {
+		if got := w(a, b, 1); !vector.Within(got, want) {
 			t.Errorf("w() = %v, want = %v", got, want)
 		}
-		if got := w(b, a, 1); !vector.Within(got, vector.Scale(-1, want), tolerance) {
+		if got := w(b, a, 1); !vector.Within(got, vector.Scale(-1, want)) {
 			t.Errorf("w() = %v, want = %v", got, vector.Scale(-1, want))
 		}
 	})
@@ -218,7 +213,7 @@ func TestVOReference(t *testing.T) {
 		u      vector.V
 		a      mock.A
 		b      mock.A
-		orca   plane.HP
+		orca   hyperplane.HP
 	}{
 		{
 			name:   "Simple",
@@ -228,7 +223,7 @@ func TestVOReference(t *testing.T) {
 			domain: Circle,
 			// These values were determined experimentally.
 			u: *vector.New(0.2723931248910011, 1.0895724995640044),
-			orca: *plane.New(
+			orca: *hyperplane.New(
 				*vector.New(0.13619656244550055, 0.5447862497820022),
 				*vector.New(-0.24253562503633297, -0.9701425001453319),
 			),
@@ -241,7 +236,7 @@ func TestVOReference(t *testing.T) {
 			domain: Left,
 			// These values were determined experimentally.
 			u: *vector.New(0.16000000000000003, 0.11999999999999988),
-			orca: *plane.New(
+			orca: *hyperplane.New(
 				*vector.New(0.08000000000000002, 0.05999999999999994),
 				*vector.New(-0.8, -0.6),
 			),
@@ -257,7 +252,7 @@ func TestVOReference(t *testing.T) {
 				-1,
 				*vector.New(0.2723931248910011, 1.0895724995640044),
 			),
-			orca: *plane.New(
+			orca: *hyperplane.New(
 				*vector.New(0.8638034375544994, -1.5447862497820022),
 				*vector.New(0.24253562503633297, 0.9701425001453319),
 			),
@@ -270,7 +265,7 @@ func TestVOReference(t *testing.T) {
 			domain: Left,
 			// These values were determined experimentally.
 			u: *vector.New(0.16000000000000003, 0.11999999999999988),
-			orca: *plane.New(
+			orca: *hyperplane.New(
 				*vector.New(0.08000000000000002, 0.05999999999999994),
 				*vector.New(-0.8, -0.6),
 			),
@@ -289,7 +284,7 @@ func TestVOReference(t *testing.T) {
 				if err != nil {
 					t.Fatalf("u() returned error: %v", err)
 				}
-				if !vector.Within(got, c.u, tolerance) {
+				if !vector.Within(got, c.u) {
 					t.Errorf("u() = %v, want = %v", got, c.u)
 				}
 			})
@@ -298,7 +293,7 @@ func TestVOReference(t *testing.T) {
 				if err != nil {
 					t.Fatalf("ORCA() returned error: %v", err)
 				}
-				if !plane.Within(got, c.orca, tolerance) {
+				if !hyperplane.Within(got, c.orca) {
 					t.Errorf("ORCA() = %v, want = %v", got, c.orca)
 				}
 			})
@@ -358,7 +353,7 @@ func TestVOT(t *testing.T) {
 				t.Fatalf("New() returned error: %v", err)
 			}
 
-			if got := v.t(); !vector.Within(got, c.want, tolerance) {
+			if got := v.t(); !vector.Within(got, c.want) {
 				t.Errorf("t() = %v, want = %v", got, c.want)
 			}
 		})
@@ -428,7 +423,7 @@ func TestVOConformance(t *testing.T) {
 
 					// Disregard rounding errors around
 					// where 𝜃 ~ 𝛽.
-					if got == Circle && (!within(beta, theta, tolerance) || !within(2*math.Pi-theta, beta, tolerance)) {
+					if got == Circle && (!epsilon.Within(beta, theta) || !epsilon.Within(2*math.Pi-theta, beta)) {
 						return
 					}
 					t.Errorf("check() = %v, want = %v", got, want)
@@ -443,7 +438,7 @@ func TestVOConformance(t *testing.T) {
 				if err != nil {
 					t.Fatalf("u() returned error: %v", err)
 				}
-				if !vector.Within(got, want, tolerance) {
+				if !vector.Within(got, want) {
 					t.Errorf("u() = %v, want = %v", got, want)
 				}
 			})
@@ -456,7 +451,7 @@ func TestVOConformance(t *testing.T) {
 				if err != nil {
 					t.Fatalf("n() returned error: %v", err)
 				}
-				if !vector.Within(got, want, tolerance) {
+				if !vector.Within(got, want) {
 					t.Errorf("n() = %v, want = %v", got, want)
 				}
 			})
@@ -470,7 +465,7 @@ func TestVOConformance(t *testing.T) {
 					t.Fatalf("ORCA() returned error: %v", err)
 				}
 
-				if !plane.Within(got, want, tolerance) {
+				if !hyperplane.Within(got, want) {
 					t.Errorf("ORCA() = %v, want = %v", got, want)
 				}
 			})

@@ -21,8 +21,8 @@ package ball
 import (
 	"math"
 
-	"github.com/downflux/go-geometry/plane"
-	"github.com/downflux/go-geometry/vector"
+	"github.com/downflux/go-geometry/2d/hyperplane"
+	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-orca/agent"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -84,16 +84,16 @@ func New(a, b agent.A, tau float64) (*VO, error) {
 
 // ORCA returns the half-plane of permissable velocities for an agent, given the
 // an agent constraint.
-func (vo *VO) ORCA() (plane.HP, error) {
+func (vo *VO) ORCA() (hyperplane.HP, error) {
 	u, err := vo.u()
 	if err != nil {
-		return plane.HP{}, err
+		return hyperplane.HP{}, err
 	}
 	n, err := vo.n()
 	if err != nil {
-		return plane.HP{}, err
+		return hyperplane.HP{}, err
 	}
-	return *plane.New(
+	return *hyperplane.New(
 		vector.Add(vo.a.V(), vector.Scale(0.5, u)),
 		n,
 	), nil
