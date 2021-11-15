@@ -3,12 +3,9 @@ package region
 import (
 	"math"
 
+	"github.com/downflux/go-geometry/2d/constraint"
 	"github.com/downflux/go-geometry/2d/hyperplane"
-	"github.com/downflux/go-geometry/2d/line"
 	"github.com/downflux/go-geometry/2d/segment"
-	"github.com/downflux/go-orca/internal/solver/constraint"
-
-	v2d "github.com/downflux/go-geometry/2d/vector"
 )
 
 type R struct {
@@ -53,23 +50,27 @@ func (r *R) Add(c constraint.C) (segment.S, bool) {
 		return segment.S{}, r.Feasible()
 	}
 
-	l := *line.New(v2d.V(c.HP().P()), v2d.V(c.HP().N()))
+	l := hyperplane.Line(hyperplane.HP(c))
 	s := *segment.New(l, math.Inf(-1), math.Inf(0))
 	for _, d := range r.constraints {
-		m := *line.New(v2d.V(d.HP().P()), v2d.V(d.HP().N()))
-		i, ok := l.Intersect(m)
+		i, ok := l.Intersect(
+			hyperplane.Line(hyperplane.HP(d)),
+		)
 
 		// Check for disjoint planes.
 		//
-		// If the two planes are disjoint, or the new contraint
-		// "relaxes" the previous constraint, we can no longer find a
-		// point on the current constraint which satisfies all previous
-		// constraints.
+		// If the two planes are disjoint, or the new contraint is
+		// parallel to but "relaxes" the previous constraint, we can no
+		// longer find a point on the current constraint which satisfies
+		// all previous constraints.
 		//
 		// Note that we should never call this loop to relax parallel
 		// lines -- the previous feasibility check should avoid the
 		// call.
-		if hyperplane.Disjoint(hyperplane.HP(c.HP()), hyperplane.HP(d.HP())) || (!ok && !d.In(c.HP().P())) {
+		if hyperplane.Disjoint(
+			hyperplane.HP(c),
+			hyperplane.HP(d),
+		) || (!ok && !d.In(hyperplane.HP(c).P())) {
 			r.infeasible = true
 			return segment.S{}, r.Feasible()
 		}
@@ -95,12 +96,12 @@ func (r *R) Add(c constraint.C) (segment.S, bool) {
 		// By definition, the feasible line segment of C satisfies all
 		// previous constraints, including D -- we wish to see if
 		//
-		// C.T(t) ∈ F(D) ⇒ C.T(t + 𝛿) ∈ F(D)
+		// C.L(t) ∈ F(D) ⇒ C.L(t + 𝛿) ∈ F(D)
 		//
-		// where F(D) is the feasible domain of D.
+		// where F(D) is the feasible region of D.
 		//
-		// Note that we can make a vector out of the two points C.T(t)
-		// and C.T(t + 𝛿); by orienting this vector towards C.T(t + 𝛿),
+		// Note that we can make a vector out of the two points C.L(t)
+		// and C.L(t + 𝛿); by orienting this vector towards C.L(t + 𝛿),
 		// and noting that this is just C.D(), we can check the validity
 		// of the implication statment above by checking the feasibility
 		// of C.D() in the F(D) directly.
@@ -109,7 +110,7 @@ func (r *R) Add(c constraint.C) (segment.S, bool) {
 		// with parametric t-values greater than our intersection value
 		// t also lie in F(D) -- and thus, t is a lower bound for the
 		// feasibility segment.
-		if d.In(c.HP().N()) {
+		if d.In(l.D()) {
 			s = *segment.New(l, math.Max(s.TMin(), t), s.TMax())
 		} else {
 			s = *segment.New(l, s.TMin(), math.Min(s.TMax(), t))
