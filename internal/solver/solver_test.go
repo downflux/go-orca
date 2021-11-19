@@ -5,24 +5,26 @@ import (
 
 	"github.com/downflux/go-geometry/2d/constraint"
 	"github.com/downflux/go-geometry/2d/vector"
+
+	v2d "github.com/downflux/go-geometry/2d/vector"
 )
 
 func TestOptimize(t *testing.T) {
 	type config struct {
 		name    string
 		cs      []constraint.C
-		v       vector.V
+		v       v2d.V
 		success bool
-		want    vector.V
+		want    v2d.V
 	}
 
 	testConfigs := []config{
 		{
 			name:    "NoConstraints",
 			cs:      nil,
-			v:       *vector.New(1, 2),
+			v:       *v2d.New(1, 2),
 			success: true,
-			want:    *vector.New(1, 2),
+			want:    *v2d.New(1, 2),
 		},
 
 		// The target minimization vector is already within the single
@@ -35,9 +37,9 @@ func TestOptimize(t *testing.T) {
 					*vector.New(0, 1),
 				),
 			},
-			v:       *vector.New(0, 2),
+			v:       *v2d.New(0, 2),
 			success: true,
-			want:    *vector.New(0, 2),
+			want:    *v2d.New(0, 2),
 		},
 
 		// The target minimization vector is outside the constraint, and
@@ -50,9 +52,9 @@ func TestOptimize(t *testing.T) {
 					*vector.New(0, 1),
 				),
 			},
-			v:       *vector.New(0, -1),
+			v:       *v2d.New(0, -1),
 			success: true,
-			want:    *vector.New(0, 1),
+			want:    *v2d.New(0, 1),
 		},
 	}
 
@@ -73,9 +75,9 @@ func TestOptimize(t *testing.T) {
 				{
 					name:    "ParalleConstraints/SuccessivelyConstrain",
 					cs:      []constraint.C{c, d},
-					v:       *vector.New(0, -1),
+					v:       *v2d.New(0, -1),
 					success: true,
-					want:    *vector.New(0, 2),
+					want:    *v2d.New(0, 2),
 				},
 
 				// Ensure that relaxing a parallel constraint
@@ -84,9 +86,9 @@ func TestOptimize(t *testing.T) {
 				{
 					name:    "ParalleConstraints/RelaxConstraintStillFeasible",
 					cs:      []constraint.C{d, c},
-					v:       *vector.New(0, -1),
+					v:       *v2d.New(0, -1),
 					success: true,
-					want:    *vector.New(0, 2),
+					want:    *v2d.New(0, 2),
 				},
 			}
 		}()...,
@@ -94,7 +96,7 @@ func TestOptimize(t *testing.T) {
 
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
-			if got, ok := optimize(c.v, c.cs); ok != c.success || !vector.Within(c.want, got) {
+			if got, ok := optimize(c.v, c.cs); ok != c.success || !v2d.Within(c.want, got) {
 				t.Errorf("optimize() = %v, %v, want = %v, %v", got, ok, c.want, c.success)
 			}
 		})
