@@ -4,7 +4,8 @@ import (
 	"github.com/downflux/go-geometry/2d/constraint"
 	"github.com/downflux/go-geometry/2d/hyperplane"
 	"github.com/downflux/go-geometry/2d/vector"
-	"github.com/downflux/go-orca/internal/solver/region"
+
+	r2d "github.com/downflux/go-orca/internal/solver/region/2d"
 )
 
 type S struct {
@@ -47,7 +48,7 @@ func expand(cs []constraint.C) vector.V { return vector.V{} }
 // TODO(minkezhang): Add callback function for how to iteratively set the result
 // vector after getting back a segment.
 func optimize(v vector.V, cs []constraint.C) (vector.V, bool) {
-	r := region.New(nil)
+	r := r2d.New(nil)
 
 	res := v
 	for _, c := range cs {
