@@ -6,10 +6,14 @@
 //
 // However, we can "force" a solution by reframing the 2D linear programming
 // question into a 3D one by adding a slack constraint, which allows us to add
-// some arbitrary value to ensure all 2D constraints are satisfied. The 3D
-// linear programming problem is to instead minimize the slack value necessary
-// to fulfill all constraints. Geometrically, we can view the 3D system as
-// extending each 2D linear constraint into the Z-axis, with a slight tilt.
+// some arbitrary value to ensure all 2D constraints are satisfied --
+//
+//   ax + by + z <= b
+//
+// The 3D linear programming problem is to instead minimize the slack value
+// necessary to fulfill all constraints. Geometrically, we see the 3D is a
+// system of contraint lines on the XY-plane, but extending into the third
+// dimension and tilting towards the Z-axis.
 //
 // From the chapter on linear programming in [1], we know that when solving a 2D
 // system of linear constraints for an optimization function with a single
@@ -34,10 +38,14 @@
 //
 // Consider two completely vertical intersecting planes (i.e., their line of
 // intersection is a vertical line), and then tilt the system sligtly so that
-// the line "points" towards the origin -- we see that the line of intersection
+// the line "points" towards the Z-axis -- we see that the line of intersection
 // between two planes can be modeled as the line bisecting the two 2D
 // constraints, and that the parametric value in the line is the slack variable,
-// or rather, a variable which correlates to a value on the Z-axis.
+// or rather, a variable which correlates to a value on the Z-axis, and the
+// orientation of the intersecting line should be defined by the usual
+// plane-plane intersection definition (i.e. the cross product of the two plane
+// normals). We want to ensure that the line's feasible region points into the
+// shared space of the two constraint planes.
 //
 // The constraint plane intersection then, can be constructed by finding all
 // such bisecting lines to the current 3D constraint plane.
