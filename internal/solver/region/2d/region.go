@@ -14,6 +14,15 @@ type R struct {
 	infeasible  bool
 }
 
+// New constructs a new 2D region.
+//
+// TODO(minkezhang): Change API to
+//
+//   New(cs []constraint.C, p func(c constraint.C) (vector.V, vector.V, bool))
+//
+// Where p is a function representing any additional constraints (e.g. max speed
+// circle) that should be considered when calculating the max and min t values
+// for the input constraint.
 func New(cs []constraint.C) *R {
 	r := &R{}
 	for _, c := range cs {

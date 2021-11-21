@@ -8,12 +8,14 @@
 // question into a 3D one by adding a slack constraint, which allows us to add
 // some arbitrary value to ensure all 2D constraints are satisfied --
 //
-//   ax + by + z <= b
+//   ax + by + cz <= b
 //
 // The 3D linear programming problem is to instead minimize the slack value
 // necessary to fulfill all constraints. Geometrically, we see the 3D is a
-// system of contraint lines on the XY-plane, but extending into the third
-// dimension and tilting towards the Z-axis.
+// system of constraint lines on the XY-plane, but extending into the third
+// dimension and tilting towards the Z-axis. The scalar associated with the
+// slack variable z helps control the slope of the plane; this is useful to help
+// define the lines of intersection between two planes, as seen below.
 //
 // From the chapter on linear programming in [1], we know that when solving a 2D
 // system of linear constraints for an optimization function with a single
@@ -76,14 +78,67 @@ package region
 
 import (
 	"github.com/downflux/go-geometry/2d/constraint"
+	"github.com/downflux/go-geometry/2d/hyperplane"
+	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-orca/internal/solver/region/2d"
 )
 
 type R struct {
+	constraints []constraint.C
+	infeasible  bool
 }
 
-func New(cs []constraint.C) *R { return nil }
+func New(cs []constraint.C) *R { return &R{constraints: cs} }
 
-func (r *R) Feasible() bool { return false }
+func (r *R) Feasible() bool { return !r.infeasible }
 
-func (r *R) Add(c constraint.C) (region.R, bool) { return region.R{}, false }
+func (r *R) Add(c constraint.C) (region.R, bool) {
+	defer func() { r.constraints = append(r.constraints, c) }()
+
+	l := hyperplane.Line(hyperplane.HP(c))
+	s := region.New(nil)
+
+	for _, d := range r.constraints {
+		m := hyperplane.Line(hyperplane.HP(d))
+
+		i, ok := l.Intersect(m)
+
+		// Just as in the 2D case, we do not consider there to be a
+		// shared feasible region if the constraint being added
+		// "relaxes" a previous parallel constraint, as the new optimal
+		// solution must lie on the surface of the current constraint.
+		// We need to check for this condition in the caller and ensure
+		// we do not call Add() in this case.
+		if !ok && l.Parallel(m) {
+			if !d.In(hyperplane.HP(c).P()) {
+				r.infeasible = true
+				return region.R{}, r.Feasible()
+			}
+			// The current constraint "tightens" the previous
+			// constraint and fully invalidates it.
+			continue
+		} else if !ok && !l.Parallel(m) {
+			// The two constraints are anti-parallel.
+			s.Add(
+				*constraint.New(
+					vector.Scale(0.5, vector.Sub(l.P(), m.P())),
+					hyperplane.HP(c).N(),
+				),
+			)
+		} else {
+			// The two constraints intersect.
+			s.Add(
+				*constraint.New(
+					i,
+					vector.Sub(
+						hyperplane.HP(d).N(),
+						hyperplane.HP(c).N(),
+					),
+				),
+			)
+		}
+	}
+
+	r.infeasible = !s.Feasible()
+	return *s, r.Feasible()
+}
