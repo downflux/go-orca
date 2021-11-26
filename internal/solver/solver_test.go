@@ -4,12 +4,16 @@ import (
 	"testing"
 
 	"github.com/downflux/go-geometry/2d/constraint"
+	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
 
 	v2d "github.com/downflux/go-geometry/2d/vector"
+	r2d "github.com/downflux/go-orca/internal/solver/region/2d"
 )
 
-func TestOptimize(t *testing.T) {
+var _ r2d.O = func(s segment.S) vector.V { return project(s, v2d.V{}) }
+
+func TestSolve2D(t *testing.T) {
 	type config struct {
 		name    string
 		cs      []constraint.C
@@ -96,8 +100,8 @@ func TestOptimize(t *testing.T) {
 
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
-			if got, ok := optimize(c.v, c.cs); ok != c.success || !v2d.Within(c.want, got) {
-				t.Errorf("optimize() = %v, %v, want = %v, %v", got, ok, c.want, c.success)
+			if got, ok := solve2D(c.v, c.cs); ok != c.success || !v2d.Within(c.want, got) {
+				t.Errorf("solve2D() = %v, %v, want = %v, %v", got, ok, c.want, c.success)
 			}
 		})
 	}

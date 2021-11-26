@@ -14,11 +14,9 @@ import (
 	l2d "github.com/downflux/go-geometry/2d/line"
 )
 
-const (
-	tolerance = 1e-10
-)
+var _ M = Unbounded
 
-func TestAdd(t *testing.T) {
+func TestIntersect(t *testing.T) {
 	type config struct {
 		name    string
 		c       constraint.C
@@ -122,12 +120,12 @@ func TestAdd(t *testing.T) {
 	testConfigs = append(
 		testConfigs,
 
-		// Assert that Add() not order-invariant -- it is possible to
+		// Assert that intersect() not order-invariant -- it is possible to
 		// fail with an infeasibility error in one order, and return a
 		// valid segment if the order changes.
 		//
 		// It is the responsibility of the function calling
-		// Adds to ensure order-invariance.
+		// intersect() to ensure order-invariance.
 		//
 		// Here, C and D form parallel lines, with both feasibility
 		// regions pointing towards the positive X-axis and with the
@@ -167,11 +165,12 @@ func TestAdd(t *testing.T) {
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
 			r := &R{
+				m:           Unbounded,
 				constraints: c.cs,
 			}
-			got, ok := r.Add(c.c)
+			got, ok := r.intersect(c.c)
 			if ok != c.success {
-				t.Errorf("Add() = _, %v, want = _, %v", ok, c.success)
+				t.Errorf("intersect() = _, %v, want = _, %v", ok, c.success)
 			}
 
 			if diff := cmp.Diff(
@@ -181,7 +180,7 @@ func TestAdd(t *testing.T) {
 					segment.S{},
 					l2d.L{},
 					line.L{})); diff != "" {
-				t.Errorf("Add() mismatch (-want +got):\n%v", diff)
+				t.Errorf("intersect() mismatch (-want +got):\n%v", diff)
 			}
 		})
 	}

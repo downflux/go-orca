@@ -7,34 +7,65 @@ import (
 	"github.com/downflux/go-geometry/2d/constraint"
 	"github.com/downflux/go-geometry/2d/hyperplane"
 	"github.com/downflux/go-geometry/2d/segment"
+	"github.com/downflux/go-geometry/2d/vector"
 )
 
+// O specifies an optimization function for the 2D lineaer problem. This
+// function assumes there a single optimal value found over the span of the
+// segment. Note that the function may not be linear -- this is a relaxation on
+// the general LP problem.
+//
+// For example, we may use the distance function as a optimization function,
+// even though the function itself is not of degree 1, because the distance
+// function has a single root.
+type O func(s segment.S) vector.V
+
+// M is an additional (potential non-linear) constraint which clamps the
+// solution a minimum and maximum value. This corresponds to the bounded
+// constraints defined in de Berg et al. (2008). Note that while de Berg assumes
+// all constraints are linear, we relax this assumption slightly and effectively
+// allow specifying per-constraint bounds.
+//
+// This is useful for e.g. when the bounded constraint is circular, as in the
+// case of solving an LP problem in velocity-space with a maximum speed
+// constraint. We can model the circular constraint as a series of linear
+// constraints which lie tangent to the circle-constraint intersection. To make
+// this slightly more efficient, we can instead just truncate the intersection
+// of each "real" constraint to be fully bounded by the circle-constraint
+// intersection.
+//
+// M will return false if the input constraint lies outside the bounds of M.
+type M func(c constraint.C) (segment.S, bool)
+
+// Unbounded is the null constraint.
+func Unbounded(c constraint.C) (segment.S, bool) {
+	l := hyperplane.Line(hyperplane.HP(c))
+	return *segment.New(l, math.Inf(-1), math.Inf(0)), true
+}
+
 type R struct {
+	m           M
+	o           O
 	constraints []constraint.C
 	infeasible  bool
 }
 
 // New constructs a new 2D region.
-//
-// TODO(minkezhang): Change API to
-//
-//   New(cs []constraint.C, p func(c constraint.C) (vector.V, vector.V, bool))
-//
-// Where p is a function representing any additional constraints (e.g. max speed
-// circle) that should be considered when calculating the max and min t values
-// for the input constraint.
-func New(cs []constraint.C) *R {
-	r := &R{}
-	for _, c := range cs {
-		r.Add(c)
+func New(m M, o O) *R {
+	return &R{
+		m: m,
+		o: o,
 	}
-	return r
 }
 
 func (r *R) Feasible() bool { return !r.infeasible }
 
-// Add creates a new feasible interval for the input constraint, given an
-// existing set of constraints which already have been processed by the solver.
+// Add appends the given constraint into the region and returns the optimal
+// value along the interval intersection. The optimal value is calculated based
+// on the optimization function given to the region at construction time.
+//
+// This is analogous to Agent.linearProgram1 in the official RVO2
+// implementation.
 //
 // This function is called when the new constraint C invalidates the iterative
 // solution -- that is, the current solution lies outside the valid region of C,
@@ -45,23 +76,36 @@ func (r *R) Feasible() bool { return !r.infeasible }
 // with the characteristic line of C for the majority of the computing logic
 // here.
 //
-// This is analogous to Agent.linearProgram1 in the official RVO2
-// implementation.
-//
 // N.B.: This function is not order-invariant, especially notable in the case
 // where the new constraint is parallel to and contains points external to an
 // existing constraint. The calling function is responsible for ensuring this
 // function is not called for this specific edge case by e.g. checking for when
 // the iterative optimal solution is already feasible for the new constraint.
-func (r *R) Add(c constraint.C) (segment.S, bool) {
+func (r *R) Add(c constraint.C) (vector.V, bool) {
 	defer func() { r.constraints = append(r.constraints, c) }()
 
+	s, ok := r.intersect(c)
+	if !ok {
+		return vector.V{}, r.Feasible()
+	}
+
+	return r.o(s), r.Feasible()
+}
+
+// intersect creates a new feasible interval for the input constraint, given an
+// existing set of constraints which already have been processed by the solver.
+func (r *R) intersect(c constraint.C) (segment.S, bool) {
 	if !r.Feasible() {
 		return segment.S{}, r.Feasible()
 	}
 
+	s, ok := r.m(c)
+	if !ok {
+		r.infeasible = true
+		return segment.S{}, r.Feasible()
+	}
+
 	l := hyperplane.Line(hyperplane.HP(c))
-	s := *segment.New(l, math.Inf(-1), math.Inf(0))
 	for _, d := range r.constraints {
 		i, ok := l.Intersect(
 			hyperplane.Line(hyperplane.HP(d)),
@@ -133,6 +177,7 @@ func (r *R) Add(c constraint.C) (segment.S, bool) {
 	if s.Feasible() {
 		return s, s.Feasible()
 	}
+
 	r.infeasible = true
 	return segment.S{}, r.Feasible()
 }

@@ -84,6 +84,9 @@ import (
 )
 
 type R struct {
+	m region.M
+	o region.O
+
 	constraints []constraint.C
 	infeasible  bool
 }
@@ -92,11 +95,23 @@ func New(cs []constraint.C) *R { return &R{constraints: cs} }
 
 func (r *R) Feasible() bool { return !r.infeasible }
 
-func (r *R) Add(c constraint.C) (region.R, bool) {
+func (r *R) Add(c constraint.C) (vector.V, bool) {
+	defer func() { r.constraints = append(r.constraints, c) }()
+
+	_, ok := r.intersect(c)
+	if !ok {
+		return vector.V{}, r.Feasible()
+	}
+
+	// TODO(minkezhang): Implement Add()
+	return vector.V{}, false
+}
+
+func (r *R) intersect(c constraint.C) (region.R, bool) {
 	defer func() { r.constraints = append(r.constraints, c) }()
 
 	l := hyperplane.Line(hyperplane.HP(c))
-	s := region.New(nil)
+	s := region.New(r.m, r.o)
 
 	for _, d := range r.constraints {
 		m := hyperplane.Line(hyperplane.HP(d))
