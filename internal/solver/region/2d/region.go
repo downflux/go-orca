@@ -34,7 +34,7 @@ type O func(s segment.S) vector.V
 // of each "real" constraint to be fully bounded by the circle-constraint
 // intersection.
 //
-// M will return false if the input constraint lies outside the bounds of M.
+// M must return false if the input constraint lies outside the bounds of M.
 type M func(c constraint.C) (segment.S, bool)
 
 // Unbounded is the null constraint.
@@ -180,4 +180,42 @@ func (r *R) intersect(c constraint.C) (segment.S, bool) {
 
 	r.infeasible = true
 	return segment.S{}, r.Feasible()
+}
+
+// Solve attempts to calculate a new vector which is as close to the input
+// vector as possible while satisfying all ORCA half-planes. If there is no
+// shared region between all half-planes, this function will return infeasible.
+//
+// Solve takes as input a set of bounding constraints as defined by de Berg
+// (2008), a set of 2D linear constraints, a (potentially non-linear)
+// optimization function, and an initial solution.
+//
+// The order by which constraints are given to this function does not matter; we
+// are adding the constraints iteratively, and refining our solution similar to
+// the simplex approach, though applied to a non-linear constraint due to the
+// distance optimization target.
+//
+// This is analogous to Agent.linearProgram2 in the official RVO2
+// implementation.
+//
+// N.B.: The initial solution is the base case from de Berg, i.e. a known
+// optimal solution which satisfies the bounding constraints. For linear
+// optimization functions, this is the v0 defined in Algorithm 2DBoundedLP of de
+// Berg.
+//
+// N.B.: The initial solution must satisfy the bounding constraints, but this is
+// not check here.
+func Solve(m M, cs []constraint.C, o O, v vector.V) (vector.V, bool) {
+	r := New(m, o)
+
+	for _, c := range cs {
+		var ok bool
+
+		if !c.In(v) {
+			if v, ok = r.Add(c); !ok {
+				return vector.V{}, false
+			}
+		}
+	}
+	return v, true
 }

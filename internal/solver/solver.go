@@ -33,7 +33,15 @@ func New(cs []constraint.C) *S {
 // Solve attempts to find a vector which satisfies all constraints and minimizes
 // the distance to the input preferred vector v.
 func (s *S) Solve(v vector.V) vector.V {
-	res, ok := solve2D(v, s.cs)
+	res, ok := r2d.Solve(
+		r2d.Unbounded,
+		s.cs,
+		func(s segment.S) vector.V {
+			return project(s, v)
+		},
+		v,
+	)
+
 	if !ok {
 		res = solve3D(s.cs)
 	}
@@ -43,34 +51,3 @@ func (s *S) Solve(v vector.V) vector.V {
 
 // TODO(minkezhang): Implement LP3.
 func solve3D(cs []constraint.C) vector.V { return vector.V{} }
-
-// solve2D attempts to calculate a new vector which is as close to the input
-// vector as possible while satisfying all ORCA half-planes. If there is no
-// shared region between all half-planes, this function will return infeasible.
-//
-// The order by which constraints are given to this function does not matter; we
-// are adding the constraints iteratively, and refining our solution similar to
-// the simplex approach, though applied to a non-linear constraint due to the
-// distance optimization target.
-//
-// This is analogous to Agent.linearProgram2 in the official RVO2
-// implementation.
-func solve2D(v vector.V, cs []constraint.C) (vector.V, bool) {
-	r := r2d.New(
-		r2d.Unbounded,
-		func(s segment.S) vector.V {
-			return project(s, v)
-		},
-	)
-
-	res := v
-	for _, c := range cs {
-		var ok bool
-		if !c.In(res) {
-			if res, ok = r.Add(c); !ok {
-				return vector.V{}, false
-			}
-		}
-	}
-	return res, true
-}
