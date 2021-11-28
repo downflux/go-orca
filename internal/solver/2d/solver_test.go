@@ -1,4 +1,4 @@
-package region
+package solver
 
 import (
 	"fmt"
@@ -165,7 +165,7 @@ func TestIntersect(t *testing.T) {
 
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
-			r := &R{
+			r := &region{
 				m:           Unbounded{},
 				constraints: c.cs,
 			}

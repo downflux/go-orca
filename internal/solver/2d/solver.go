@@ -1,5 +1,5 @@
-// Package region specifies a 2D subspace in 2D ambient space.
-package region
+// Package solver solves a 2D linear programming problem in 2D ambient space.
+package solver
 
 import (
 	"math"
@@ -56,17 +56,15 @@ func (Unbounded) Bound(c constraint.C) (segment.S, bool) {
 }
 func (Unbounded) Within(v vector.V) bool { return true }
 
-// R implements a 2D intersection region.
-//
-// TODO(minkezhang): Make this private.
-type R struct {
+// region describes an incremental 2D subspace embedded in 2D ambient space.
+type region struct {
 	m           M
 	o           O
 	constraints []constraint.C
 	infeasible  bool
 }
 
-func (r *R) Feasible() bool { return !r.infeasible }
+func (r *region) Feasible() bool { return !r.infeasible }
 
 // Add appends the given constraint into the region and returns the optimal
 // value along the interval intersection. The optimal value is calculated based
@@ -89,7 +87,7 @@ func (r *R) Feasible() bool { return !r.infeasible }
 // existing constraint. The calling function is responsible for ensuring this
 // function is not called for this specific edge case by e.g. checking for when
 // the iterative optimal solution is already feasible for the new constraint.
-func (r *R) Add(c constraint.C) (vector.V, bool) {
+func (r *region) Add(c constraint.C) (vector.V, bool) {
 	defer func() { r.constraints = append(r.constraints, c) }()
 
 	s, ok := r.intersect(c)
@@ -102,7 +100,7 @@ func (r *R) Add(c constraint.C) (vector.V, bool) {
 
 // intersect creates a new feasible interval for the input constraint, given an
 // existing set of constraints which already have been processed by the solver.
-func (r *R) intersect(c constraint.C) (segment.S, bool) {
+func (r *region) intersect(c constraint.C) (segment.S, bool) {
 	if !r.Feasible() {
 		return segment.S{}, r.Feasible()
 	}
@@ -216,7 +214,7 @@ func Solve(m M, cs []constraint.C, o O, v vector.V) (vector.V, bool) {
 		return vector.V{}, false
 	}
 
-	r := &R{m: m, o: o}
+	r := &region{m: m, o: o}
 	for _, c := range cs {
 		var ok bool
 

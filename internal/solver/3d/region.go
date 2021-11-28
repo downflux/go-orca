@@ -1,4 +1,5 @@
-// Package region specifies a 2D subspace into projected 3D ambient space.
+// Package solver solves a 2D linear programming problem projected into 3D
+// ambient space.
 //
 // It is possible for a 2D system of linear equations to be infeasible, e.g.
 // when there is no region of intersection between two constraints pointing away
@@ -74,18 +75,18 @@
 // [2]: Sidenote, the vector should technically be pointing perpendicular to the
 // 3D constraint plane, but since we are projecting everything into 2D space,
 // the Z-axis is removed and we can consider just the 2D constraint normal.
-package region
+package solver
 
 import (
 	"github.com/downflux/go-geometry/2d/constraint"
 	"github.com/downflux/go-geometry/2d/hyperplane"
 	"github.com/downflux/go-geometry/2d/vector"
-	"github.com/downflux/go-orca/internal/solver/region/2d"
+	"github.com/downflux/go-orca/internal/solver/2d"
 )
 
-type R struct {
-	m region.M
-	o region.O
+type region struct {
+	m solver.M
+	o solver.O
 
 	constraints []constraint.C
 	infeasible  bool
@@ -93,9 +94,9 @@ type R struct {
 
 func New(cs []constraint.C) *R { return &R{constraints: cs} }
 
-func (r *R) Feasible() bool { return !r.infeasible }
+func (r *region) Feasible() bool { return !r.infeasible }
 
-func (r *R) Add(c constraint.C) (vector.V, bool) {
+func (r *region) Add(c constraint.C) (vector.V, bool) {
 	defer func() { r.constraints = append(r.constraints, c) }()
 
 	_, ok := r.project(c)
@@ -105,6 +106,26 @@ func (r *R) Add(c constraint.C) (vector.V, bool) {
 
 	// TODO(minkezhang): Implement Add()
 	return vector.V{}, false
+}
+
+// project reduces the current 3D constraint problem into a projected 2D
+// constraint problem.
+func (r *region) project(c constraint.C) ([]constraint.C, bool) {
+	defer func() { r.constraints = append(r.constraints, c) }()
+
+	pcs := make([]constraint.C, 0, len(r.constraints))
+
+	for _, d := range r.constraints {
+		pc, ok := project(c, d)
+		if !ok {
+			r.infeasible = true
+			return nil, r.Feasible()
+		}
+
+		pcs = append(pcs, pc)
+	}
+
+	return pcs, true
 }
 
 // project takes as input two 2D linear constraints and returns a new constraint
@@ -145,24 +166,4 @@ func project(incremental constraint.C, existing constraint.C) (constraint.C, boo
 			hyperplane.HP(incremental).N(),
 		),
 	), true
-}
-
-// project reduces the current 3D constraint problem into a projected 2D
-// constraint problem.
-func (r *R) project(c constraint.C) ([]constraint.C, bool) {
-	defer func() { r.constraints = append(r.constraints, c) }()
-
-	pcs := make([]constraint.C, 0, len(r.constraints))
-
-	for _, d := range r.constraints {
-		pc, ok := project(c, d)
-		if !ok {
-			r.infeasible = true
-			return nil, r.Feasible()
-		}
-
-		pcs = append(pcs, pc)
-	}
-
-	return pcs, true
 }

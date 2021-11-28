@@ -5,7 +5,7 @@ import (
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
 
-	r2d "github.com/downflux/go-orca/internal/solver/region/2d"
+	s2d "github.com/downflux/go-orca/internal/solver/2d"
 )
 
 // project finds the point on the input line segment which is closest to the
@@ -33,8 +33,8 @@ func New(cs []constraint.C) *S {
 // Solve attempts to find a vector which satisfies all constraints and minimizes
 // the distance to the input preferred vector v.
 func (s *S) Solve(v vector.V) vector.V {
-	res, ok := r2d.Solve(
-		r2d.Unbounded{},
+	res, ok := s2d.Solve(
+		s2d.Unbounded{},
 		s.cs,
 		func(s segment.S) vector.V {
 			return project(s, v)

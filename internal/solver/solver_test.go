@@ -8,10 +8,10 @@ import (
 	"github.com/downflux/go-geometry/2d/vector"
 
 	v2d "github.com/downflux/go-geometry/2d/vector"
-	r2d "github.com/downflux/go-orca/internal/solver/region/2d"
+	s2d "github.com/downflux/go-orca/internal/solver/2d"
 )
 
-var _ r2d.O = func(s segment.S) vector.V { return project(s, v2d.V{}) }
+var _ s2d.O = func(s segment.S) vector.V { return project(s, v2d.V{}) }
 
 func TestSolve(t *testing.T) {
 	type config struct {
