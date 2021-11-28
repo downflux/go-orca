@@ -92,7 +92,7 @@ type region struct {
 	infeasible  bool
 }
 
-func New(cs []constraint.C) *R { return &R{constraints: cs} }
+func New(cs []constraint.C) *region { return &region{constraints: cs} }
 
 func (r *region) Feasible() bool { return !r.infeasible }
 
