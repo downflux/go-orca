@@ -88,8 +88,12 @@ type region struct {
 	m solver.M
 	o solver.O
 
+	// constraints is a list of the existing 2D constraints -- that is, the
+	// constraints which defined an infeasible region that necessitated
+	// calling the 3D solver.
 	constraints []constraint.C
-	infeasible  bool
+
+	infeasible bool
 }
 
 func New(cs []constraint.C) *region { return &region{constraints: cs} }
@@ -147,16 +151,19 @@ func (r *region) project(c constraint.C) ([]constraint.C, bool) {
 		} else if !ok && !l.Parallel(m) {
 			// The two constraints are anti-parallel.
 			pc = *constraint.New(
-				vector.Scale(0.5, vector.Sub(l.P(), m.P())),
+				vector.Scale(0.5, vector.Add(l.P(), m.P())),
 				hyperplane.HP(c).N(),
 			)
 		} else {
 			// The two constraints intersect.
 			pc = *constraint.New(
 				i,
+				// We want the line of intersection to bisect
+				// the constraints, so we need to ensure the two
+				// input vectors have equal "weight".
 				vector.Sub(
-					hyperplane.HP(d).N(),
-					hyperplane.HP(c).N(),
+					vector.Unit(hyperplane.HP(d).N()),
+					vector.Unit(hyperplane.HP(c).N()),
 				),
 			)
 		}
