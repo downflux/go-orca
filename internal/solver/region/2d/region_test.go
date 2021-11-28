@@ -1,6 +1,7 @@
 package region
 
 import (
+	"fmt"
 	"math"
 	"testing"
 
@@ -120,12 +121,12 @@ func TestIntersect(t *testing.T) {
 	testConfigs = append(
 		testConfigs,
 
-		// Assert that intersect() not order-invariant -- it is possible to
-		// fail with an infeasibility error in one order, and return a
-		// valid segment if the order changes.
+		// Assert that intersect() not order-invariant -- it is possible
+		// to fail with an infeasibility error in one order, and return
+		// a valid segment if the order changes.
 		//
-		// It is the responsibility of the function calling
-		// intersect() to ensure order-invariance.
+		// It is the responsibility of the function calling intersect()
+		// to ensure order-invariance.
 		//
 		// Here, C and D form parallel lines, with both feasibility
 		// regions pointing towards the positive X-axis and with the
@@ -197,15 +198,16 @@ func TestSolve(t *testing.T) {
 		want    vector.V
 	}
 
-	testConfigs := []config{
+	testConfigs := []config{}
+
+	testConfigs = append(
+		testConfigs,
 		// Solve a linear optimization problem with constraints given in
 		// a simple online problem. See
 		// https://www.storyofmathematics.com/linear-programming for
 		// more details.
-		config{
-			name: "Simple",
-			m:    Unbounded{},
-			cs: []constraint.C{
+		func() []config {
+			cs := []constraint.C{
 				// The graph shows a vertical x = 4 constraint,
 				// but the solution assumes x = 5.
 				*constraint.New(
@@ -220,9 +222,8 @@ func TestSolve(t *testing.T) {
 					*vector.New(0, 4),
 					*vector.New(-1, -4),
 				),
-			},
-			// The objective function maximizes 3x + 2y.
-			o: func(s segment.S) vector.V {
+			}
+			o := func(s segment.S) vector.V {
 				min := s.L().L(s.TMin())
 				max := s.L().L(s.TMax())
 				f := func(v vector.V) float64 {
@@ -232,12 +233,35 @@ func TestSolve(t *testing.T) {
 					return min
 				}
 				return max
-			},
-			v:       *vector.New(5, math.Inf(0)),
-			success: true,
-			want:    *vector.New(5, 2.75),
-		},
-	}
+			}
+
+			// The objective function maximizes 3x + 2y.  Our
+			// iniital solution must lie on the "corner" of our
+			// bounding constraint m; since m is unbounded, we
+			// choose an arbitrary corner on the extended reals.
+			vs := []vector.V{
+				*vector.New(math.Inf(0), math.Inf(0)),
+				*vector.New(math.Inf(-1), math.Inf(0)),
+				*vector.New(math.Inf(-1), math.Inf(-1)),
+				*vector.New(math.Inf(0), math.Inf(-1)),
+			}
+
+			var testConfigs []config
+			for _, v := range vs {
+				testConfigs = append(testConfigs, config{
+					name:    fmt.Sprintf("Simple/v0=%v", v),
+					m:       Unbounded{},
+					cs:      cs,
+					o:       o,
+					v:       v,
+					success: true,
+					// This is the given solution and is a
+					// constant.
+					want: *vector.New(5, 2.75),
+				})
+			}
+			return testConfigs
+		}()...)
 
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {

@@ -211,9 +211,6 @@ func (r *R) intersect(c constraint.C) (segment.S, bool) {
 // optimal solution which satisfies the bounding constraints. For linear
 // optimization functions, this is the v0 defined in Algorithm 2DBoundedLP of de
 // Berg.
-//
-// N.B.: The initial solution must satisfy the bounding constraints, but this is
-// not check in this function.
 func Solve(m M, cs []constraint.C, o O, v vector.V) (vector.V, bool) {
 	if !m.Within(v) {
 		return vector.V{}, false
