@@ -1,4 +1,3 @@
-// TODO(minkezhang): Implement 2D solver tests.
 package region
 
 import (
@@ -15,7 +14,7 @@ import (
 	l2d "github.com/downflux/go-geometry/2d/line"
 )
 
-var _ M = Unbounded
+var _ M = Unbounded{}
 
 func TestIntersect(t *testing.T) {
 	type config struct {
@@ -166,7 +165,7 @@ func TestIntersect(t *testing.T) {
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
 			r := &R{
-				m:           Unbounded,
+				m:           Unbounded{},
 				constraints: c.cs,
 			}
 			got, ok := r.intersect(c.c)
@@ -182,6 +181,68 @@ func TestIntersect(t *testing.T) {
 					l2d.L{},
 					line.L{})); diff != "" {
 				t.Errorf("intersect() mismatch (-want +got):\n%v", diff)
+			}
+		})
+	}
+}
+
+func TestSolve(t *testing.T) {
+	type config struct {
+		name    string
+		m       M
+		cs      []constraint.C
+		o       O
+		v       vector.V
+		success bool
+		want    vector.V
+	}
+
+	testConfigs := []config{
+		// Solve a linear optimization problem with constraints given in
+		// a simple online problem. See
+		// https://www.storyofmathematics.com/linear-programming for
+		// more details.
+		config{
+			name: "Simple",
+			m:    Unbounded{},
+			cs: []constraint.C{
+				// The graph shows a vertical x = 4 constraint,
+				// but the solution assumes x = 5.
+				*constraint.New(
+					*vector.New(5, 0),
+					*vector.New(-5, 0),
+				),
+				*constraint.New(
+					*vector.New(0, 4),
+					*vector.New(1, 2),
+				),
+				*constraint.New(
+					*vector.New(0, 4),
+					*vector.New(-1, -4),
+				),
+			},
+			// The objective function maximizes 3x + 2y.
+			o: func(s segment.S) vector.V {
+				min := s.L().L(s.TMin())
+				max := s.L().L(s.TMax())
+				f := func(v vector.V) float64 {
+					return 3*v.X() + 2*v.Y()
+				}
+				if f(min) > f(max) {
+					return min
+				}
+				return max
+			},
+			v:       *vector.New(5, math.Inf(0)),
+			success: true,
+			want:    *vector.New(5, 2.75),
+		},
+	}
+
+	for _, c := range testConfigs {
+		t.Run(c.name, func(t *testing.T) {
+			if got, ok := Solve(c.m, c.cs, c.o, c.v); ok != c.success || !vector.Within(got, c.want) {
+				t.Errorf("Solve() = %v, %v, want = %v, %v", got, ok, c.want, c.success)
 			}
 		})
 	}

@@ -41,7 +41,7 @@
 // Consider two completely vertical intersecting planes (i.e., their line of
 // intersection is a vertical line), and then tilt the system sligtly so that
 // the line "points" towards the Z-axis -- we see that the line of intersection
-// between two planes can be modeled as the line bisecting the two 2D
+// between two planes can be modeled as the line projecting the two 2D
 // constraints, and that the parametric value in the line is the slack variable,
 // or rather, a variable which correlates to a value on the Z-axis, and the
 // orientation of the intersecting line should be defined by the usual
@@ -50,7 +50,7 @@
 // shared space of the two constraint planes.
 //
 // The constraint plane intersection then, can be constructed by finding all
-// such bisecting lines to the current 3D constraint plane.
+// such projecting lines to the current 3D constraint plane.
 //
 // Remember that We want our 3D result vector to "minimally" violate some subset
 // of constraints; thus, we want to provide as the target vector into the 2D
@@ -98,7 +98,7 @@ func (r *R) Feasible() bool { return !r.infeasible }
 func (r *R) Add(c constraint.C) (vector.V, bool) {
 	defer func() { r.constraints = append(r.constraints, c) }()
 
-	_, ok := r.intersect(c)
+	_, ok := r.project(c)
 	if !ok {
 		return vector.V{}, r.Feasible()
 	}
@@ -107,53 +107,62 @@ func (r *R) Add(c constraint.C) (vector.V, bool) {
 	return vector.V{}, false
 }
 
-func (r *R) intersect(c constraint.C) (region.R, bool) {
+// project takes as input two 2D linear constraints and returns a new constraint
+// which represents the line of intersection of the two input constraints in 3D
+// space. See package documentation for more details on how / why we wish to do
+// this.
+func project(incremental constraint.C, existing constraint.C) (constraint.C, bool) {
+	l := hyperplane.Line(hyperplane.HP(incremental))
+	m := hyperplane.Line(hyperplane.HP(existing))
+
+	i, ok := l.Intersect(m)
+
+	// Just as in the 2D case, we do not consider there to be a shared
+	// feasible region if the constraint being added "relaxes" a previous
+	// parallel constraint, as the new optimal solution must lie on the
+	// surface of the current incremental constraint.  We need to check for
+	// this condition in the caller and ensure we do not call Add() in this
+	// case.
+	if !ok && l.Parallel(m) {
+		if !existing.In(hyperplane.HP(incremental).P()) {
+			return constraint.C{}, false
+		}
+		// The incremental constraint "tightens" the previous constraint
+		// and fully invalidates it.
+		return incremental, true
+	} else if !ok && !l.Parallel(m) {
+		// The two constraints are anti-parallel.
+		return *constraint.New(
+			vector.Scale(0.5, vector.Sub(l.P(), m.P())),
+			hyperplane.HP(incremental).N(),
+		), true
+	}
+	// The two constraints intersect.
+	return *constraint.New(
+		i,
+		vector.Sub(
+			hyperplane.HP(existing).N(),
+			hyperplane.HP(incremental).N(),
+		),
+	), true
+}
+
+// project reduces the current 3D constraint problem into a projected 2D
+// constraint problem.
+func (r *R) project(c constraint.C) ([]constraint.C, bool) {
 	defer func() { r.constraints = append(r.constraints, c) }()
 
-	l := hyperplane.Line(hyperplane.HP(c))
-	s := region.New(r.m, r.o)
+	pcs := make([]constraint.C, 0, len(r.constraints))
 
 	for _, d := range r.constraints {
-		m := hyperplane.Line(hyperplane.HP(d))
-
-		i, ok := l.Intersect(m)
-
-		// Just as in the 2D case, we do not consider there to be a
-		// shared feasible region if the constraint being added
-		// "relaxes" a previous parallel constraint, as the new optimal
-		// solution must lie on the surface of the current constraint.
-		// We need to check for this condition in the caller and ensure
-		// we do not call Add() in this case.
-		if !ok && l.Parallel(m) {
-			if !d.In(hyperplane.HP(c).P()) {
-				r.infeasible = true
-				return region.R{}, r.Feasible()
-			}
-			// The current constraint "tightens" the previous
-			// constraint and fully invalidates it.
-			continue
-		} else if !ok && !l.Parallel(m) {
-			// The two constraints are anti-parallel.
-			s.Add(
-				*constraint.New(
-					vector.Scale(0.5, vector.Sub(l.P(), m.P())),
-					hyperplane.HP(c).N(),
-				),
-			)
-		} else {
-			// The two constraints intersect.
-			s.Add(
-				*constraint.New(
-					i,
-					vector.Sub(
-						hyperplane.HP(d).N(),
-						hyperplane.HP(c).N(),
-					),
-				),
-			)
+		pc, ok := project(c, d)
+		if !ok {
+			r.infeasible = true
+			return nil, r.Feasible()
 		}
+
+		pcs = append(pcs, pc)
 	}
 
-	r.infeasible = !s.Feasible()
-	return *s, r.Feasible()
+	return pcs, true
 }

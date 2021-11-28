@@ -33,29 +33,37 @@ type O func(s segment.S) vector.V
 // this slightly more efficient, we can instead just truncate the intersection
 // of each "real" constraint to be fully bounded by the circle-constraint
 // intersection.
-//
-// M must return false if the input constraint lies outside the bounds of M.
-type M func(c constraint.C) (segment.S, bool)
+type M interface {
+	// Bound calculates the segment of intersection between the bounding
+	// constraint and any additional linear constraint. If the binding
+	// constraint is linear, the returned segment may be half-infinite.
+	//
+	// Bound must return false if the input constraint lies outside the
+	// bounds of M.
+	Bound(c constraint.C) (segment.S, bool)
 
-// Unbounded is the null constraint.
-func Unbounded(c constraint.C) (segment.S, bool) {
+	// Within checks if the given vector satisifies the initial bounds of M.
+	Within(v vector.V) bool
+}
+
+// Unbounded is the null constraint and satisifies the M interface.
+type Unbounded struct {
+}
+
+func (Unbounded) Bound(c constraint.C) (segment.S, bool) {
 	l := hyperplane.Line(hyperplane.HP(c))
 	return *segment.New(l, math.Inf(-1), math.Inf(0)), true
 }
+func (Unbounded) Within(v vector.V) bool { return true }
 
+// R implements a 2D intersection region.
+//
+// TODO(minkezhang): Make this private.
 type R struct {
 	m           M
 	o           O
 	constraints []constraint.C
 	infeasible  bool
-}
-
-// New constructs a new 2D region.
-func New(m M, o O) *R {
-	return &R{
-		m: m,
-		o: o,
-	}
 }
 
 func (r *R) Feasible() bool { return !r.infeasible }
@@ -99,7 +107,7 @@ func (r *R) intersect(c constraint.C) (segment.S, bool) {
 		return segment.S{}, r.Feasible()
 	}
 
-	s, ok := r.m(c)
+	s, ok := r.m.Bound(c)
 	if !ok {
 		r.infeasible = true
 		return segment.S{}, r.Feasible()
@@ -164,7 +172,7 @@ func (r *R) intersect(c constraint.C) (segment.S, bool) {
 		// with parametric t-values greater than our intersection value
 		// t also lie in F(D) -- and thus, t is a lower bound for the
 		// feasibility segment.
-		if d.In(l.D()) {
+		if d.In(vector.Add(i, l.D())) {
 			s = *segment.New(l, math.Max(s.TMin(), t), s.TMax())
 		} else {
 			s = *segment.New(l, s.TMin(), math.Min(s.TMax(), t))
@@ -182,9 +190,10 @@ func (r *R) intersect(c constraint.C) (segment.S, bool) {
 	return segment.S{}, r.Feasible()
 }
 
-// Solve attempts to calculate a new vector which is as close to the input
-// vector as possible while satisfying all ORCA half-planes. If there is no
-// shared region between all half-planes, this function will return infeasible.
+// Solve attempts to calculate a solution to the linear programming problem
+// which satisifes all input constraints and maximizes / minimizes the given
+// input optimization function. Solve will return infeasible if there is no such
+// solution.
 //
 // Solve takes as input a set of bounding constraints as defined by de Berg
 // (2008), a set of 2D linear constraints, a (potentially non-linear)
@@ -204,10 +213,13 @@ func (r *R) intersect(c constraint.C) (segment.S, bool) {
 // Berg.
 //
 // N.B.: The initial solution must satisfy the bounding constraints, but this is
-// not check here.
+// not check in this function.
 func Solve(m M, cs []constraint.C, o O, v vector.V) (vector.V, bool) {
-	r := New(m, o)
+	if !m.Within(v) {
+		return vector.V{}, false
+	}
 
+	r := &R{m: m, o: o}
 	for _, c := range cs {
 		var ok bool
 

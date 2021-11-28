@@ -19,6 +19,8 @@ github.com/downflux/go-geometry v0.4.1 h1:LarOlZfmGFVg31HG1dBF7IoYESlcH/SNmeNmLp
 github.com/downflux/go-geometry v0.4.1/go.mod h1:bOw8DHBLJWY8Q7erBWH0Dk4R1poNt5v3huDhUNfxqDU=
 github.com/downflux/go-geometry v0.5.0 h1:quyZ0lRgrx/dDVn6qoO86H9jcczI7LfuS55jNthJCPA=
 github.com/downflux/go-geometry v0.5.0/go.mod h1:bOw8DHBLJWY8Q7erBWH0Dk4R1poNt5v3huDhUNfxqDU=
+github.com/downflux/go-geometry v0.5.1 h1:UdLedttpXVxoyyRV6+k+yIi01T01HK0CzGg2fdM/pvg=
+github.com/downflux/go-geometry v0.5.1/go.mod h1:bOw8DHBLJWY8Q7erBWH0Dk4R1poNt5v3huDhUNfxqDU=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.4/go.mod h1:6rpuAdCZL397s3pYoYcLgu1mIlRU8Am5FuJP05cCM98=
