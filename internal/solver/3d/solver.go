@@ -111,59 +111,58 @@ func (r *region) Add(c constraint.C) (vector.V, bool) {
 // project reduces the current 3D constraint problem into a projected 2D
 // constraint problem.
 func (r *region) project(c constraint.C) ([]constraint.C, bool) {
-	defer func() { r.constraints = append(r.constraints, c) }()
+	if !r.Feasible() {
+		return nil, r.Feasible()
+	}
 
 	pcs := make([]constraint.C, 0, len(r.constraints))
 
 	for _, d := range r.constraints {
-		pc, ok := project(c, d)
-		if !ok {
-			r.infeasible = true
-			return nil, r.Feasible()
+		// project takes as input two 2D linear constraints and returns
+		// a new constraint which represents the line of intersection of
+		// the two input constraints in 3D space. See package
+		// documentation for more details on how / why we wish to do
+		// this.
+		var pc constraint.C
+
+		l := hyperplane.Line(hyperplane.HP(c))
+		m := hyperplane.Line(hyperplane.HP(d))
+
+		i, ok := l.Intersect(m)
+
+		// Just as in the 2D case, we do not consider there to be a
+		// shared feasible region if the constraint being added
+		// "relaxes" a previous parallel constraint, as the new optimal
+		// solution must lie on the surface of the current incremental
+		// constraint.  We need to check for this condition in the
+		// caller and ensure we do not call Add() in this case.
+		if !ok && l.Parallel(m) {
+			if !d.In(hyperplane.HP(c).P()) {
+				r.infeasible = true
+				return nil, r.Feasible()
+			}
+			// The incremental constraint "tightens" the previous
+			// constraint and fully invalidates it.
+			pc = c
+		} else if !ok && !l.Parallel(m) {
+			// The two constraints are anti-parallel.
+			pc = *constraint.New(
+				vector.Scale(0.5, vector.Sub(l.P(), m.P())),
+				hyperplane.HP(c).N(),
+			)
+		} else {
+			// The two constraints intersect.
+			pc = *constraint.New(
+				i,
+				vector.Sub(
+					hyperplane.HP(d).N(),
+					hyperplane.HP(c).N(),
+				),
+			)
 		}
 
 		pcs = append(pcs, pc)
 	}
 
 	return pcs, true
-}
-
-// project takes as input two 2D linear constraints and returns a new constraint
-// which represents the line of intersection of the two input constraints in 3D
-// space. See package documentation for more details on how / why we wish to do
-// this.
-func project(incremental constraint.C, existing constraint.C) (constraint.C, bool) {
-	l := hyperplane.Line(hyperplane.HP(incremental))
-	m := hyperplane.Line(hyperplane.HP(existing))
-
-	i, ok := l.Intersect(m)
-
-	// Just as in the 2D case, we do not consider there to be a shared
-	// feasible region if the constraint being added "relaxes" a previous
-	// parallel constraint, as the new optimal solution must lie on the
-	// surface of the current incremental constraint.  We need to check for
-	// this condition in the caller and ensure we do not call Add() in this
-	// case.
-	if !ok && l.Parallel(m) {
-		if !existing.In(hyperplane.HP(incremental).P()) {
-			return constraint.C{}, false
-		}
-		// The incremental constraint "tightens" the previous constraint
-		// and fully invalidates it.
-		return incremental, true
-	} else if !ok && !l.Parallel(m) {
-		// The two constraints are anti-parallel.
-		return *constraint.New(
-			vector.Scale(0.5, vector.Sub(l.P(), m.P())),
-			hyperplane.HP(incremental).N(),
-		), true
-	}
-	// The two constraints intersect.
-	return *constraint.New(
-		i,
-		vector.Sub(
-			hyperplane.HP(existing).N(),
-			hyperplane.HP(incremental).N(),
-		),
-	), true
 }
