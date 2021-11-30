@@ -80,13 +80,23 @@ package solver
 import (
 	"github.com/downflux/go-geometry/2d/constraint"
 	"github.com/downflux/go-geometry/2d/hyperplane"
+	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-orca/internal/solver/2d"
 )
 
+type M interface {
+	solver.M
+
+	// V takes as input a vector and returns a vector which is guaranteed to
+	// be inside the bounds of the 2D solver bounding constraint. This
+	// function "seeds" the 2D solver with an initial valid solution which
+	// lies on the corner of the bounding constraint.
+	V(v vector.V) vector.V
+}
+
 type region struct {
-	m solver.M
-	o solver.O
+	m M
 
 	// constraints is a list of the existing 2D constraints -- that is, the
 	// constraints which defined an infeasible region that necessitated
@@ -103,13 +113,28 @@ func (r *region) Feasible() bool { return !r.infeasible }
 func (r *region) Add(c constraint.C) (vector.V, bool) {
 	defer func() { r.constraints = append(r.constraints, c) }()
 
-	_, ok := r.project(c)
+	cs, ok := r.project(c)
 	if !ok {
 		return vector.V{}, r.Feasible()
 	}
 
-	// TODO(minkezhang): Implement Add()
-	return vector.V{}, false
+	// Our target is to move directly into the feasible region of the
+	// incremental constraint, as fast as the bounding constraints will
+	// allow us -- that is, ensure that the normal vector is projected into
+	// the edge of the bounding constraints.
+	v := r.m.V(hyperplane.HP(c).N())
+
+	return solver.Solve(r.m, cs, func(s segment.S) vector.V {
+		n := *vector.New(
+			-s.L().D().Y(),
+			s.L().D().X(),
+		)
+		c := *constraint.New(s.L().P(), n)
+		if !c.In(v) {
+			return s.L().L(s.TMin())
+		}
+		return s.L().L(s.TMax())
+	}, v)
 }
 
 // project reduces the current 3D constraint problem into a projected 2D
@@ -150,6 +175,12 @@ func (r *region) project(c constraint.C) ([]constraint.C, bool) {
 			pc = c
 		} else if !ok && !l.Parallel(m) {
 			// The two constraints are anti-parallel.
+			//
+			// The distance ratio between this new constraint and
+			// the constraints C and D can be is the assumption all
+			// agents act symmetrically. When calculating
+			// constraints for inflexible walls, we will need to
+			// offset this new plane accordingly.
 			pc = *constraint.New(
 				vector.Scale(0.5, vector.Add(l.P(), m.P())),
 				hyperplane.HP(c).N(),
@@ -161,6 +192,13 @@ func (r *region) project(c constraint.C) ([]constraint.C, bool) {
 				// We want the line of intersection to bisect
 				// the constraints, so we need to ensure the two
 				// input vectors have equal "weight".
+				//
+				// The ratio of angles between this new
+				// constraint and the constraints C and D can be
+				// is the assumption all agents act
+				// symmetrically. When calculating constraints
+				// for inflexible walls, we will need to offset
+				// this new plane accordingly.
 				vector.Sub(
 					vector.Unit(hyperplane.HP(d).N()),
 					vector.Unit(hyperplane.HP(c).N()),
