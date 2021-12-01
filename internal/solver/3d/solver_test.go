@@ -10,6 +10,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
+var _ M = Unbounded{}
+
 func TestProject(t *testing.T) {
 	testConfigs := []struct {
 		name string
@@ -156,6 +158,46 @@ func TestProject(t *testing.T) {
 			); diff != "" {
 				t.Errorf("project() mismatch (-want +got):\n%v", diff)
 			}
+		})
+	}
+}
+
+func TestAdd(t *testing.T) {
+	testConfigs := []struct {
+		name    string
+		m       M
+		cs      []constraint.C
+		c       constraint.C
+		success bool
+		want    vector.V
+	}{
+		// When no 3D constraints exist, the optimal vector returned
+		// should be moving directly into the feasible region of the
+		// single constraint.
+		{
+			name: "Trivial",
+			m:    Unbounded{},
+			cs:   nil,
+			c: *constraint.New(
+				*vector.New(1, 2),
+				*vector.New(0, 2),
+			),
+			success: true,
+			want:    *vector.New(0, 2),
+		},
+	}
+
+	for _, c := range testConfigs {
+		t.Run(c.name, func(t *testing.T) {
+			r := region{
+				m:           c.m,
+				constraints: c.cs,
+			}
+
+			if got, ok := r.Add(c.c); ok != c.success || !vector.Within(c.want, got) {
+				t.Errorf("Add() = %v, %v, want = %v, %v", got, ok, c.want, c.success)
+			}
+
 		})
 	}
 }

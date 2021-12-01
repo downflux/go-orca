@@ -95,12 +95,20 @@ type M interface {
 	V(v vector.V) vector.V
 }
 
+type Unbounded struct {
+	solver.Unbounded
+}
+
+func (Unbounded) V(v vector.V) vector.V { return v }
+
 type region struct {
 	m M
 
 	// constraints is a list of the existing 2D constraints -- that is, the
 	// constraints which defined an infeasible region that necessitated
-	// calling the 3D solver.
+	// calling the 3D solver. These constraints correspond to the "real"
+	// space; in RVO, these constraints are the set of 2D ORCA lines (read:
+	// hyperplanes).
 	constraints []constraint.C
 
 	infeasible bool
