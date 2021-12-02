@@ -133,11 +133,10 @@ func (r *region) Add(c constraint.C) (vector.V, bool) {
 	v := r.m.V(hyperplane.HP(c).N())
 
 	return solver.Solve(r.m, cs, func(s segment.S) vector.V {
-		n := *vector.New(
-			-s.L().D().Y(),
-			s.L().D().X(),
-		)
-		c := *constraint.New(s.L().P(), n)
+		// As in hyperplane.Line, we are defining the normal of a line
+		// to be pointing into the feasible region of hyperplane, which
+		// is defined as a vector rotated anti-clockwise to the line direction.
+		c := *constraint.New(s.L().P(), s.L().N())
 		if !c.In(v) {
 			return s.L().L(s.TMin())
 		}
@@ -167,7 +166,6 @@ func (r *region) project(c constraint.C) ([]constraint.C, bool) {
 
 		i, ok := l.Intersect(m)
 
-		// Just as in the 2D case, we do not consider there to be a
 		// shared feasible region if the constraint being added
 		// "relaxes" a previous parallel constraint, as the new optimal
 		// solution must lie on the surface of the current incremental
@@ -194,6 +192,7 @@ func (r *region) project(c constraint.C) ([]constraint.C, bool) {
 				hyperplane.HP(c).N(),
 			)
 		} else {
+			// Just as in the 2D case, we do not consider there to be a
 			// The two constraints intersect.
 			pc = *constraint.New(
 				i,
@@ -207,9 +206,11 @@ func (r *region) project(c constraint.C) ([]constraint.C, bool) {
 				// symmetrically. When calculating constraints
 				// for inflexible walls, we will need to offset
 				// this new plane accordingly.
-				vector.Sub(
-					vector.Unit(hyperplane.HP(d).N()),
-					vector.Unit(hyperplane.HP(c).N()),
+				vector.Unit(
+					vector.Sub(
+						vector.Unit(hyperplane.HP(d).N()),
+						vector.Unit(hyperplane.HP(c).N()),
+					),
 				),
 			)
 		}
