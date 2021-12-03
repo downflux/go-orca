@@ -142,6 +142,14 @@ func (r *region) Add(c constraint.C) (vector.V, bool) {
 		// minimizes the distance along the Z-axis to the target vector.
 		//
 		// TODO(minkezhang): Verify if any of this statement is true.
+		//
+		// This is the optimization function which the official RVO2
+		// implementation has embedded into LP1 for
+		//
+		//   directionOpt = true
+		//
+		// It is not immediately obvious how this function optimizes the
+		// direction from the optimal vector to the constraint plane.
 		if !c.In(v) {
 			return s.L().L(s.TMin())
 		}
