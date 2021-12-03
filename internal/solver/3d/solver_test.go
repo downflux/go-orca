@@ -330,10 +330,18 @@ func TestAdd(t *testing.T) {
 				cs:      []constraint.C{a, b},
 				c:       c,
 				success: true,
-				// This is actually not right; we should be
-				// returning the point of intersection of the
-				// projected constraints.
-				want: *vector.New(math.Inf(0), math.Inf(0)),
+				want:    *vector.New(math.Inf(0), math.Inf(0)),
+			},
+			// Test that when adding a new constraint into the 3D
+			// region, the order of the previous constraints added
+			// does not matter.
+			{
+				name:    "2DInfeasible/OrderInvariance",
+				m:       Unbounded{},
+				cs:      []constraint.C{b, a},
+				c:       c,
+				success: true,
+				want:    *vector.New(math.Inf(0), math.Inf(0)),
 			},
 		}
 	}()...)
