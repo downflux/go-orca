@@ -333,7 +333,7 @@ func TestAdd(t *testing.T) {
 				// This is actually not right; we should be
 				// returning the point of intersection of the
 				// projected constraints.
-				want: *vector.New(math.Inf(1), math.Inf(1)),
+				want: *vector.New(math.Inf(0), math.Inf(0)),
 			},
 		}
 	}()...)
