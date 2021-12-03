@@ -137,6 +137,11 @@ func (r *region) Add(c constraint.C) (vector.V, bool) {
 		// to be pointing into the feasible region of hyperplane, which
 		// is defined as a vector rotated anti-clockwise to the line direction.
 		c := *constraint.New(s.L().P(), s.L().N())
+
+		// Find a t-value in the projected constraints which will
+		// minimizes the distance along the Z-axis to the target vector.
+		//
+		// TODO(minkezhang): Verify if any of this statement is true.
 		if !c.In(v) {
 			return s.L().L(s.TMin())
 		}
