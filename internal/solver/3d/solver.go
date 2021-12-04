@@ -233,3 +233,47 @@ func (r *region) project(c constraint.C) ([]constraint.C, bool) {
 
 	return pcs, true
 }
+
+// Solve calculates a solution to an infeasible 2D linear programming problem by
+// adding a slack variable, i.e. adding a third dimension.
+//
+// N.B: This is not a general-purpose 3D linear programming solver. Both the
+// bounding constraints M and input constraints are 2D-specific.
+func Solve(m M, cs []constraint.C, v vector.V) vector.V {
+	if !m.Within(v) {
+		return vector.V{}
+	}
+
+	// dist is the current penetration distance into the infeasible region
+	// of some constraint plane from the input.
+	dist := 0.
+	u := v
+
+	r := &region{m: m}
+	for _, c := range cs {
+		l := hyperplane.Line(hyperplane.HP(c))
+		// The base 2D linear programming problem may be infeasible. In
+		// order to "solve" this problem, we are systematically relaxing
+		// the 2D constraint requirements with a slack variable
+		// (represented by the penetration distance). That is, we accept
+		// the solution to Solve() may lie in the infeasible region of
+		// some subset of input 2D constraints, but we want to minimize
+		// this distance across all such constraints.
+		//
+		// If the penetration distance to the iterative constraint
+		// exceeds the current minimal value of the slack, then we need
+		// to find a new minimum. Note that this new value of the slack
+		// will exceed the old distance as well -- but it may be smaller
+		// than the current solution we have found.
+		if !c.In(v) && l.Distance(u) > dist {
+			// In the case r.Add() returns infeasible due to a
+			// rounding error, we ignore the result and continue.
+			if u, ok := r.Add(c); ok {
+				v = u
+			}
+		}
+
+		dist = l.Distance(v)
+	}
+	return u
+}
