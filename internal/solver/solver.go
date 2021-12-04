@@ -4,8 +4,10 @@ import (
 	"github.com/downflux/go-geometry/2d/constraint"
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
+	"github.com/downflux/go-orca/internal/solver/bounds/circular"
 
 	s2d "github.com/downflux/go-orca/internal/solver/2d"
+	s3d "github.com/downflux/go-orca/internal/solver/3d"
 )
 
 // project finds the point on the input line segment which is closest to the
@@ -22,6 +24,7 @@ func project(s segment.S, v vector.V) vector.V {
 // single optimal solution may be found.
 type S struct {
 	cs []constraint.C
+	r  float64
 }
 
 func New(cs []constraint.C) *S {
@@ -43,11 +46,8 @@ func (s *S) Solve(v vector.V) vector.V {
 	)
 
 	if !ok {
-		res = solve3D(s.cs)
+		res = s3d.Solve(*circular.New(s.r), s.cs, v)
 	}
 
 	return res
 }
-
-// TODO(minkezhang): Implement LP3.
-func solve3D(cs []constraint.C) vector.V { return vector.V{} }
