@@ -1,6 +1,7 @@
 package solver
 
 import (
+	"math"
 	"testing"
 
 	"github.com/downflux/go-geometry/2d/constraint"
@@ -18,6 +19,7 @@ func TestSolve(t *testing.T) {
 		name string
 		cs   []constraint.C
 		v    v2d.V
+		r    float64
 		want v2d.V
 	}
 
@@ -27,6 +29,7 @@ func TestSolve(t *testing.T) {
 			name: "2D/NoConstraints",
 			cs:   nil,
 			v:    *v2d.New(1, 2),
+			r:    math.Inf(0),
 			want: *v2d.New(1, 2),
 		},
 
@@ -41,6 +44,7 @@ func TestSolve(t *testing.T) {
 				),
 			},
 			v:    *v2d.New(0, 2),
+			r:    math.Inf(0),
 			want: *v2d.New(0, 2),
 		},
 
@@ -55,6 +59,7 @@ func TestSolve(t *testing.T) {
 				),
 			},
 			v:    *v2d.New(0, -1),
+			r:    math.Inf(0),
 			want: *v2d.New(0, 1),
 		},
 	}
@@ -77,6 +82,7 @@ func TestSolve(t *testing.T) {
 					name: "2D/ParalleConstraints/SuccessivelyConstrain",
 					cs:   []constraint.C{c, d},
 					v:    *v2d.New(0, -1),
+					r:    math.Inf(0),
 					want: *v2d.New(0, 2),
 				},
 
@@ -87,7 +93,34 @@ func TestSolve(t *testing.T) {
 					name: "2D/ParalleConstraints/RelaxConstraintStillFeasible",
 					cs:   []constraint.C{d, c},
 					v:    *v2d.New(0, -1),
+					r:    math.Inf(0),
 					want: *v2d.New(0, 2),
+				},
+			}
+		}()...,
+	)
+
+	testConfigs = append(
+		testConfigs,
+		func() []config {
+			cs := []constraint.C{
+				*constraint.New(
+					*v2d.New(0, 1),
+					*v2d.New(0, 1),
+				),
+				*constraint.New(
+					*v2d.New(0, 0),
+					*v2d.New(0, -1),
+				),
+			}
+
+			return []config{
+				{
+					name: "3D/Trivial/2DInfeasible",
+					cs:   cs,
+					v:    *v2d.New(0, 0),
+					want: *v2d.New(0, 1),
+					r:    1000, // math.Inf(0),
 				},
 			}
 		}()...,
@@ -95,8 +128,7 @@ func TestSolve(t *testing.T) {
 
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
-			s := New(c.cs)
-			if got := s.Solve(c.v); !v2d.Within(c.want, got) {
+			if got := Solve(c.cs, c.v, c.r); !v2d.Within(c.want, got) {
 				t.Errorf("Solve() = %v, want = %v", got, c.want)
 			}
 		})

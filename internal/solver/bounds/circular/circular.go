@@ -3,6 +3,8 @@
 package circular
 
 import (
+	"math"
+
 	"github.com/downflux/go-geometry/2d/constraint"
 	"github.com/downflux/go-geometry/2d/hyperplane"
 	"github.com/downflux/go-geometry/2d/hypersphere"
@@ -22,12 +24,15 @@ func New(r float64) *M {
 // constraint and the input constraint.
 func (m M) Bound(c constraint.C) (segment.S, bool) {
 	l := hyperplane.Line(hyperplane.HP(c))
-	min, max, ok := l.IntersectCircle(hypersphere.C(m))
+	v1, v2, ok := l.IntersectCircle(hypersphere.C(m))
 	if !ok {
 		return segment.S{}, false
 	}
 
-	return *segment.New(l, l.T(min), l.T(max)), ok
+	t1 := l.T(v1)
+	t2 := l.T(v2)
+
+	return *segment.New(l, math.Min(t1, t2), math.Max(t1, t2)), ok
 }
 
 // Within checks if the input vector is contained within the circle.

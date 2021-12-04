@@ -19,26 +19,15 @@ func project(s segment.S, v vector.V) vector.V {
 	return s.L().L(s.T(v))
 }
 
-// S implements a linear program solver for a system of 2D constraints. In the
-// case of an infeasible region, the solver will relax the constraints until a
-// single optimal solution may be found.
-type S struct {
-	cs []constraint.C
-	r  float64
-}
-
-func New(cs []constraint.C) *S {
-	return &S{
-		cs: cs,
-	}
-}
-
 // Solve attempts to find a vector which satisfies all constraints and minimizes
-// the distance to the input preferred vector v.
-func (s *S) Solve(v vector.V) vector.V {
+// the distance to the input preferred vector v, with maximum length of v set to
+// r.
+func Solve(cs []constraint.C, v vector.V, r float64) vector.V {
+	m := *circular.New(r)
+
 	res, ok := s2d.Solve(
-		s2d.Unbounded{},
-		s.cs,
+		m,
+		cs,
 		func(s segment.S) vector.V {
 			return project(s, v)
 		},
@@ -46,7 +35,7 @@ func (s *S) Solve(v vector.V) vector.V {
 	)
 
 	if !ok {
-		res = s3d.Solve(*circular.New(s.r), s.cs, v)
+		res = s3d.Solve(m, cs, v)
 	}
 
 	return res
