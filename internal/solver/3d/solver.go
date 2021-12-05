@@ -247,7 +247,6 @@ func Solve(m M, cs []constraint.C, v vector.V) vector.V {
 	// dist is the current penetration distance into the infeasible region
 	// of some constraint plane from the input.
 	dist := 0.
-	u := v
 
 	r := &region{m: m}
 	for _, c := range cs {
@@ -265,7 +264,7 @@ func Solve(m M, cs []constraint.C, v vector.V) vector.V {
 		// to find a new minimum. Note that this new value of the slack
 		// will exceed the old distance as well -- but it may be smaller
 		// than the current solution we have found.
-		if !c.In(v) && l.Distance(u) > dist {
+		if !c.In(v) && l.Distance(v) > dist {
 			// In the case r.Add() returns infeasible due to a
 			// rounding error, we ignore the result and continue.
 			if u, ok := r.Add(c); ok {
@@ -275,5 +274,5 @@ func Solve(m M, cs []constraint.C, v vector.V) vector.V {
 
 		dist = l.Distance(v)
 	}
-	return u
+	return v
 }

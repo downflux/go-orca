@@ -109,7 +109,7 @@ func TestSolve(t *testing.T) {
 					*v2d.New(0, 1),
 				),
 				*constraint.New(
-					*v2d.New(0, 0),
+					*v2d.New(0, -1),
 					*v2d.New(0, -1),
 				),
 			}
@@ -118,9 +118,9 @@ func TestSolve(t *testing.T) {
 				{
 					name: "3D/Trivial/2DInfeasible",
 					cs:   cs,
-					v:    *v2d.New(0, 0),
-					want: *v2d.New(0, 1),
-					r:    1000, // math.Inf(0),
+					v:    *v2d.New(0, 1),
+					want: *v2d.New(0, -1),
+					r:    math.Inf(0),
 				},
 			}
 		}()...,

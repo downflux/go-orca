@@ -46,13 +46,13 @@ func TestIntersect(t *testing.T) {
 
 		func() config {
 			c := *constraint.New(
-				*vector.New(1, 0),
-				*vector.New(1, 0),
+				*vector.New(0, 1),
+				*vector.New(0, 1),
 			)
 
 			d := *constraint.New(
-				*vector.New(-1, 0),
-				*vector.New(-1, 0),
+				*vector.New(0, -1),
+				*vector.New(0, -1),
 			)
 			return config{
 				name:    "SingleConstraint/Infeasible/Disjoint",
