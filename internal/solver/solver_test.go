@@ -119,8 +119,8 @@ func TestSolve(t *testing.T) {
 					name: "3D/Trivial/2DInfeasible",
 					cs:   cs,
 					v:    *v2d.New(0, 1),
-					want: *v2d.New(0, -1),
-					r:    math.Inf(0),
+					want: *v2d.New(0, -10),
+					r:    10,
 				},
 			}
 		}()...,

@@ -45,5 +45,9 @@ func (m M) Within(v vector.V) bool { return hypersphere.C(m).In(v) }
 // V transforms the input vector such that the output will lie on a edge of the
 // circle.
 func (m M) V(v vector.V) vector.V {
-	return vector.Scale(hypersphere.C(m).R(), vector.Unit(v))
+	r := hypersphere.C(m).R()
+	if r == math.Inf(-1) || r == math.Inf(0) {
+		panic("cannot map a vector to the boundary of a circle with infinite radius")
+	}
+	return vector.Scale(r, vector.Unit(v))
 }

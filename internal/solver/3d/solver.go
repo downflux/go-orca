@@ -119,6 +119,7 @@ func (r *region) Append(c constraint.C) { r.constraints = append(r.constraints, 
 
 func (r *region) Solve(c constraint.C) (vector.V, bool) {
 	cs, ok := r.project(c)
+
 	if !ok {
 		return vector.V{}, r.Feasible()
 	}
