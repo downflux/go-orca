@@ -1,4 +1,7 @@
 package orca
 
-type Reference struct {
-}
+import (
+	"github.com/downflux/go-kd/point"
+)
+
+var _ point.P = P{}

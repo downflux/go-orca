@@ -1,48 +1,87 @@
 package orca
 
 import (
-	"github.com/downflux/orca/geometry/lp/constraint"
-	"github.com/downflux/orca/geometry/lp/solver"
-	"github.com/downflux/orca/vo"
-	"github.com/downflux/orca/vo/ball"
+	"github.com/downflux/go-geometry/2d/constraint"
+	"github.com/downflux/go-orca/internal/solver"
+	// "github.com/downflux/go-orca/internal/vo"
+	"github.com/downflux/go-geometry/nd/hypersphere"
+	"github.com/downflux/go-geometry/nd/vector"
+	"github.com/downflux/go-kd/kd"
+	"github.com/downflux/go-kd/point"
+	"github.com/downflux/go-orca/agent"
+	"github.com/downflux/go-orca/internal/vo/ball"
+
+	v2d "github.com/downflux/go-geometry/2d/vector"
 )
 
-const tolerance = 1e-10
-
 type ORCA struct {
-	agents []vo.Agent
+	agents []agent.RW
+	t      *kd.T
 }
 
-func New(agents []vo.Agent, tau float64) *ORCA {
+type P struct {
+	a agent.RW
+}
+
+func (p P) P() vector.V { return vector.V(p.a.P()) }
+
+func New(agents []agent.RW, tau float64) *ORCA {
+	ps := make([]point.P, 0, len(agents))
+	for _, a := range agents {
+		ps = append(ps, P{a: a})
+	}
+	t, err := kd.New(ps)
+	if err != nil {
+		return nil
+	}
 	return &ORCA{
 		agents: agents,
+		t:      t,
 	}
 }
 
 func (o *ORCA) Step(tau float64) error {
-	for _, a := range o.agents {
-		s := *solver.New(
-			[]constraint.C{
-				*constraint.New([]float64{1, 0}, a.G().Y()), // px <= Mx
-				*constraint.New([]float64{0, 1}, a.G().X()), // py <= My
-			},
-			tolerance,
-		)
+	o.t.Balance()
 
-		// TODO(minkezhang): Replace with nearest neighbor filter.
-		for _, b := range o.agents {
-			if b != a {
-				v, err := ball.New(a, b, tau)
-				if err != nil {
-					return err
-				}
-				orca, err := v.ORCA()
-				if err != nil {
-					return err
-				}
-				s.AddConstraint(orca)
-			}
+	vs := make([]v2d.V, 0, len(o.agents))
+
+	// TODO(minkezhang): Make this parallel.
+	for _, a := range o.agents {
+		ps, err := kd.RadialFilter(
+			o.t,
+			*hypersphere.New(
+				vector.V(a.P()),
+				2*a.S(),
+			),
+			func(point.P) bool { return true },
+		)
+		if err != nil {
+			return err
 		}
+
+		neighbors := make([]agent.RW, 0, len(ps))
+		for _, p := range ps {
+			neighbors = append(neighbors, p.(P).a)
+		}
+
+		cs := make([]constraint.C, 0, len(ps))
+		for _, p := range ps {
+			b, err := ball.New(a, p.(P).a, tau)
+			if err != nil {
+				return err
+			}
+			hp, err := b.ORCA()
+			if err != nil {
+				return err
+			}
+			cs = append(cs, constraint.C(hp))
+		}
+
+		vs = append(vs, solver.Solve(cs, a.T(), a.S()))
+	}
+
+	for i, a := range o.agents {
+		a.SetV(vs[i])
 	}
 	return nil
 }

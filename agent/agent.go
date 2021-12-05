@@ -4,6 +4,12 @@ import (
 	"github.com/downflux/go-geometry/2d/vector"
 )
 
+type RW interface {
+	A
+	SetV(vector.V)
+}
+
+// TODO(minkezhang): Rename to RO.
 type A interface {
 	// P returns the current location of the agent.
 	P() vector.V
