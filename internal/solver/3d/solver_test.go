@@ -215,7 +215,7 @@ func TestProject(t *testing.T) {
 	}
 }
 
-func TestAdd(t *testing.T) {
+func TestSolve(t *testing.T) {
 	type config struct {
 		name    string
 		m       M
@@ -353,7 +353,7 @@ func TestAdd(t *testing.T) {
 				constraints: c.cs,
 			}
 
-			if got, ok := r.Add(c.c); ok != c.success || !vector.Within(c.want, got) {
+			if got, ok := r.Solve(c.c); ok != c.success || !vector.Within(c.want, got) {
 				t.Errorf("Add() = %v, %v, want = %v, %v", got, ok, c.want, c.success)
 			}
 

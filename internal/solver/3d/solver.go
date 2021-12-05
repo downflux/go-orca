@@ -114,13 +114,10 @@ type region struct {
 	infeasible bool
 }
 
-func New(cs []constraint.C) *region { return &region{constraints: cs} }
+func (r *region) Feasible() bool        { return !r.infeasible }
+func (r *region) Append(c constraint.C) { r.constraints = append(r.constraints, c) }
 
-func (r *region) Feasible() bool { return !r.infeasible }
-
-func (r *region) Add(c constraint.C) (vector.V, bool) {
-	defer func() { r.constraints = append(r.constraints, c) }()
-
+func (r *region) Solve(c constraint.C) (vector.V, bool) {
 	cs, ok := r.project(c)
 	if !ok {
 		return vector.V{}, r.Feasible()
@@ -183,7 +180,7 @@ func (r *region) project(c constraint.C) ([]constraint.C, bool) {
 		// "relaxes" a previous parallel constraint, as the new optimal
 		// solution must lie on the surface of the current incremental
 		// constraint.  We need to check for this condition in the
-		// caller and ensure we do not call Add() in this case.
+		// caller and ensure we do not call Solve() in this case.
 		if !ok && l.Parallel(m) {
 			if !d.In(hyperplane.HP(c).P()) {
 				r.infeasible = true
@@ -248,7 +245,10 @@ func Solve(m M, cs []constraint.C, v vector.V) vector.V {
 	// of some constraint plane from the input.
 	dist := 0.
 
-	r := &region{m: m}
+	r := &region{
+		m:           m,
+		constraints: make([]constraint.C, 0, len(cs)),
+	}
 	for _, c := range cs {
 		l := hyperplane.Line(hyperplane.HP(c))
 		// The base 2D linear programming problem may be infeasible. In
@@ -265,13 +265,14 @@ func Solve(m M, cs []constraint.C, v vector.V) vector.V {
 		// will exceed the old distance as well -- but it may be smaller
 		// than the current solution we have found.
 		if !c.In(v) && l.Distance(v) > dist {
-			// In the case r.Add() returns infeasible due to a
+			// In the case r.Solve() returns infeasible due to a
 			// rounding error, we ignore the result and continue.
-			if u, ok := r.Add(c); ok {
+			if u, ok := r.Solve(c); ok {
 				v = u
 			}
 		}
 
+		r.Append(c)
 		dist = l.Distance(v)
 	}
 	return v

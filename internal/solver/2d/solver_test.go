@@ -198,7 +198,25 @@ func TestSolve(t *testing.T) {
 		want    vector.V
 	}
 
-	testConfigs := []config{}
+	testConfigs := []config{
+		{
+			name: "Infeasible",
+			m:    Unbounded{},
+			cs: []constraint.C{
+				*constraint.New(
+					*vector.New(0, 1),
+					*vector.New(0, 1),
+				),
+				*constraint.New(
+					*vector.New(0, -1),
+					*vector.New(0, -1),
+				),
+			},
+			o:       func(segment.S) vector.V { return vector.V{} },
+			v:       *vector.New(0, 1),
+			success: false,
+		},
+	}
 
 	testConfigs = append(
 		testConfigs,

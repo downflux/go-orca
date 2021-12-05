@@ -64,11 +64,12 @@ type region struct {
 	infeasible  bool
 }
 
-func (r *region) Feasible() bool { return !r.infeasible }
+func (r *region) Feasible() bool        { return !r.infeasible }
+func (r *region) Append(c constraint.C) { r.constraints = append(r.constraints, c) }
 
-// Add appends the given constraint into the region and returns the optimal
-// value along the interval intersection. The optimal value is calculated based
-// on the optimization function given to the region at construction time.
+// Solve returns the optimal value along the interval intersection. The optimal
+// value is calculated based on the optimization function given to the region at
+// construction time.
 //
 // This is analogous to Agent.linearProgram1 in the official RVO2
 // implementation.
@@ -87,9 +88,7 @@ func (r *region) Feasible() bool { return !r.infeasible }
 // existing constraint. The calling function is responsible for ensuring this
 // function is not called for this specific edge case by e.g. checking for when
 // the iterative optimal solution is already feasible for the new constraint.
-func (r *region) Add(c constraint.C) (vector.V, bool) {
-	defer func() { r.constraints = append(r.constraints, c) }()
-
+func (r *region) Solve(c constraint.C) (vector.V, bool) {
 	s, ok := r.intersect(c)
 	if !ok {
 		return vector.V{}, r.Feasible()
@@ -214,15 +213,21 @@ func Solve(m M, cs []constraint.C, o O, v vector.V) (vector.V, bool) {
 		return vector.V{}, false
 	}
 
-	r := &region{m: m, o: o}
+	r := &region{
+		m:           m,
+		o:           o,
+		constraints: make([]constraint.C, 0, len(cs)),
+	}
 	for _, c := range cs {
 		var ok bool
 
 		if !c.In(v) {
-			if v, ok = r.Add(c); !ok {
+			if v, ok = r.Solve(c); !ok {
 				return vector.V{}, false
 			}
 		}
+
+		r.Append(c)
 	}
 	return v, true
 }
