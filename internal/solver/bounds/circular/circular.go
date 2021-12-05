@@ -24,6 +24,10 @@ func New(r float64) *M {
 // constraint and the input constraint.
 func (m M) Bound(c constraint.C) (segment.S, bool) {
 	l := hyperplane.Line(hyperplane.HP(c))
+	if hypersphere.C(m).R() == math.Inf(-1) || hypersphere.C(m).R() == math.Inf(0) {
+		return *segment.New(l, math.Inf(-1), math.Inf(0)), true
+	}
+
 	v1, v2, ok := l.IntersectCircle(hypersphere.C(m))
 	if !ok {
 		return segment.S{}, false
