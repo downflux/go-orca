@@ -33,6 +33,22 @@ func TestSolve(t *testing.T) {
 			want: *v2d.New(1, 2),
 		},
 
+		{
+			name: "2D/TooFast",
+			cs:   nil,
+			v:    *v2d.New(0, 2),
+			r:    1,
+			want: *v2d.New(0, 1),
+		},
+
+		{
+			name: "2D/OnlyRadialConstraint",
+			cs:   nil,
+			v:    *v2d.New(1, 2),
+			r:    10,
+			want: *v2d.New(1, 2),
+		},
+
 		// The target minimization vector is already within the single
 		// constraint.
 		{

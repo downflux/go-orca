@@ -20,6 +20,7 @@ package ball
 
 import (
 	"math"
+	"math/rand"
 
 	"github.com/downflux/go-geometry/2d/hyperplane"
 	"github.com/downflux/go-geometry/2d/vector"
@@ -403,6 +404,19 @@ func r(a agent.A, b agent.A, tau float64) float64 { return (a.R() + b.R()) / tau
 //
 // Note the relative position is oriented from a.P to b.P.
 func p(a agent.A, b agent.A, tau float64) vector.V {
+	// Check for the degenerate case -- if two agents are too close, return
+	// some sensical non-zero answer.
+	if vector.Within(a.P(), b.P()) {
+		return vector.Scale(
+			1/tau,
+			vector.Unit(
+				*vector.New(
+					rand.Float64(),
+					rand.Float64(),
+				),
+			),
+		)
+	}
 	return vector.Scale(1/tau, vector.Sub(b.P(), a.P()))
 }
 

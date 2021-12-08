@@ -106,3 +106,31 @@ func TestBound(t *testing.T) {
 		})
 	}
 }
+
+func TestV(t *testing.T) {
+	testConfigs := []struct {
+		name string
+		r    float64
+		v    vector.V
+	}{
+		{
+			name: "Simple",
+			r:    10,
+			v:    *vector.New(0, 1),
+		},
+		{
+			name: "TooFast",
+			r:    1,
+			v:    *vector.New(0, 10),
+		},
+	}
+
+	for _, c := range testConfigs {
+		t.Run(c.name, func(t *testing.T) {
+			m := *New(c.r)
+			if got := m.Within(m.V(c.v)); got != true {
+				t.Errorf("In() = %v, want = %v", got, true)
+			}
+		})
+	}
+}

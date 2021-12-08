@@ -27,6 +27,8 @@ github.com/downflux/go-geometry v0.6.1 h1:x9jonPAFPKf0fq9VjbNwJK/NpEXpaoSQIb2IDD
 github.com/downflux/go-geometry v0.6.1/go.mod h1:bOw8DHBLJWY8Q7erBWH0Dk4R1poNt5v3huDhUNfxqDU=
 github.com/downflux/go-geometry v0.6.2 h1:bELdXAIJqbmX4TaAh9dWLYH5Wer+RGO5bJjw1nPhRGU=
 github.com/downflux/go-geometry v0.6.2/go.mod h1:bOw8DHBLJWY8Q7erBWH0Dk4R1poNt5v3huDhUNfxqDU=
+github.com/downflux/go-geometry v0.6.3 h1:1BWUam8uA60v3Z+zD0Pt6bbM/gezkLvJPN3+4BAwUA8=
+github.com/downflux/go-geometry v0.6.3/go.mod h1:bOw8DHBLJWY8Q7erBWH0Dk4R1poNt5v3huDhUNfxqDU=
 github.com/downflux/go-kd v0.3.10 h1:y3FdklqIP2J+DWe+Fz0a+Shise2ikSKMpbyNMDQ+TE4=
 github.com/downflux/go-kd v0.3.10/go.mod h1:mstD5KCGJd8bZYuS9JdTnh78+89JAIPI7P/8Z8KIAdU=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
@@ -123,6 +125,8 @@ google.golang.org/genproto v0.0.0-20211118181313-81c1377c94b1 h1:b9mVrqYfq3P4bCd
 google.golang.org/genproto v0.0.0-20211118181313-81c1377c94b1/go.mod h1:5CzLGKJ67TSI2B9POpiiyGha0AjJvZIUgRMt1dSmuhc=
 google.golang.org/genproto v0.0.0-20211129164237-f09f9a12af12 h1:DN5b3HU13J4sMd/QjDx34U6afpaexKTDdop+26pdjdk=
 google.golang.org/genproto v0.0.0-20211129164237-f09f9a12af12/go.mod h1:5CzLGKJ67TSI2B9POpiiyGha0AjJvZIUgRMt1dSmuhc=
+google.golang.org/genproto v0.0.0-20211207154714-918901c715cf h1:PSEM+IQFb9xdsj2CGhfqUTfsZvF8DScCVP1QZb2IiTQ=
+google.golang.org/genproto v0.0.0-20211207154714-918901c715cf/go.mod h1:5CzLGKJ67TSI2B9POpiiyGha0AjJvZIUgRMt1dSmuhc=
 google.golang.org/grpc v1.19.0/go.mod h1:mqu4LbDTu4XGKhr4mRzUsmM4RtVoemTSY81AxZiDr8c=
 google.golang.org/grpc v1.23.0/go.mod h1:Y5yQAOtifL1yxbo5wqy6BxZv8vAUGQwXBOALyacEbxg=
 google.golang.org/grpc v1.25.1/go.mod h1:c3i+UQWmh7LiEpx4sFZnkU36qjEYZ0imhYfXVyQciAY=

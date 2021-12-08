@@ -24,6 +24,11 @@ func project(s segment.S, v vector.V) vector.V {
 // r.
 func Solve(cs []constraint.C, v vector.V, r float64) vector.V {
 	m := *circular.New(r)
+	// Ensure the desired target velocity is within the initial bounding
+	// constraints.
+	if !m.Within(v) {
+		v = m.V(v)
+	}
 
 	res, ok := s2d.Solve(
 		m,

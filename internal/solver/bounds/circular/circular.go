@@ -40,6 +40,8 @@ func (m M) Bound(c constraint.C) (segment.S, bool) {
 }
 
 // Within checks if the input vector is contained within the circle.
+//
+// TODO(minkezhang): Rename to In instead.
 func (m M) Within(v vector.V) bool { return hypersphere.C(m).In(v) }
 
 // V transforms the input vector such that the output will lie on a edge of the

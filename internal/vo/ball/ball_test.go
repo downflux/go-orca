@@ -503,3 +503,18 @@ func BenchmarkORCA(t *testing.B) {
 		})
 	}
 }
+
+func TestP(t *testing.T) {
+	o := mock.O{
+		P: *vector.New(0, 1),
+		V: *vector.New(1, 2),
+		R: 10,
+	}
+	a := *mock.New(o)
+	b := *mock.New(o)
+
+	got := p(a, b, 1)
+	if epsilon.Within(vector.Magnitude(got), 0) {
+		t.Errorf("p() = %v, want a non-zero result", got)
+	}
+}
