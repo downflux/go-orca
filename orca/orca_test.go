@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"runtime"
 	"testing"
 
 	"github.com/downflux/go-geometry/2d/hypersphere"
@@ -27,11 +28,18 @@ func ra() mock.A {
 			P: rv(),
 			V: v2d.Scale(rand.Float64()*.5, v2d.Unit(rv())),
 			T: rv(),
+			// Ensure the agent's target vector is inside the
+			// bounding circle.
 			S: rn() + 100,
 		},
 	)
 }
 func t(n int) *kd.T {
+	// Generating large number of points in tests will mess with data
+	// collection figures. We should ignore these allocs.
+	runtime.MemProfileRate = 0
+	defer func() { runtime.MemProfileRate = 512 * 1024 }()
+
 	ps := make([]point.P, 0, n)
 	for i := 0; i < n; i++ {
 		ps = append(ps, *New(ra()))
@@ -113,7 +121,7 @@ func BenchmarkStep(b *testing.B) {
 	}
 
 	testConfigs := []config{}
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 7; i++ {
 		n := int(math.Pow(10, float64(i)))
 		testConfigs = append(testConfigs, config{
 			name: fmt.Sprintf("N=%v", n),

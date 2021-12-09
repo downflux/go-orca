@@ -43,10 +43,8 @@ func Step(t *kd.T, tau float64, f func(a agent.A) bool) ([]Mutation, error) {
 	as := agents(kd.Data(t))
 	vs := make([]Mutation, 0, len(as))
 
-	// Experimental results indicate making the agent loop parallel will net
-	// about a 12% speed up for N > 1k.
-	//
-	// TODO(minkezhang): Make this parallel if the optimization is worth it.
+	// Experimental results indicate changing agent loop to parallel
+	// execution will not significantly alter speeds for N ~ 1k.
 	for _, a := range as {
 		ps, err := kd.RadialFilter(
 			t,
