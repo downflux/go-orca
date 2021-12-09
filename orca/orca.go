@@ -9,48 +9,36 @@ import (
 	"github.com/downflux/go-orca/agent"
 	"github.com/downflux/go-orca/internal/solver"
 	"github.com/downflux/go-orca/internal/vo/ball"
-
-	v2d "github.com/downflux/go-geometry/2d/vector"
 )
 
-type ORCA struct {
-	agents []agent.RW
-	t      *kd.T
+type P struct {
+	a agent.A
 }
 
-type P struct {
-	a agent.RW
+func New(a agent.A) *P {
+	return &P{a: a}
 }
 
 func (p P) P() vector.V { return vector.V(p.a.P()) }
 
-func New(agents []agent.RW) *ORCA {
-	ps := make([]point.P, 0, len(agents))
-	for _, a := range agents {
-		ps = append(ps, P{a: a})
-	}
-	t, err := kd.New(ps)
-	if err != nil {
-		return nil
-	}
-	return &ORCA{
-		agents: agents,
-		t:      t,
-	}
+type Mutation struct {
+	A agent.A
+	V vector.V
 }
 
-func (o *ORCA) Step(tau float64) error {
-	// TODO(minkezhang): Refactor this outside of ORCA -- ensure ORCA is
-	// state-invariant and leave the simulation details further up the
-	// stack.
-	o.t.Balance()
+func Step(t *kd.T, tau float64) ([]Mutation, error) {
+	ps := kd.Data(t)
+	agents := make([]agent.A, 0, len(ps))
+	for _, p := range ps {
+		agents = append(agents, p.(P).a)
+	}
 
-	vs := make([]v2d.V, 0, len(o.agents))
+	vs := make([]Mutation, 0, len(agents))
 
 	// TODO(minkezhang): Make this parallel.
-	for _, a := range o.agents {
+	for _, a := range agents {
 		ps, err := kd.RadialFilter(
-			o.t,
+			t,
 			*hypersphere.New(
 				vector.V(a.P()),
 				// Verify this radius is sufficient for finding
@@ -68,10 +56,10 @@ func (o *ORCA) Step(tau float64) error {
 			func(p point.P) bool { return !vector.Within(p.P(), vector.V(a.P())) },
 		)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		neighbors := make([]agent.RW, 0, len(ps))
+		neighbors := make([]agent.A, 0, len(ps))
 		for _, p := range ps {
 			neighbors = append(neighbors, p.(P).a)
 		}
@@ -80,22 +68,18 @@ func (o *ORCA) Step(tau float64) error {
 		for _, p := range ps {
 			b, err := ball.New(a, p.(P).a, tau)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			hp, err := b.ORCA()
 			if err != nil {
-				return err
+				return nil, err
 			}
 			cs = append(cs, constraint.C(hp))
 		}
-		vs = append(vs, solver.Solve(cs, a.T(), a.S()))
+		vs = append(vs, Mutation{
+			A: a,
+			V: vector.V(solver.Solve(cs, a.T(), a.S())),
+		})
 	}
-
-	// TODO(minkezhang): Return a set of vectors intead and make this
-	// operation state-invariant -- leave the state mutation to further up
-	// the stack.
-	for i, a := range o.agents {
-		a.SetV(vs[i])
-	}
-	return nil
+	return vs, nil
 }
