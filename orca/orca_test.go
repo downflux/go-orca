@@ -6,23 +6,28 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/downflux/go-geometry/2d/vector"
+	"github.com/downflux/go-geometry/2d/hypersphere"
+	"github.com/downflux/go-geometry/nd/vector"
 	"github.com/downflux/go-kd/kd"
 	"github.com/downflux/go-kd/point"
+	"github.com/downflux/go-orca/agent"
+	"github.com/google/go-cmp/cmp"
 
+	v2d "github.com/downflux/go-geometry/2d/vector"
 	mock "github.com/downflux/go-orca/internal/agent/testdata/mock"
 )
 
 var _ point.P = P{}
 
-func rn() float64  { return rand.Float64()*200 - 100 }
-func rv() vector.V { return *vector.New(rn(), rn()) }
+func rn() float64 { return rand.Float64()*200 - 100 }
+func rv() v2d.V   { return *v2d.New(rn(), rn()) }
 func ra() mock.A {
 	return *mock.New(
 		mock.O{
 			P: rv(),
-			V: vector.Scale(rand.Float64()*.5, vector.Unit(rv())),
+			V: v2d.Scale(rand.Float64()*.5, v2d.Unit(rv())),
 			T: rv(),
+			S: rn() + 100,
 		},
 	)
 }
@@ -33,6 +38,72 @@ func t(n int) *kd.T {
 	}
 	t, _ := kd.New(ps)
 	return t
+}
+
+func TestStep(t *testing.T) {
+	type config struct {
+		name   string
+		agents []agent.A
+		tau    float64
+		f      func(a agent.A) bool
+
+		want []Mutation
+	}
+
+	testConfigs := []config{
+		func() config {
+			a := mock.New(
+				mock.O{
+					P: *v2d.New(1, 2),
+					V: *v2d.New(2, 3),
+					T: *v2d.New(3, 4),
+					S: 10,
+				},
+			)
+
+			return config{
+				name:   "PointerEqualityComparison",
+				agents: []agent.A{a},
+				tau:    1e-2,
+				f:      func(agent.A) bool { return true },
+				want: []Mutation{
+					Mutation{
+						A: a,
+						V: vector.V(a.T()),
+					},
+				},
+			}
+		}(),
+	}
+
+	for _, c := range testConfigs {
+		t.Run(c.name, func(t *testing.T) {
+			var ps []point.P
+			for _, a := range c.agents {
+				ps = append(ps, *New(a))
+			}
+
+			tr, err := kd.New(ps)
+			if err != nil {
+				t.Fatalf("New() = _, %v, want = _, %v", err, nil)
+			}
+
+			got, err := Step(tr, c.tau, c.f)
+			if err != nil {
+				t.Errorf("Step() = _, %v, want = _, %v", got, nil)
+			}
+			if diff := cmp.Diff(
+				c.want,
+				got,
+				cmp.AllowUnexported(
+					mock.A{},
+					hypersphere.C{},
+				),
+			); diff != "" {
+				t.Errorf("Step() mismatch (-want +got):\n%v", diff)
+			}
+		})
+	}
 }
 
 func BenchmarkStep(b *testing.B) {
@@ -53,7 +124,7 @@ func BenchmarkStep(b *testing.B) {
 	for _, c := range testConfigs {
 		b.Run(c.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				if _, err := Step(c.t, 1e-2); err != nil {
+				if _, err := Step(c.t, 1e-2, func(a agent.A) bool { return true }); err != nil {
 					b.Errorf("Step() = _, %v, want = _, %v", err, nil)
 				}
 			}

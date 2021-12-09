@@ -1,6 +1,8 @@
 package orca
 
 import (
+	"math"
+
 	"github.com/downflux/go-geometry/2d/constraint"
 	"github.com/downflux/go-geometry/nd/hypersphere"
 	"github.com/downflux/go-geometry/nd/vector"
@@ -11,6 +13,8 @@ import (
 	"github.com/downflux/go-orca/internal/vo/ball"
 )
 
+// TODO(minkezhang): Export this to a seperate package, as this struct is
+// necessary for multiple packages.
 type P struct {
 	a agent.A
 }
@@ -26,34 +30,44 @@ type Mutation struct {
 	V vector.V
 }
 
-func Step(t *kd.T, tau float64) ([]Mutation, error) {
-	ps := kd.Data(t)
+func agents(ps []point.P) []agent.A {
 	agents := make([]agent.A, 0, len(ps))
 	for _, p := range ps {
 		agents = append(agents, p.(P).a)
 	}
 
-	vs := make([]Mutation, 0, len(agents))
+	return agents
+}
 
-	// TODO(minkezhang): Make this parallel.
-	for _, a := range agents {
+func Step(t *kd.T, tau float64, f func(a agent.A) bool) ([]Mutation, error) {
+	as := agents(kd.Data(t))
+	vs := make([]Mutation, 0, len(as))
+
+	// Experimental results indicate making the agent loop parallel will net
+	// about a 12% speed up for N > 1k.
+	//
+	// TODO(minkezhang): Make this parallel if the optimization is worth it.
+	for _, a := range as {
 		ps, err := kd.RadialFilter(
 			t,
 			*hypersphere.New(
 				vector.V(a.P()),
-				// Verify this radius is sufficient for finding
-				// all neighbors.
-				2*a.S(),
+				// TODO(minkezhang): Verify this radius is
+				// sufficient for finding all neighbors.
+				math.Max(100*tau, 4*a.R()),
 			),
-			// TODO(minkezhang): Compare pointers instead to check
-			// for self-interaction.
+			// TODO(minkezhang): Check for interface equality
+			// instead of coordinate equality, via adding an
+			// Agent.Equal function.
 			//
-			// TODO(minkezhang): Add user filter function input --
-			// user may want to e.g. specify that certain targets
-			// should be considered for collision detection
-			// (including walls), but not others. This allows us to
-			// support e.g. unit squishing.
-			func(p point.P) bool { return !vector.Within(p.P(), vector.V(a.P())) },
+			// This technically may introduce a bug when multiple
+			// points are extremely close together.
+			func(p point.P) bool {
+				return !vector.Within(
+					p.P(),
+					vector.V(a.P()),
+				) && f(p.(P).a)
+			},
 		)
 		if err != nil {
 			return nil, err
@@ -76,10 +90,12 @@ func Step(t *kd.T, tau float64) ([]Mutation, error) {
 			}
 			cs = append(cs, constraint.C(hp))
 		}
+
 		vs = append(vs, Mutation{
 			A: a,
 			V: vector.V(solver.Solve(cs, a.T(), a.S())),
 		})
 	}
+
 	return vs, nil
 }
