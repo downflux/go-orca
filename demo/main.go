@@ -201,11 +201,11 @@ func main() {
 			// Draw agent goals.
 			drawCircle(img, v2d.Add(margin, a.G()), 2, green)
 
-			// Draw agents.
-			drawCircle(img, v2d.Add(margin, a.P()), int(a.R()), c)
-
 			// Draw agent vision radii.
 			drawCircle(img, v2d.Add(margin, a.P()), int(util.R(a, TAU)), green)
+
+			// Draw agents.
+			drawCircle(img, v2d.Add(margin, a.P()), int(a.R()), c)
 
 			a.SetP(
 				v2d.Add(
