@@ -1,36 +1,40 @@
 // Package main executes a short demo of ORCA and outputs a gif of the
 // calculated trajectory of the set of agents.
 //
-// Run with
-//   go run github.com/downflux/go-orca/demo
+// Example:
+//
+//   go run \
+//     demo/generator/main.go --mode=random | go run \
+//     demo/main.go > demo/output/animation.gif
 package main
 
 import (
+	"bufio"
+	"flag"
+	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
 	"image/gif"
+	"io"
+	"math"
 	"math/rand"
 	"os"
 
-	"github.com/downflux/go-geometry/2d/vector"
+	"github.com/downflux/go-geometry/nd/hyperrectangle"
+	"github.com/downflux/go-geometry/nd/vector"
 	"github.com/downflux/go-kd/kd"
 	"github.com/downflux/go-kd/point"
 	"github.com/downflux/go-orca/agent"
+	"github.com/downflux/go-orca/demo/generator/generator"
 	"github.com/downflux/go-orca/orca"
 
+	v2d "github.com/downflux/go-geometry/2d/vector"
 	demo "github.com/downflux/go-orca/demo/agent"
 	util "github.com/downflux/go-orca/internal/orca"
 )
 
 const (
-	N = 250
-
-	S = 50 // m / s
-	R = 10
-	H = 1000
-	W = 1000
-
 	// Simulate ~120 frames.
 	D   = 2.      // s
 	TAU = 1.67e-2 // ~1/60 s
@@ -44,9 +48,14 @@ var (
 	blue  = color.RGBA{0, 0, 255, 255}
 )
 
+var (
+	out = flag.String("o", "/dev/stdout", "output file path, e.g. path/to/output.gif")
+	in  = flag.String("i", "/dev/stdin", "input file path, e.g. path/to/config.json")
+)
+
 func rn(min float64, max float64) float64 { return rand.Float64()*(max-min) + min }
 
-func DrawCircle(img draw.Image, v vector.V, r int, c color.Color) {
+func drawCircle(img draw.Image, v v2d.V, r int, c color.Color) {
 	x, y, dx, dy := r-1, 0, 1, 1
 	err := dx - (r * 2)
 
@@ -73,59 +82,53 @@ func DrawCircle(img draw.Image, v vector.V, r int, c color.Color) {
 	}
 }
 
-func GenerateRandomPoints(n int) []agent.A {
-	agents := make([]agent.A, 0, n)
-	for i := 0; i < N; i++ {
-		p := vector.Add(
-			*vector.New(rn(-500, 500), rn(-500, 500)),
-			*vector.New(W/2, H/2),
-		)
-		g := vector.Add(
-			p,
-			*vector.New(rn(-100, 100), rn(-100, 100)),
-		)
+func generate(data []byte) []agent.A {
+	opts := generator.Unmarshal(data)
+	agents := make([]agent.A, 0, len(opts))
 
-		a := demo.New(
-			demo.O{
-				P: p,
-				G: g,
-				S: rn(10, S),
-				R: rn(5, R),
-			},
-		)
-
-		agents = append(agents, a)
+	for _, o := range opts {
+		agents = append(agents, demo.New(o))
 	}
 	return agents
 }
 
-func GenerateLineCollision() []agent.A {
-	offset := *vector.New(W/2, H/2)
-	ps := []vector.V{
-		vector.Add(*vector.New(-50, 0), offset),
-		vector.Add(*vector.New(50, 0), offset),
+var (
+	margin = *v2d.New(50, 50)
+)
+
+func bound(agents []agent.A) hyperrectangle.R {
+	min := *v2d.New(math.Inf(0), math.Inf(0))
+	max := *v2d.New(math.Inf(-1), math.Inf(-1))
+
+	for _, a := range agents {
+		min = *v2d.New(
+			math.Min(min.X(), a.P().X()),
+			math.Min(min.Y(), a.P().Y()),
+		)
+		max = *v2d.New(
+			math.Max(max.X(), a.P().X()),
+			math.Max(max.Y(), a.P().Y()),
+		)
 	}
 
-	agents := []agent.A{
-		demo.New(
-			demo.O{
-				P: ps[0],
-				G: vector.Add(ps[0], *vector.New(100, 0)),
-			},
-		),
-		demo.New(
-			demo.O{
-				P: ps[1],
-				G: vector.Add(ps[1], *vector.New(-100, 0)),
-			},
-		),
-	}
-	return agents
+	return *hyperrectangle.New(*vector.New(0, 0), vector.V(v2d.Add(v2d.Scale(2, margin), v2d.Sub(max, min))))
 }
 
 func main() {
-	agents := GenerateRandomPoints(N)
-	points := make([]point.P, 0, N)
+	flag.Parse()
+
+	r, err := os.Open(*in)
+	if err != nil {
+		panic(fmt.Sprintf("cannot open file %v: %v", *in, err))
+	}
+
+	data, err := bufio.NewReader(r).ReadBytes(byte(0))
+	if err != io.EOF {
+		panic(fmt.Sprintf("could not read from file %v: %v", *in, err))
+	}
+
+	agents := generate(data)
+	points := make([]point.P, 0, len(agents))
 
 	for _, a := range agents {
 		points = append(points, *orca.New(a))
@@ -139,6 +142,9 @@ func main() {
 	var images []*image.Paletted
 	var delay []int
 
+	b := bound(agents)
+
+	// Run the simulator for some steps.
 	for t := 0.; t < D; t += TAU {
 		res, err := orca.Step(
 			tr,
@@ -152,8 +158,14 @@ func main() {
 
 		img := image.NewPaletted(
 			image.Rectangle{
-				image.Point{0, 0},
-				image.Point{W, H},
+				image.Point{
+					int(b.Min().X(vector.AXIS_X)),
+					int(b.Min().X(vector.AXIS_Y)),
+				},
+				image.Point{
+					int(b.Max().X(vector.AXIS_X)),
+					int(b.Max().X(vector.AXIS_Y)),
+				},
 			},
 			[]color.Color{
 				white,
@@ -163,8 +175,9 @@ func main() {
 				blue,
 			},
 		)
-		for x := 0; x < W; x++ {
-			for y := 0; y < H; y++ {
+		// Set white background.
+		for x := int(b.Min().X(vector.AXIS_X)); x < int(b.Max().X(vector.AXIS_X)); x++ {
+			for y := int(b.Min().X(vector.AXIS_Y)); y < int(b.Max().X(vector.AXIS_Y)); y++ {
 				img.Set(x, y, white)
 			}
 		}
@@ -177,30 +190,30 @@ func main() {
 			// Vector has changed because Step() detected an
 			// oncoming collision. Visually indicate this by
 			// flashing the circle red.
-			if !vector.Within(a.V(), vector.V(m.V)) {
+			if !v2d.Within(a.V(), v2d.V(m.V)) {
 				c = red
 			}
 
-			if vector.Within(a.T(), *vector.New(0, 0)) {
+			if v2d.Within(a.T(), *v2d.New(0, 0)) {
 				c = blue
 			}
 
 			// Draw agent goals.
-			DrawCircle(img, a.G(), 2, green)
+			drawCircle(img, v2d.Add(margin, a.G()), 2, green)
 
 			// Draw agents.
-			DrawCircle(img, a.P(), int(a.R()), c)
+			drawCircle(img, v2d.Add(margin, a.P()), int(a.R()), c)
 
 			// Draw agent vision radii.
-			DrawCircle(img, a.P(), int(util.R(a, TAU)), green)
+			drawCircle(img, v2d.Add(margin, a.P()), int(util.R(a, TAU)), green)
 
 			a.SetP(
-				vector.Add(
+				v2d.Add(
 					a.P(),
-					vector.Scale(TAU, vector.V(m.V)),
+					v2d.Scale(TAU, v2d.V(m.V)),
 				),
 			)
-			a.SetV(vector.V(m.V))
+			a.SetV(v2d.V(m.V))
 		}
 
 		images = append(images, img)
@@ -214,6 +227,11 @@ func main() {
 		Delay: delay,
 		Image: images,
 	}
-	f, _ := os.Create("demo/output/animation.gif")
-	gif.EncodeAll(f, anim)
+
+	w, err := os.Create(*out)
+	if err != nil {
+		panic(fmt.Sprintf("cannot write to file %v: %v", *out, err))
+	}
+
+	gif.EncodeAll(w, anim)
 }
