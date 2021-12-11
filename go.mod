@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/downflux/go-geometry v0.7.0
-	github.com/downflux/go-kd v0.4.1
+	github.com/downflux/go-kd v0.4.2
 	github.com/google/go-cmp v0.5.6
 	google.golang.org/grpc v1.42.0
 )
