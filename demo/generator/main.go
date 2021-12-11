@@ -23,6 +23,9 @@ const (
 	H = 1000
 	R = 10
 	S = 50
+
+	X = 10
+	Y = 10
 )
 
 type mode string
@@ -30,10 +33,11 @@ type mode string
 const (
 	Random    mode = "random"
 	Collision mode = "collision"
+	Grid      mode = "grid"
 )
 
 var (
-	m = flag.String("mode", "random", "mode of the data generated, must be one of (random | collision)")
+	m = flag.String("mode", "random", "mode of the data generated, must be one of (random | collision | grid)")
 )
 
 func main() {
@@ -41,7 +45,8 @@ func main() {
 
 	fns := map[mode]func() []demo.O{
 		Random:    func() []demo.O { return generator.R(W, H, S, R, N) },
-		Collision: generator.C,
+		Collision: func() []demo.O { return generator.C(S, R) },
+		Grid:      func() []demo.O { return generator.G(X, Y, S, R) },
 	}
 
 	f, ok := fns[mode(*m)]

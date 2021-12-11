@@ -35,8 +35,6 @@ import (
 )
 
 const (
-	// Simulate ~120 frames.
-	D   = 2.      // s
 	TAU = 1.67e-2 // ~1/60 s
 )
 
@@ -46,11 +44,13 @@ var (
 	red   = color.RGBA{255, 0, 0, 255}
 	green = color.RGBA{0, 255, 0, 255}
 	blue  = color.RGBA{0, 0, 255, 255}
+	gray  = color.RGBA{192, 192, 192, 255}
 )
 
 var (
-	out = flag.String("o", "/dev/stdout", "output file path, e.g. path/to/output.gif")
-	in  = flag.String("i", "/dev/stdin", "input file path, e.g. path/to/config.json")
+	out    = flag.String("o", "/dev/stdout", "output file path, e.g. path/to/output.gif")
+	in     = flag.String("i", "/dev/stdin", "input file path, e.g. path/to/config.json")
+	frames = flag.Int("frames", 120, "number of frames to render")
 )
 
 func rn(min float64, max float64) float64 { return rand.Float64()*(max-min) + min }
@@ -111,7 +111,15 @@ func bound(agents []agent.A) hyperrectangle.R {
 		)
 	}
 
-	return *hyperrectangle.New(*vector.New(0, 0), vector.V(v2d.Add(v2d.Scale(2, margin), v2d.Sub(max, min))))
+	return *hyperrectangle.New(
+		*vector.New(0, 0),
+		vector.V(
+			v2d.Add(
+				v2d.Scale(2, margin),
+				v2d.Sub(max, min),
+			),
+		),
+	)
 }
 
 func main() {
@@ -144,8 +152,16 @@ func main() {
 
 	b := bound(agents)
 
+	// trail is a buffer of the last N positions of agents.
+	var trail [50][]v2d.V
+
 	// Run the simulator for some steps.
-	for t := 0.; t < D; t += TAU {
+	for i := 0; i < *frames; i++ {
+		trail[i%len(trail)] = nil
+		for _, a := range agents {
+			trail[i%len(trail)] = append(trail[i%len(trail)], a.P())
+		}
+
 		res, err := orca.Step(
 			tr,
 			TAU,
@@ -173,12 +189,21 @@ func main() {
 				red,
 				green,
 				blue,
+				gray,
 			},
 		)
 		// Set white background.
 		for x := int(b.Min().X(vector.AXIS_X)); x < int(b.Max().X(vector.AXIS_X)); x++ {
 			for y := int(b.Min().X(vector.AXIS_Y)); y < int(b.Max().X(vector.AXIS_Y)); y++ {
 				img.Set(x, y, white)
+			}
+		}
+
+		// Draw historical agent paths.
+		for _, buf := range trail {
+			for _, p := range buf {
+				p := v2d.Add(margin, p)
+				img.Set(int(p.X()), int(p.Y()), gray)
 			}
 		}
 
