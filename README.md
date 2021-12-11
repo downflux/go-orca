@@ -20,21 +20,21 @@ More prosaic documentation of this library will be made available at
 
 ## Installation
 
-```
+```bash
 go version
 > go version go1.17.4 linux/amd64
 ```
 
 ## Updating
 
-```
+```bash
 go get -u ./...
 go mod tidy
 ```
 
 ## Demo
 
-```
+```bash
 go run \
   demo/generator/main.go --mode=random | go run \
   demo/main.go > demo.gif
@@ -52,7 +52,7 @@ changed due to ORCA.
 **N.B.**: WSL does not profile correctly. See
 [golang/go#22366](https://github.com/golang/go/issues/22366).
 
-```
+```bash
 go test -v \
   github.com/downflux/go-orca/... \
   -bench . \
@@ -70,6 +70,25 @@ go tool pprof -tree -nodecount=10 cpu.out
 
 See [pprof](https://github.com/google/pprof/blob/master/README.md) for more
 information.
+
+### Sample Metrics
+
+```bash
+$ go test github.com/downflux/go-orca/orca -bench . -benchmem
+goos: linux
+goarch: amd64
+pkg: github.com/downflux/go-orca/orca
+cpu: Intel(R) Core(TM) i7-6700K CPU @ 4.00GHz
+BenchmarkStep/N=1-8               922076              1279 ns/op             616 B/op         29 allocs/op
+BenchmarkStep/N=10-8               67154             19164 ns/op            6728 B/op        288 allocs/op
+BenchmarkStep/N=100-8               4668            270076 ns/op           77184 B/op       3157 allocs/op
+BenchmarkStep/N=1000-8               364           3244188 ns/op          872952 B/op      34738 allocs/op
+BenchmarkStep/N=10000-8               26          42412962 ns/op         9878696 B/op     381438 allocs/op
+BenchmarkStep/N=100000-8               2         515272850 ns/op        111115744 B/op   4145249 allocs/op
+BenchmarkStep/N=1000000-8              1        6295042700 ns/op        1221823224 B/op 44716975 allocs/op
+PASS
+ok      github.com/downflux/go-orca/orca        40.243s
+```
 
 ## TODO
 
