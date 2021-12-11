@@ -14,12 +14,12 @@ import (
 	"os"
 
 	"github.com/downflux/go-geometry/2d/vector"
-	"github.com/downflux/go-geometry/epsilon"
 	"github.com/downflux/go-kd/kd"
 	"github.com/downflux/go-kd/point"
 	"github.com/downflux/go-orca/agent"
 	"github.com/downflux/go-orca/orca"
 
+	demo "github.com/downflux/go-orca/demo/agent"
 	util "github.com/downflux/go-orca/internal/orca"
 )
 
@@ -36,25 +36,13 @@ const (
 	TAU = 1.67e-2 // ~1/60 s
 )
 
-var _ agent.A = &A{}
-
-type A struct {
-	p vector.V
-	g vector.V
-	v vector.V
-}
-
-func (a *A) P() vector.V { return a.p }
-func (a *A) T() vector.V {
-	v := vector.Sub(a.g, a.p)
-	if epsilon.Within(vector.SquaredMagnitude(v), 0) {
-		return *vector.New(0, 0)
-	}
-	return vector.Scale(a.S(), vector.Unit(v))
-}
-func (a *A) V() vector.V { return a.v }
-func (a *A) R() float64  { return R }
-func (a *A) S() float64  { return S }
+var (
+	black = color.Black
+	white = color.White
+	red   = color.RGBA{255, 0, 0, 255}
+	green = color.RGBA{0, 255, 0, 255}
+	blue  = color.RGBA{0, 0, 255, 255}
+)
 
 func rn(min float64, max float64) float64 { return rand.Float64()*(max-min) + min }
 
@@ -97,11 +85,14 @@ func GenerateRandomPoints(n int) []agent.A {
 			*vector.New(rn(-100, 100), rn(-100, 100)),
 		)
 
-		a := &A{
-			p: p,
-			g: g,
-		}
-		a.v = a.T()
+		a := demo.New(
+			demo.O{
+				P: p,
+				G: g,
+				S: rn(10, S),
+				R: rn(5, R),
+			},
+		)
 
 		agents = append(agents, a)
 	}
@@ -116,16 +107,18 @@ func GenerateLineCollision() []agent.A {
 	}
 
 	agents := []agent.A{
-		&A{
-			p: ps[0],
-			g: vector.Add(ps[0], *vector.New(100, 0)),
-			v: *vector.New(S, 0),
-		},
-		&A{
-			p: ps[1],
-			g: vector.Add(ps[1], *vector.New(-100, 0)),
-			v: *vector.New(-S, 0),
-		},
+		demo.New(
+			demo.O{
+				P: ps[0],
+				G: vector.Add(ps[0], *vector.New(100, 0)),
+			},
+		),
+		demo.New(
+			demo.O{
+				P: ps[1],
+				G: vector.Add(ps[1], *vector.New(-100, 0)),
+			},
+		),
 	}
 	return agents
 }
@@ -163,48 +156,51 @@ func main() {
 				image.Point{W, H},
 			},
 			[]color.Color{
-				color.White,
-				color.Black,
-				color.RGBA{255, 0, 0, 255},
-				color.RGBA{0, 255, 0, 255},
-				color.RGBA{0, 0, 255, 255},
+				white,
+				black,
+				red,
+				green,
+				blue,
 			},
 		)
 		for x := 0; x < W; x++ {
 			for y := 0; y < H; y++ {
-				img.Set(x, y, color.White)
+				img.Set(x, y, white)
 			}
 		}
 
 		for _, m := range res {
-			a := m.A.(*A)
+			a := m.A.(*demo.A)
 
-			c := color.RGBA{0, 0, 0, 255}
+			var c color.Color = black
 
 			// Vector has changed because Step() detected an
 			// oncoming collision. Visually indicate this by
 			// flashing the circle red.
 			if !vector.Within(a.V(), vector.V(m.V)) {
-				c = color.RGBA{255, 0, 0, 255}
+				c = red
 			}
 
 			if vector.Within(a.T(), *vector.New(0, 0)) {
-				c = color.RGBA{0, 0, 255, 255}
+				c = blue
 			}
 
-			DrawCircle(img, a.P(), R, c)
-
 			// Draw agent goals.
-			DrawCircle(img, a.g, 2, color.RGBA{0, 255, 0, 255})
+			DrawCircle(img, a.G(), 2, green)
+
+			// Draw agents.
+			DrawCircle(img, a.P(), int(a.R()), c)
 
 			// Draw agent vision radii.
-			DrawCircle(img, a.p, int(util.R(a, TAU)), color.RGBA{0, 255, 0, 255})
+			DrawCircle(img, a.P(), int(util.R(a, TAU)), green)
 
-			a.p = vector.Add(
-				a.P(),
-				vector.Scale(TAU, vector.V(m.V)),
+			a.SetP(
+				vector.Add(
+					a.P(),
+					vector.Scale(TAU, vector.V(m.V)),
+				),
 			)
-			a.v = vector.V(m.V)
+			a.SetV(vector.V(m.V))
 		}
 
 		images = append(images, img)
