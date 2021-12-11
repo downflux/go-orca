@@ -28,9 +28,6 @@ func (p P) P() vector.V { return vector.V(p.a.P()) }
 type Mutation struct {
 	A agent.A
 	V vector.V
-
-	// DEBUG
-	CS []constraint.C
 }
 
 func agents(ps []point.P) []agent.A {
@@ -55,7 +52,7 @@ func Step(t *kd.T, tau float64, f func(a agent.A) bool) ([]Mutation, error) {
 				vector.V(a.P()),
 				// TODO(minkezhang): Verify this radius is
 				// sufficient for finding all neighbors.
-				math.Max(0, 4*a.R()), // 100 * tau * a.S(), 4 * a.R()),
+				math.Max(50*tau*a.S(), 4*a.R()),
 			),
 			// TODO(minkezhang): Check for interface equality
 			// instead of coordinate equality, via adding an
@@ -70,16 +67,13 @@ func Step(t *kd.T, tau float64, f func(a agent.A) bool) ([]Mutation, error) {
 				) && f(p.(P).a)
 			},
 		)
-		// ps, err := kd.KNN(t, vector.V(a.P()), 0)  // DEBUG
 		if err != nil {
 			return nil, err
 		}
 
 		neighbors := make([]agent.A, 0, len(ps))
 		for _, p := range ps {
-			// if !vector.Within(p.P(), vector.V(a.P())) && f(p.(P).a) {  // DEBUG
 			neighbors = append(neighbors, p.(P).a)
-			// }
 		}
 
 		cs := make([]constraint.C, 0, len(ps))
@@ -96,9 +90,8 @@ func Step(t *kd.T, tau float64, f func(a agent.A) bool) ([]Mutation, error) {
 		}
 
 		vs = append(vs, Mutation{
-			A:  a,
-			V:  vector.V(solver.Solve(cs, a.T(), a.S())),
-			CS: cs,
+			A: a,
+			V: vector.V(solver.Solve(cs, a.T(), a.S())),
 		})
 	}
 

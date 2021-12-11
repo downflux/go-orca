@@ -10,6 +10,7 @@ import (
 	"image/color"
 	"image/draw"
 	"image/gif"
+	"math"
 	"math/rand"
 	"os"
 
@@ -114,13 +115,6 @@ func GenerateLineCollision() []agent.A {
 	}
 
 	agents := []agent.A{
-		/*
-			&A{
-				p: vector.Add(*vector.New(0, 15), offset),
-				g: *vector.New(0, -50),
-				v: *vector.New(0, -S),
-			},
-		*/
 		&A{
 			p: ps[0],
 			g: vector.Add(ps[0], *vector.New(15, 5)),
@@ -136,8 +130,7 @@ func GenerateLineCollision() []agent.A {
 }
 
 func main() {
-	agents := GenerateLineCollision()
-	// agents := GenerateRandomPoints(N)
+	agents := GenerateRandomPoints(N)
 	points := make([]point.P, 0, N)
 
 	for _, a := range agents {
@@ -172,9 +165,8 @@ func main() {
 				color.White,
 				color.Black,
 				color.RGBA{255, 0, 0, 255},
-				color.RGBA{255, 0, 255, 255},
-				color.RGBA{0, 0, 255, 255},
 				color.RGBA{0, 255, 0, 255},
+				color.RGBA{0, 0, 255, 255},
 			},
 		)
 		for x := 0; x < W; x++ {
@@ -187,19 +179,15 @@ func main() {
 			a := m.A.(*A)
 
 			c := color.RGBA{0, 0, 0, 255}
-			// DEBUG
-			if len(m.CS) > 0 {
-				c.B = 255
-			}
 			// Vector has changed because Step() detected an
 			// oncoming collision. Visually indicate this by
 			// flashing the circle red.
 			if !vector.Within(a.V(), vector.V(m.V)) {
-				c.R = 255
+				c = color.RGBA{255, 0, 0, 255}
 			}
 
 			if vector.Within(a.T(), *vector.New(0, 0)) {
-				c = color.RGBA{0, 255, 0, 255}
+				c = color.RGBA{0, 0, 255, 255}
 			}
 
 			DrawCircle(img, a.P(), R, c)
@@ -208,7 +196,7 @@ func main() {
 			DrawCircle(img, a.g, 2, color.RGBA{0, 255, 0, 255})
 
 			// Draw agent vision radii.
-			DrawCircle(img, a.p, int(4*a.R()), color.RGBA{0, 255, 0, 255})
+			DrawCircle(img, a.p, int(math.Max(50*TAU*a.S(), 4*a.R())), color.RGBA{0, 255, 0, 255})
 
 			a.p = vector.Add(
 				a.P(),
