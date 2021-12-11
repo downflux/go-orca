@@ -16,7 +16,7 @@ go-orca aims to be a re-implementation of the ORCA algorithm with better
 documentation and API.
 
 More prosaic documentation of this library will be made available at
-http://blog.downflux.com soon.
+[blog.downflux.com](https://blog.downflux.com) soon.
 
 ## Installation
 
