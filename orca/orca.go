@@ -1,14 +1,13 @@
 package orca
 
 import (
-	"math"
-
 	"github.com/downflux/go-geometry/2d/constraint"
 	"github.com/downflux/go-geometry/nd/hypersphere"
 	"github.com/downflux/go-geometry/nd/vector"
 	"github.com/downflux/go-kd/kd"
 	"github.com/downflux/go-kd/point"
 	"github.com/downflux/go-orca/agent"
+	"github.com/downflux/go-orca/internal/orca"
 	"github.com/downflux/go-orca/internal/solver"
 	"github.com/downflux/go-orca/internal/vo/ball"
 )
@@ -52,7 +51,7 @@ func Step(t *kd.T, tau float64, f func(a agent.A) bool) ([]Mutation, error) {
 				vector.V(a.P()),
 				// TODO(minkezhang): Verify this radius is
 				// sufficient for finding all neighbors.
-				math.Max(50*tau*a.S(), 4*a.R()),
+				orca.R(a, tau),
 			),
 			// TODO(minkezhang): Check for interface equality
 			// instead of coordinate equality, via adding an

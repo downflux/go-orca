@@ -10,7 +10,6 @@ import (
 	"image/color"
 	"image/draw"
 	"image/gif"
-	"math"
 	"math/rand"
 	"os"
 
@@ -20,19 +19,21 @@ import (
 	"github.com/downflux/go-kd/point"
 	"github.com/downflux/go-orca/agent"
 	"github.com/downflux/go-orca/orca"
+
+	util "github.com/downflux/go-orca/internal/orca"
 )
 
 const (
 	N = 250
 
-	S = 20 // m / s
+	S = 50 // m / s
 	R = 10
 	H = 1000
 	W = 1000
 
-	// Simulate 100 frames.
-	D   = 10.  // s
-	TAU = 1e-2 // 1/10 s
+	// Simulate ~120 frames.
+	D   = 2.      // s
+	TAU = 1.67e-2 // ~1/60 s
 )
 
 var _ agent.A = &A{}
@@ -110,19 +111,19 @@ func GenerateRandomPoints(n int) []agent.A {
 func GenerateLineCollision() []agent.A {
 	offset := *vector.New(W/2, H/2)
 	ps := []vector.V{
-		vector.Add(*vector.New(-15, 5), offset),
-		vector.Add(*vector.New(15, 0), offset),
+		vector.Add(*vector.New(-50, 0), offset),
+		vector.Add(*vector.New(50, 0), offset),
 	}
 
 	agents := []agent.A{
 		&A{
 			p: ps[0],
-			g: vector.Add(ps[0], *vector.New(15, 5)),
+			g: vector.Add(ps[0], *vector.New(100, 0)),
 			v: *vector.New(S, 0),
 		},
 		&A{
 			p: ps[1],
-			g: vector.Add(ps[1], *vector.New(-15, 0)),
+			g: vector.Add(ps[1], *vector.New(-100, 0)),
 			v: *vector.New(-S, 0),
 		},
 	}
@@ -179,6 +180,7 @@ func main() {
 			a := m.A.(*A)
 
 			c := color.RGBA{0, 0, 0, 255}
+
 			// Vector has changed because Step() detected an
 			// oncoming collision. Visually indicate this by
 			// flashing the circle red.
@@ -196,7 +198,7 @@ func main() {
 			DrawCircle(img, a.g, 2, color.RGBA{0, 255, 0, 255})
 
 			// Draw agent vision radii.
-			DrawCircle(img, a.p, int(math.Max(50*TAU*a.S(), 4*a.R())), color.RGBA{0, 255, 0, 255})
+			DrawCircle(img, a.p, int(util.R(a, TAU)), color.RGBA{0, 255, 0, 255})
 
 			a.p = vector.Add(
 				a.P(),
