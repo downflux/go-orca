@@ -14,8 +14,8 @@ func R(a agent.A, tau float64) float64 {
 	return math.Min(
 		math.Max(
 			100*tau*a.S(),
-			a.R(),
+			3*a.R(),
 		),
-		5*a.R(),
+		6*a.R(),
 	)
 }
