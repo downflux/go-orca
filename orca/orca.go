@@ -38,11 +38,27 @@ func agents(ps []point.P) []agent.A {
 	return agents
 }
 
+// O is an options struct passed into the Step function.
 type O struct {
-	T   *kd.T
+	// T is a K-D tree containing all agents.
+	T *kd.T
+
+	// Tau is the lookahead time -- Step will avoid agent velocities which
+	// will lead to collisions within this time frame. More discussion on a
+	// sensible value for this variable can be found in
+	// /internal/vo/ball/ball.go.
 	Tau float64
-	F   func(a agent.A) bool
-	R   func(tau float64) float64
+
+	// F is a function which is used during neighbor searching to filter out
+	// agents for which collisions are allowed. This is useful for e.g. when
+	// we want to support unit squishing.
+	F func(a agent.A) bool
+
+	// R is a transformation function for the given tau used in neighbor
+	// searching. We want to ensure the radius of this search captures
+	// fast-moving or large neighbors -- however, this takes into account
+	// non-local state, and so should be supplied by the caller.
+	R func(tau float64) float64
 }
 
 // Step calculates new velocities for a collection of agents such that they will
