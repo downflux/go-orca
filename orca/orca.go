@@ -46,6 +46,11 @@ func agents(ps []point.P) []agent.A {
 // adding an A.Immovable() bool to the interface.
 //
 // TODO(minkezhang): Brainstorm ways to introduce a linear "agent", i.e. wall.
+//
+// TODO(minkezhang): Add more documentation on what tau represents, i.e. how far
+// into the future we are looking to avoid obstacles, and is independent of the
+// calling rate, though tau should be "larger" (in distance) than the calling
+// rate (i.e. the maximum distance agents may travel in between calls).
 func Step(t *kd.T, tau float64, f func(a agent.A) bool) ([]Mutation, error) {
 	as := agents(kd.Data(t))
 	vs := make([]Mutation, 0, len(as))

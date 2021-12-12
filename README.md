@@ -8,11 +8,15 @@ This project is under active development and is not yet feature complete, and
 may contain bugs. We welcome contributions in the form of new issues and pull
 requests.
 
+This project was created after endlessly consulting the canonical implementation
+[github.com/snape/RVO2](https://github.com/snape/RVO2) and follows the general
+shape of the reference. General improvements lie in abstracting away some code
+and documenting a number of assumptions the reference implementation makes.
+
 ## Background
 
-ORCA is useful for local collision avoidance in large systems. The current
-["canonical" implementation][4] lacks documentation, and is rather opaque.
-go-orca aims to be a re-implementation of the ORCA algorithm with better
+ORCA is useful for local collision avoidance in large systems.  This repository
+aims to be an implementation of the ORCA algorithm with much improved
 documentation and API.
 
 More prosaic documentation of this library will be made available at
