@@ -48,11 +48,20 @@ type VO struct {
 
 	// tau is a scalar determining the bottom vertex of the truncated VO;
 	// large 𝜏 forces the bottom of the VO closer to the origin. When tau is
-	// infinite, the VO generated is a cone with a point vertex.
+	// infinite, the VO generated is a cone with a point vertex (and the
+	// agents cannot move towards one another at all).
+	//
+	// We interpret 𝜏 as a time scalar -- the larger 𝜏 is, the further ahead
+	// in time we can guarantee no collisions (assuming all agents adjust
+	// their velocities using ORCA).
 	//
 	// Note 𝜏 should be roughly on the scale of the input velocities and
 	// agent sizes, i.e. if agents are moving at a scale of 100 m/s and are
 	// around a meter wide, we should set 𝜏 to ~1 (vs. 1e10).
+	//
+	// Also note 𝜏 is dependent on how often we will be calling ORCA -- if
+	// VO objects are generated once every second, but we only guarantee no
+	// collisions for half a second, then collisions may occur.
 	tau float64
 
 	// We cache some fields to make things zoom-zoom.
