@@ -208,11 +208,11 @@ func main() {
 		// TODO(minkezhang): Only call orca.Step every N frames.
 		// TODO(minkezhang): Figure out the correct TAU value for e.g.
 		// run every 60 frames.
-		res, err := orca.Step(
-			tr,
-			TAU,
-			func(a agent.A) bool { return true },
-		)
+		res, err := orca.Step(orca.O{
+			T:   tr,
+			Tau: TAU,
+			F:   func(a agent.A) bool { return true },
+		})
 		if err != nil {
 			panic("error while stepping through ORCA")
 		}

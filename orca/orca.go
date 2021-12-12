@@ -38,6 +38,13 @@ func agents(ps []point.P) []agent.A {
 	return agents
 }
 
+type O struct {
+	T   *kd.T
+	Tau float64
+	F   func(a agent.A) bool
+	R   func(tau float64) float64
+}
+
 // Step calculates new velocities for a collection of agents such that they will
 // avoid collitions within the specified input duration tau.
 //
@@ -51,15 +58,15 @@ func agents(ps []point.P) []agent.A {
 // into the future we are looking to avoid obstacles, and is independent of the
 // calling rate, though tau should be "larger" (in distance) than the calling
 // rate (i.e. the maximum distance agents may travel in between calls).
-func Step(t *kd.T, tau float64, f func(a agent.A) bool) ([]Mutation, error) {
-	as := agents(kd.Data(t))
+func Step(o O) ([]Mutation, error) {
+	as := agents(kd.Data(o.T))
 	vs := make([]Mutation, 0, len(as))
 
 	// Experimental results indicate changing agent loop to parallel
 	// execution will not significantly alter speeds for N ~ 1k.
 	for _, a := range as {
 		ps, err := kd.RadialFilter(
-			t,
+			o.T,
 			*hypersphere.New(
 				vector.V(a.P()),
 				// TODO(minkezhang): Move tau manipulation to
@@ -73,7 +80,7 @@ func Step(t *kd.T, tau float64, f func(a agent.A) bool) ([]Mutation, error) {
 				//
 				// TODO(minkezhang): Verify this radius is
 				// sufficient for finding all neighbors.
-				orca.R(a, tau),
+				orca.R(a, o.Tau),
 			),
 			// TODO(minkezhang): Check for interface equality
 			// instead of coordinate equality, via adding an
@@ -85,7 +92,7 @@ func Step(t *kd.T, tau float64, f func(a agent.A) bool) ([]Mutation, error) {
 				return !vector.Within(
 					p.P(),
 					vector.V(a.P()),
-				) && f(p.(P).a)
+				) && o.F(p.(P).a)
 			},
 		)
 		if err != nil {
@@ -99,7 +106,7 @@ func Step(t *kd.T, tau float64, f func(a agent.A) bool) ([]Mutation, error) {
 
 		cs := make([]constraint.C, 0, len(ps))
 		for _, p := range ps {
-			b, err := ball.New(a, p.(P).a, tau)
+			b, err := ball.New(a, p.(P).a, o.Tau)
 			if err != nil {
 				return nil, err
 			}

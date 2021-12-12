@@ -96,7 +96,11 @@ func TestStep(t *testing.T) {
 				t.Fatalf("New() = _, %v, want = _, %v", err, nil)
 			}
 
-			got, err := Step(tr, c.tau, c.f)
+			got, err := Step(O{
+				T:   tr,
+				Tau: c.tau,
+				F:   c.f,
+			})
 			if err != nil {
 				t.Errorf("Step() = _, %v, want = _, %v", got, nil)
 			}
@@ -134,7 +138,11 @@ func BenchmarkStep(b *testing.B) {
 	for _, c := range testConfigs {
 		b.Run(c.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				if _, err := Step(c.t, 1e-2, func(a agent.A) bool { return true }); err != nil {
+				if _, err := Step(O{
+					T:   c.t,
+					Tau: 1e-2,
+					F:   func(a agent.A) bool { return true },
+				}); err != nil {
 					b.Errorf("Step() = _, %v, want = _, %v", err, nil)
 				}
 			}
