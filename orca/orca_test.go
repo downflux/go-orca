@@ -20,6 +20,10 @@ import (
 
 var _ point.P = P{}
 
+// r calculates a "good enough" neighbor vision radius to be passed into
+// orca.Step.
+func r(s float64, tau float64) float64 { return tau * s }
+
 func rn() float64 { return rand.Float64()*200 - 100 }
 func rv() v2d.V   { return *v2d.New(rn(), rn()) }
 func ra() mock.A {
@@ -34,7 +38,7 @@ func ra() mock.A {
 		},
 	)
 }
-func t(n int) *kd.T {
+func rt(n int) *kd.T {
 	// Generating large number of points in tests will mess with data
 	// collection figures. We should ignore these allocs.
 	runtime.MemProfileRate = 0
@@ -96,10 +100,16 @@ func TestStep(t *testing.T) {
 				t.Fatalf("New() = _, %v, want = _, %v", err, nil)
 			}
 
+			s := math.Inf(-1)
+			for _, a := range kd.Data(tr) {
+				s = math.Max(s, a.(P).a.S())
+			}
+
 			got, err := Step(O{
 				T:   tr,
 				Tau: c.tau,
 				F:   c.f,
+				R: func(tau float64) float64 { return r(s, tau) },
 			})
 			if err != nil {
 				t.Errorf("Step() = _, %v, want = _, %v", got, nil)
@@ -131,17 +141,23 @@ func BenchmarkStep(b *testing.B) {
 		n := int(math.Pow(10, float64(i)))
 		testConfigs = append(testConfigs, config{
 			name: fmt.Sprintf("N=%v", n),
-			t:    t(n),
+			t:    rt(n),
 		})
 	}
 
 	for _, c := range testConfigs {
+		s := math.Inf(-1)
+		for _, a := range kd.Data(c.t) {
+			s = math.Max(s, a.(P).a.S())
+		}
+
 		b.Run(c.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				if _, err := Step(O{
 					T:   c.t,
 					Tau: 1e-2,
 					F:   func(a agent.A) bool { return true },
+					R: func(tau float64) float64 { return r(s, tau) },
 				}); err != nil {
 					b.Errorf("Step() = _, %v, want = _, %v", err, nil)
 				}

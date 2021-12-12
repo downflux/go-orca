@@ -2,14 +2,17 @@ package orca
 
 import (
 	"github.com/downflux/go-geometry/2d/constraint"
-	"github.com/downflux/go-geometry/nd/hypersphere"
+	// "github.com/downflux/go-geometry/nd/hypersphere"
 	"github.com/downflux/go-geometry/nd/vector"
 	"github.com/downflux/go-kd/kd"
 	"github.com/downflux/go-kd/point"
 	"github.com/downflux/go-orca/agent"
-	"github.com/downflux/go-orca/internal/orca"
 	"github.com/downflux/go-orca/internal/solver"
 	"github.com/downflux/go-orca/internal/vo/ball"
+)
+
+const (
+	MaxNeighbors = 6
 )
 
 // TODO(minkezhang): Export this to a seperate package, as this struct is
@@ -81,35 +84,10 @@ func Step(o O) ([]Mutation, error) {
 	// Experimental results indicate changing agent loop to parallel
 	// execution will not significantly alter speeds for N ~ 1k.
 	for _, a := range as {
-		ps, err := kd.RadialFilter(
+		ps, err := kd.KNN(
 			o.T,
-			*hypersphere.New(
-				vector.V(a.P()),
-				// TODO(minkezhang): Move tau manipulation to
-				// caller instead; this value should be the same
-				// as the vaule passed into ball.New().
-				//
-				// TODO(minkezhang): Change BenchmarkStep() to
-				// supply the modified tau value instead, as
-				// this influences kd.RadialFilter, and thus
-				// influences the runtime.
-				//
-				// TODO(minkezhang): Verify this radius is
-				// sufficient for finding all neighbors.
-				orca.R(a, o.Tau),
-			),
-			// TODO(minkezhang): Check for interface equality
-			// instead of coordinate equality, via adding an
-			// Agent.Equal function.
-			//
-			// This technically may introduce a bug when multiple
-			// points are extremely close together.
-			func(p point.P) bool {
-				return !vector.Within(
-					p.P(),
-					vector.V(a.P()),
-				) && o.F(p.(P).a)
-			},
+			vector.V(a.P()),
+			MaxNeighbors,
 		)
 		if err != nil {
 			return nil, err
@@ -117,12 +95,14 @@ func Step(o O) ([]Mutation, error) {
 
 		neighbors := make([]agent.A, 0, len(ps))
 		for _, p := range ps {
-			neighbors = append(neighbors, p.(P).a)
+			if !vector.Within(p.P(), vector.V(a.P())) && o.F(p.(P).a) {
+				neighbors = append(neighbors, p.(P).a)
+			}
 		}
 
 		cs := make([]constraint.C, 0, len(ps))
-		for _, p := range ps {
-			b, err := ball.New(a, p.(P).a, o.Tau)
+		for _, p := range neighbors {
+			b, err := ball.New(a, p, o.Tau)
 			if err != nil {
 				return nil, err
 			}
