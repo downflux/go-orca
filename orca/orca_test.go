@@ -114,6 +114,8 @@ func TestStep(t *testing.T) {
 	}
 }
 
+// TODO(minkezhang): Change tau value to coincide with existing altered tau
+// assumptions.
 func BenchmarkStep(b *testing.B) {
 	type config struct {
 		name string

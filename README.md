@@ -44,8 +44,7 @@ go run \
 
 Here, we have 250 agents of random size and speeds travelling in 2D ambient
 space to some random nearby destination. Green circles indicate agent vision
-radius, whereas an agent (in black) flashing red indicates the velocity has
-changed due to ORCA.
+radius.
 
 ## Profiling
 
@@ -90,17 +89,17 @@ BenchmarkStep/N=1000000-8              1        5991109700 ns/op
 PASS
 ok      github.com/downflux/go-orca/orca        38.640s
 ```
+### Performance
+
+Performance metrics shoud be compared against [Granberg][1], [Snape et al.][2],
+and [van den Berg et al.][3]. We estimate that there is about another 50%
+optimization achievable in the current implementation of the ORCA algorithm.
+
 
 ## TODO
 
 We have not yet implemented generating velocity objects for polygonal obstacles.
 The current implementation only adjusts trajectory for other circular agents.
-
-## Performance
-
-Performance metrics shoud be compared against [Granberg][1], [Snape et al.][2],
-and [van den Berg et al.][3]. We estimate that there is about another 50%
-optimization achievable in the current implementation of the ORCA algorithm.
 
 [1]: https://arongranberg.com/astar/docs_beta/local-avoidance.html
 [2]: https://www.intel.com/content/www/us/en/developer/articles/technical/reciprocal-collision-avoidance-and-navigation-for-video-games.html

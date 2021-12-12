@@ -35,6 +35,10 @@ import (
 )
 
 const (
+	// TODO(minkezhang): Add FRAMERATE = 60 constant, used for calculating
+	// new position given the velocity.
+	//
+	// TODO(minkezhang): Change TAU to ~4 * R(), i.e. ~200.
 	TAU = 1.67e-2 // ~1/60 s
 )
 
@@ -142,6 +146,10 @@ func main() {
 		points = append(points, *orca.New(a))
 	}
 
+	// Construct a new K-D tree for neighbor queries. Note the scope of this
+	// variable -- in real applications, this tree is very useful for
+	// operations not strictly limited to ORCA, e.g. for calculating nearest
+	// neighbors for fog-of-war calculations.
 	tr, err := kd.New(points)
 	if err != nil {
 		panic("cannot create K-D tree")
@@ -160,16 +168,6 @@ func main() {
 		trail[i%len(trail)] = nil
 		for _, a := range agents {
 			trail[i%len(trail)] = append(trail[i%len(trail)], a.P())
-		}
-
-		res, err := orca.Step(
-			tr,
-			TAU,
-			func(a agent.A) bool { return true },
-		)
-
-		if err != nil {
-			panic("error while stepping through ORCA")
 		}
 
 		img := image.NewPaletted(
@@ -195,7 +193,7 @@ func main() {
 		// Set white background.
 		for x := int(b.Min().X(vector.AXIS_X)); x < int(b.Max().X(vector.AXIS_X)); x++ {
 			for y := int(b.Min().X(vector.AXIS_Y)); y < int(b.Max().X(vector.AXIS_Y)); y++ {
-				img.Set(x, y, white)
+				// img.Set(x, y, white)
 			}
 		}
 
@@ -207,21 +205,24 @@ func main() {
 			}
 		}
 
+		// TODO(minkezhang): Only call orca.Step every N frames.
+		// TODO(minkezhang): Figure out the correct TAU value for e.g.
+		// run every 60 frames.
+		res, err := orca.Step(
+			tr,
+			TAU,
+			func(a agent.A) bool { return true },
+		)
+		if err != nil {
+			panic("error while stepping through ORCA")
+		}
 		for _, m := range res {
 			a := m.A.(*demo.A)
+			a.SetV(v2d.V(m.V))
+		}
 
-			var c color.Color = black
-
-			// Vector has changed because Step() detected an
-			// oncoming collision. Visually indicate this by
-			// flashing the circle red.
-			if !v2d.Within(a.V(), v2d.V(m.V)) {
-				c = red
-			}
-
-			if v2d.Within(a.T(), *v2d.New(0, 0)) {
-				c = blue
-			}
+		for _, a := range agents {
+			a := a.(*demo.A)
 
 			// Draw agent goals.
 			drawCircle(img, v2d.Add(margin, a.G()), 2, green)
@@ -230,15 +231,16 @@ func main() {
 			drawCircle(img, v2d.Add(margin, a.P()), int(util.R(a, TAU)), green)
 
 			// Draw agents.
-			drawCircle(img, v2d.Add(margin, a.P()), int(a.R()), c)
+			drawCircle(img, v2d.Add(margin, a.P()), int(a.R()), black)
 
 			a.SetP(
 				v2d.Add(
 					a.P(),
-					v2d.Scale(TAU, v2d.V(m.V)),
+					// TODO(minkezhang): Edit to FRAMERATE
+					// instead.
+					v2d.Scale(TAU, a.V()),
 				),
 			)
-			a.SetV(v2d.V(m.V))
 		}
 
 		images = append(images, img)

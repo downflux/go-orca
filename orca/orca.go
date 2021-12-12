@@ -38,6 +38,14 @@ func agents(ps []point.P) []agent.A {
 	return agents
 }
 
+// Step calculates new velocities for a collection of agents such that they will
+// avoid collitions within the specified input duration tau.
+//
+// TODO(minkezhang): Add support for immovable agents, e.g. agents that have
+// reached their destination or are on an enemy team. This may take the form of
+// adding an A.Immovable() bool to the interface.
+//
+// TODO(minkezhang): Brainstorm ways to introduce a linear "agent", i.e. wall.
 func Step(t *kd.T, tau float64, f func(a agent.A) bool) ([]Mutation, error) {
 	as := agents(kd.Data(t))
 	vs := make([]Mutation, 0, len(as))
@@ -49,6 +57,15 @@ func Step(t *kd.T, tau float64, f func(a agent.A) bool) ([]Mutation, error) {
 			t,
 			*hypersphere.New(
 				vector.V(a.P()),
+				// TODO(minkezhang): Move tau manipulation to
+				// caller instead; this value should be the same
+				// as the vaule passed into ball.New().
+				//
+				// TODO(minkezhang): Change BenchmarkStep() to
+				// supply the modified tau value instead, as
+				// this influences kd.RadialFilter, and thus
+				// influences the runtime.
+				//
 				// TODO(minkezhang): Verify this radius is
 				// sufficient for finding all neighbors.
 				orca.R(a, tau),
