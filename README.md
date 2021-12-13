@@ -76,21 +76,34 @@ information.
 ### Sample Metrics
 
 ```bash
-go test github.com/downflux/go-orca/orca -bench .
-
+$ go test github.com/downflux/go-orca/orca -bench .
 goos: linux
 goarch: amd64
 pkg: github.com/downflux/go-orca/orca
 cpu: Intel(R) Core(TM) i7-6700K CPU @ 4.00GHz
-BenchmarkStep/N=1-8               965041              1229 ns/op
-BenchmarkStep/N=10-8               69074             18382 ns/op
-BenchmarkStep/N=100-8               4786            260644 ns/op
-BenchmarkStep/N=1000-8               373           3262935 ns/op
-BenchmarkStep/N=10000-8               28          41041814 ns/op
-BenchmarkStep/N=100000-8               3         518004500 ns/op
-BenchmarkStep/N=1000000-8              1        5991109700 ns/op
+BenchmarkStep/Size=1/N=1000-8                224           5291836 ns/op
+BenchmarkStep/Size=2/N=1000-8                388           3168457 ns/op
+BenchmarkStep/Size=4/N=1000-8                508           2633228 ns/op
+BenchmarkStep/Size=8/N=1000-8                576           2321055 ns/op
+BenchmarkStep/Size=16/N=1000-8               693           2004639 ns/op
+BenchmarkStep/Size=32/N=1000-8               730           1948345 ns/op
+BenchmarkStep/Size=64/N=1000-8               705           1974854 ns/op
+BenchmarkStep/Size=1/N=10000-8                 7         171990286 ns/op
+BenchmarkStep/Size=2/N=10000-8                 9         112703811 ns/op
+BenchmarkStep/Size=4/N=10000-8                19          75218658 ns/op
+BenchmarkStep/Size=8/N=10000-8                19          66837863 ns/op
+BenchmarkStep/Size=16/N=10000-8               24          67420958 ns/op
+BenchmarkStep/Size=32/N=10000-8               32          59837678 ns/op
+BenchmarkStep/Size=64/N=10000-8               24          58414696 ns/op
+BenchmarkStep/Size=1/N=100000-8                1        32582184800 ns/op
+BenchmarkStep/Size=2/N=100000-8                1        19468817500 ns/op
+BenchmarkStep/Size=4/N=100000-8                1        12772734100 ns/op
+BenchmarkStep/Size=8/N=100000-8                1        10489621800 ns/op
+BenchmarkStep/Size=16/N=100000-8               1        10855534900 ns/op
+BenchmarkStep/Size=32/N=100000-8               1        10736456000 ns/op
+BenchmarkStep/Size=64/N=100000-8               1        10513208500 ns/op
 PASS
-ok      github.com/downflux/go-orca/orca        38.640s
+ok      github.com/downflux/go-orca/orca        139.516s
 ```
 ### Performance
 

@@ -103,9 +103,10 @@ func TestStep(t *testing.T) {
 			}
 
 			got, err := Step(O{
-				T:   tr,
-				Tau: c.tau,
-				F:   c.f,
+				T:        tr,
+				Tau:      c.tau,
+				F:        c.f,
+				PoolSize: 1,
 			})
 			if err != nil {
 				t.Errorf("Step() = _, %v, want = _, %v", got, nil)
@@ -128,15 +129,18 @@ func BenchmarkStep(b *testing.B) {
 	type config struct {
 		name string
 		t    *kd.T
+		size int
 	}
 
 	testConfigs := []config{}
-	for i := 0; i < 6; i++ {
-		n := int(math.Pow(10, float64(i)))
-		testConfigs = append(testConfigs, config{
-			name: fmt.Sprintf("N=%v", n),
-			t:    rt(n),
-		})
+	for n := 1000; n < 1000000; n = n * 10 {
+		for size := 1; size <= n && size < 128; size = size << 1 {
+			testConfigs = append(testConfigs, config{
+				name: fmt.Sprintf("Size=%v/N=%v", size, n),
+				t:    rt(n),
+				size: size,
+			})
+		}
 	}
 
 	for _, c := range testConfigs {
@@ -148,9 +152,10 @@ func BenchmarkStep(b *testing.B) {
 		b.Run(c.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				if _, err := Step(O{
-					T:   c.t,
-					Tau: 1e-2,
-					F:   func(a agent.A) bool { return true },
+					T:        c.t,
+					Tau:      1e-2,
+					F:        func(a agent.A) bool { return true },
+					PoolSize: c.size,
 				}); err != nil {
 					b.Errorf("Step() = _, %v, want = _, %v", err, nil)
 				}

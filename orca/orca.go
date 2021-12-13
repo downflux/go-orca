@@ -1,6 +1,9 @@
 package orca
 
 import (
+	"fmt"
+	"math"
+
 	"github.com/downflux/go-geometry/2d/constraint"
 	"github.com/downflux/go-geometry/nd/hypersphere"
 	"github.com/downflux/go-geometry/nd/vector"
@@ -52,6 +55,60 @@ type O struct {
 	// agents for which collisions are allowed. This is useful for e.g. when
 	// we want to support unit squishing.
 	F func(a agent.A) bool
+
+	PoolSize int
+}
+
+type result struct {
+	m   Mutation
+	err error
+}
+
+func step(a agent.A, t *kd.T, f func(a agent.A) bool, tau float64) (Mutation, error) {
+	ps, err := kd.RadialFilter(
+		t,
+		*hypersphere.New(
+			vector.V(a.P()),
+			// N.B.: RVO2 passes in a global state for this
+			// radius; see
+			// https://github.com/snape/RVO2/blob/a92e8cc858ab1884ee5de5eb3bc4a07f490d247a/src/Agent.cpp#L50
+			// for more information.
+			tau*a.S()+2*a.R(),
+		),
+		// TODO(minkezhang): Check for interface equality
+		// instead of coordinate equality, via adding an
+		// Agent.Equal function.
+		//
+		// This technically may introduce a bug when multiple
+		// points are extremely close together.
+		func(p point.P) bool {
+			return !vector.Within(
+				p.P(),
+				vector.V(a.P()),
+			) && f(p.(P).a)
+		},
+	)
+	if err != nil {
+		return Mutation{}, err
+	}
+
+	cs := make([]constraint.C, 0, len(ps))
+	for _, p := range ps {
+		b, err := ball.New(a, p.(P).a, tau)
+		if err != nil {
+			return Mutation{}, err
+		}
+		hp, err := b.ORCA()
+		if err != nil {
+			return Mutation{}, err
+		}
+		cs = append(cs, constraint.C(hp))
+	}
+
+	return Mutation{
+		A: a,
+		V: vector.V(solver.Solve(cs, a.T(), a.S())),
+	}, nil
 }
 
 // Step calculates new velocities for a collection of agents such that they will
@@ -63,57 +120,49 @@ type O struct {
 //
 // TODO(minkezhang): Brainstorm ways to introduce a linear "agent", i.e. wall.
 func Step(o O) ([]Mutation, error) {
+	if o.PoolSize == 0 {
+		panic("must specify Step with non-zero pool size")
+	}
 	as := agents(kd.Data(o.T))
-	vs := make([]Mutation, 0, len(as))
 
-	// Experimental results indicate changing agent loop to parallel
-	// execution will not significantly alter speeds for N ~ 1k.
-	for _, a := range as {
-		ps, err := kd.RadialFilter(
-			o.T,
-			*hypersphere.New(
-				vector.V(a.P()),
-				// N.B.: RVO2 passes in a global state for this
-				// radius; see
-				// https://github.com/snape/RVO2/blob/a92e8cc858ab1884ee5de5eb3bc4a07f490d247a/src/Agent.cpp#L50
-				// for more information.
-				o.Tau*a.S()+2*a.R(),
-			),
-			// TODO(minkezhang): Check for interface equality
-			// instead of coordinate equality, via adding an
-			// Agent.Equal function.
-			//
-			// This technically may introduce a bug when multiple
-			// points are extremely close together.
-			func(p point.P) bool {
-				return !vector.Within(
-					p.P(),
-					vector.V(a.P()),
-				) && o.F(p.(P).a)
-			},
-		)
-		if err != nil {
-			return nil, err
+	// Ensure channel reads aren't blocking due to dispatch or fold
+	// operation.
+	ach := make(chan agent.A, 8*o.PoolSize)
+	rch := make(chan result, 8*o.PoolSize)
+
+	go func(ch chan<- agent.A) {
+		defer close(ch)
+		for _, a := range as {
+			ch <- a
 		}
+	}(ach)
 
-		cs := make([]constraint.C, 0, len(ps))
-		for _, p := range ps {
-			b, err := ball.New(a, p.(P).a, o.Tau)
-			if err != nil {
-				return nil, err
+	for i := 0; i < int(math.Min(float64(len(as)), float64(o.PoolSize))); i++ {
+		go func(ach <-chan agent.A, rch chan<- result) {
+			for a := range ach {
+				mutation, err := step(a, o.T, o.F, o.Tau)
+				rch <- result{
+					m:   mutation,
+					err: err,
+				}
 			}
-			hp, err := b.ORCA()
-			if err != nil {
-				return nil, err
-			}
-			cs = append(cs, constraint.C(hp))
-		}
-
-		vs = append(vs, Mutation{
-			A: a,
-			V: vector.V(solver.Solve(cs, a.T(), a.S())),
-		})
+		}(ach, rch)
 	}
 
-	return vs, nil
+	mutations := make([]Mutation, 0, len(as))
+	var errors []error
+
+	for i := 0; i < len(as); i++ {
+		r := <-rch
+		if r.err != nil {
+			errors = append(errors, r.err)
+		} else {
+			mutations = append(mutations, r.m)
+		}
+	}
+
+	if len(errors) > 0 {
+		return nil, fmt.Errorf("could not generate ORCA simulation: %v", errors)
+	}
+	return mutations, nil
 }

@@ -20,6 +20,7 @@ import (
 	"math"
 	"math/rand"
 	"os"
+	"runtime"
 
 	"github.com/downflux/go-geometry/nd/hyperrectangle"
 	"github.com/downflux/go-geometry/nd/vector"
@@ -197,12 +198,6 @@ func main() {
 				gray,
 			},
 		)
-		// Set white background.
-		for x := int(b.Min().X(vector.AXIS_X)); x < int(b.Max().X(vector.AXIS_X)); x++ {
-			for y := int(b.Min().X(vector.AXIS_Y)); y < int(b.Max().X(vector.AXIS_Y)); y++ {
-				// img.Set(x, y, white)
-			}
-		}
 
 		// Draw historical agent paths.
 		for _, buf := range trail {
@@ -214,9 +209,12 @@ func main() {
 
 		if i%ORCAInterval == 0 {
 			res, err := orca.Step(orca.O{
-				T:   tr,
-				Tau: Tau,
-				F:   func(a agent.A) bool { return true },
+				T:        tr,
+				Tau:      Tau,
+				F:        func(a agent.A) bool { return true },
+				// We found this is the fastest configuration
+				// via benchmarking.
+				PoolSize: 8 * runtime.GOMAXPROCS(0),
 			})
 			if err != nil {
 				panic("error while stepping through ORCA")
