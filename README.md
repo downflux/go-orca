@@ -41,7 +41,7 @@ go mod tidy
 ```bash
 go run \
   demo/generator/main.go --mode=grid | go run \
-  demo/main.go > demo.gif
+  demo/main.go --frames=1250 > demo.gif
 ```
 
 ![ORCA demo](demo/output/animation.gif)
