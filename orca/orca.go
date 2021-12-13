@@ -26,6 +26,7 @@ func New(a agent.A) *P {
 
 func (p P) P() vector.V { return vector.V(p.a.P()) }
 
+// Mutation pairs an agent with a velocity change calculated by ORCA.
 type Mutation struct {
 	A agent.A
 	V vector.V
@@ -64,6 +65,7 @@ type result struct {
 	err error
 }
 
+// step calculates the ORCA velocity for a single agent.
 func step(a agent.A, t *kd.T, f func(a agent.A) bool, tau float64) (Mutation, error) {
 	ps, err := kd.RadialFilter(
 		t,
@@ -113,6 +115,9 @@ func step(a agent.A, t *kd.T, f func(a agent.A) bool, tau float64) (Mutation, er
 
 // Step calculates new velocities for a collection of agents such that they will
 // avoid collitions within the specified input duration tau.
+//
+// Step parallelizes ORCA calculations. Note that while calling Step, the input
+// K-D tree and agents must not be mutated.
 //
 // TODO(minkezhang): Add support for immovable agents, e.g. agents that have
 // reached their destination or are on an enemy team. This may take the form of
