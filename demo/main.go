@@ -11,12 +11,12 @@ package main
 import (
 	"bufio"
 	"flag"
-	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
 	"image/gif"
 	"io"
+	"log"
 	"math"
 	"math/rand"
 	"os"
@@ -139,12 +139,12 @@ func main() {
 
 	r, err := os.Open(*in)
 	if err != nil {
-		panic(fmt.Sprintf("cannot open file %v: %v", *in, err))
+		log.Fatalf("cannot open file %v: %v", *in, err)
 	}
 
 	data, err := bufio.NewReader(r).ReadBytes(byte(0))
 	if err != io.EOF {
-		panic(fmt.Sprintf("could not read from file %v: %v", *in, err))
+		log.Fatalf("could not read from file %v: %v", *in, err)
 	}
 
 	agents := generate(data)
@@ -160,7 +160,7 @@ func main() {
 	// neighbors for fog-of-war calculations.
 	tr, err := kd.New(points)
 	if err != nil {
-		panic("cannot create K-D tree")
+		log.Fatalf("cannot create K-D tree")
 	}
 
 	var images []*image.Paletted
@@ -209,15 +209,15 @@ func main() {
 
 		if i%ORCAInterval == 0 {
 			res, err := orca.Step(orca.O{
-				T:        tr,
-				Tau:      Tau,
-				F:        func(a agent.A) bool { return true },
+				T:   tr,
+				Tau: Tau,
+				F:   func(a agent.A) bool { return true },
 				// We found this is the fastest configuration
 				// via benchmarking.
 				PoolSize: 8 * runtime.GOMAXPROCS(0),
 			})
 			if err != nil {
-				panic("error while stepping through ORCA")
+				log.Fatalf("error while stepping through ORCA: %v", err)
 			}
 			for _, m := range res {
 				a := m.A.(*demo.A)
@@ -258,7 +258,7 @@ func main() {
 
 	w, err := os.Create(*out)
 	if err != nil {
-		panic(fmt.Sprintf("cannot write to file %v: %v", *out, err))
+		log.Fatalf("cannot write to file %v: %v", *out, err)
 	}
 
 	gif.EncodeAll(w, anim)

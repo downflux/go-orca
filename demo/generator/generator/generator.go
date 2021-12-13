@@ -2,7 +2,7 @@ package generator
 
 import (
 	"encoding/json"
-	"fmt"
+	"log"
 	"math/rand"
 
 	"github.com/downflux/go-geometry/2d/vector"
@@ -15,7 +15,7 @@ func rn(min float64, max float64) float64 { return rand.Float64()*(max-min) + mi
 func Marshal(agents []demo.O) []byte {
 	b, err := json.MarshalIndent(agents, "", " ")
 	if err != nil {
-		panic(fmt.Sprintf("cannot export agents: %v", err))
+		log.Fatalf("cannot export agents: %v", err)
 	}
 	return b
 }
@@ -23,7 +23,7 @@ func Marshal(agents []demo.O) []byte {
 func Unmarshal(data []byte) []demo.O {
 	var agents []demo.O
 	if err := json.Unmarshal(data, &agents); err != nil {
-		panic(fmt.Sprintf("cannot import agents: %v", err))
+		log.Fatalf("cannot import agents: %v", err)
 	}
 	return agents
 }

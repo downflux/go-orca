@@ -11,6 +11,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 
 	"github.com/downflux/go-orca/demo/generator/generator"
 
@@ -51,7 +52,7 @@ func main() {
 
 	f, ok := fns[mode(*m)]
 	if !ok {
-		panic(fmt.Sprintf("invalid mode type %v", *m))
+		log.Fatalf("invalid mode type %v", *m)
 	}
 
 	fmt.Printf(string(generator.Marshal(f())))
