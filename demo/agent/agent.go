@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"math"
+
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-geometry/epsilon"
 	"github.com/downflux/go-orca/agent"
@@ -41,7 +43,10 @@ func (a *A) T() vector.V {
 	if epsilon.Within(vector.SquaredMagnitude(v), 0) {
 		return *vector.New(0, 0)
 	}
-	return vector.Scale(a.S(), vector.Unit(v))
+
+	// Reduce end-state jittering by forcing the agent to slow down.
+	s := math.Min(a.S(), a.S()*vector.SquaredMagnitude(v))
+	return vector.Scale(s, vector.Unit(v))
 }
 func (a *A) V() vector.V     { return a.v }
 func (a *A) G() vector.V     { return a.g }

@@ -20,10 +20,6 @@ import (
 
 var _ point.P = P{}
 
-// r calculates a "good enough" neighbor vision radius to be passed into
-// orca.Step.
-func r(s float64, tau float64) float64 { return tau * s }
-
 func rn() float64 { return rand.Float64()*200 - 100 }
 func rv() v2d.V   { return *v2d.New(rn(), rn()) }
 func ra() mock.A {
@@ -31,6 +27,7 @@ func ra() mock.A {
 		mock.O{
 			P: rv(),
 			V: v2d.Scale(rand.Float64()*.5, v2d.Unit(rv())),
+			R: rand.Float64(),
 			T: rv(),
 			// Ensure the agent's target vector is inside the
 			// bounding circle.
@@ -109,7 +106,6 @@ func TestStep(t *testing.T) {
 				T:   tr,
 				Tau: c.tau,
 				F:   c.f,
-				R: func(tau float64) float64 { return r(s, tau) },
 			})
 			if err != nil {
 				t.Errorf("Step() = _, %v, want = _, %v", got, nil)
@@ -128,8 +124,6 @@ func TestStep(t *testing.T) {
 	}
 }
 
-// TODO(minkezhang): Change tau value to coincide with existing altered tau
-// assumptions.
 func BenchmarkStep(b *testing.B) {
 	type config struct {
 		name string
@@ -137,7 +131,7 @@ func BenchmarkStep(b *testing.B) {
 	}
 
 	testConfigs := []config{}
-	for i := 0; i < 7; i++ {
+	for i := 0; i < 6; i++ {
 		n := int(math.Pow(10, float64(i)))
 		testConfigs = append(testConfigs, config{
 			name: fmt.Sprintf("N=%v", n),
@@ -157,7 +151,6 @@ func BenchmarkStep(b *testing.B) {
 					T:   c.t,
 					Tau: 1e-2,
 					F:   func(a agent.A) bool { return true },
-					R: func(tau float64) float64 { return r(s, tau) },
 				}); err != nil {
 					b.Errorf("Step() = _, %v, want = _, %v", err, nil)
 				}

@@ -31,15 +31,22 @@ import (
 
 	v2d "github.com/downflux/go-geometry/2d/vector"
 	demo "github.com/downflux/go-orca/demo/agent"
-	util "github.com/downflux/go-orca/internal/orca"
 )
 
 const (
-	// TODO(minkezhang): Add FRAMERATE = 60 constant, used for calculating
-	// new position given the velocity.
+	Framerate = 60
+
+	// ORCAInterval dictates how many frames to skip before calling ORCA.
 	//
-	// TODO(minkezhang): Change TAU to ~4 * R(), i.e. ~200.
-	TAU = 1.67e-2 // ~1/60 s
+	// Note that this linearly correlates with time.
+	ORCAInterval = 1
+)
+
+var (
+	// Tau is passed into ORCA and dictates the event horizon of the VO
+	// object. We expand the event horizon slightly compared to the
+	// ORCAInterval to help smooth out the velocity changes a bit.
+	Tau = 50 * float64(ORCAInterval) / Framerate
 )
 
 var (
@@ -205,20 +212,19 @@ func main() {
 			}
 		}
 
-		// TODO(minkezhang): Only call orca.Step every N frames.
-		// TODO(minkezhang): Figure out the correct TAU value for e.g.
-		// run every 60 frames.
-		res, err := orca.Step(orca.O{
-			T:   tr,
-			Tau: TAU,
-			F:   func(a agent.A) bool { return true },
-		})
-		if err != nil {
-			panic("error while stepping through ORCA")
-		}
-		for _, m := range res {
-			a := m.A.(*demo.A)
-			a.SetV(v2d.V(m.V))
+		if i%ORCAInterval == 0 {
+			res, err := orca.Step(orca.O{
+				T:   tr,
+				Tau: Tau,
+				F:   func(a agent.A) bool { return true },
+			})
+			if err != nil {
+				panic("error while stepping through ORCA")
+			}
+			for _, m := range res {
+				a := m.A.(*demo.A)
+				a.SetV(v2d.V(m.V))
+			}
 		}
 
 		for _, a := range agents {
@@ -227,23 +233,20 @@ func main() {
 			// Draw agent goals.
 			drawCircle(img, v2d.Add(margin, a.G()), 2, green)
 
-			// Draw agent vision radii.
-			drawCircle(img, v2d.Add(margin, a.P()), int(util.R(a, TAU)), green)
-
 			// Draw agents.
 			drawCircle(img, v2d.Add(margin, a.P()), int(a.R()), black)
 
 			a.SetP(
 				v2d.Add(
 					a.P(),
-					// TODO(minkezhang): Edit to FRAMERATE
-					// instead.
-					v2d.Scale(TAU, a.V()),
+					v2d.Scale(1/float64(Framerate), a.V()),
 				),
 			)
 		}
 
 		images = append(images, img)
+
+		// Render with approximately 2/100 s delay, i.e. at 50Hz.
 		delay = append(delay, 2)
 
 		tr.Balance()

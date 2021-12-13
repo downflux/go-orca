@@ -2,17 +2,13 @@ package orca
 
 import (
 	"github.com/downflux/go-geometry/2d/constraint"
-	// "github.com/downflux/go-geometry/nd/hypersphere"
+	"github.com/downflux/go-geometry/nd/hypersphere"
 	"github.com/downflux/go-geometry/nd/vector"
 	"github.com/downflux/go-kd/kd"
 	"github.com/downflux/go-kd/point"
 	"github.com/downflux/go-orca/agent"
 	"github.com/downflux/go-orca/internal/solver"
 	"github.com/downflux/go-orca/internal/vo/ball"
-)
-
-const (
-	MaxNeighbors = 6
 )
 
 // TODO(minkezhang): Export this to a seperate package, as this struct is
@@ -56,12 +52,6 @@ type O struct {
 	// agents for which collisions are allowed. This is useful for e.g. when
 	// we want to support unit squishing.
 	F func(a agent.A) bool
-
-	// R is a transformation function for the given tau used in neighbor
-	// searching. We want to ensure the radius of this search captures
-	// fast-moving or large neighbors -- however, this takes into account
-	// non-local state, and so should be supplied by the caller.
-	R func(tau float64) float64
 }
 
 // Step calculates new velocities for a collection of agents such that they will
@@ -72,11 +62,6 @@ type O struct {
 // adding an A.Immovable() bool to the interface.
 //
 // TODO(minkezhang): Brainstorm ways to introduce a linear "agent", i.e. wall.
-//
-// TODO(minkezhang): Add more documentation on what tau represents, i.e. how far
-// into the future we are looking to avoid obstacles, and is independent of the
-// calling rate, though tau should be "larger" (in distance) than the calling
-// rate (i.e. the maximum distance agents may travel in between calls).
 func Step(o O) ([]Mutation, error) {
 	as := agents(kd.Data(o.T))
 	vs := make([]Mutation, 0, len(as))
@@ -84,25 +69,36 @@ func Step(o O) ([]Mutation, error) {
 	// Experimental results indicate changing agent loop to parallel
 	// execution will not significantly alter speeds for N ~ 1k.
 	for _, a := range as {
-		ps, err := kd.KNN(
+		ps, err := kd.RadialFilter(
 			o.T,
-			vector.V(a.P()),
-			MaxNeighbors,
+			*hypersphere.New(
+				vector.V(a.P()),
+				// N.B.: RVO2 passes in a global state for this
+				// radius; see
+				// https://github.com/snape/RVO2/blob/a92e8cc858ab1884ee5de5eb3bc4a07f490d247a/src/Agent.cpp#L50
+				// for more information.
+				o.Tau*a.S()+2*a.R(),
+			),
+			// TODO(minkezhang): Check for interface equality
+			// instead of coordinate equality, via adding an
+			// Agent.Equal function.
+			//
+			// This technically may introduce a bug when multiple
+			// points are extremely close together.
+			func(p point.P) bool {
+				return !vector.Within(
+					p.P(),
+					vector.V(a.P()),
+				) && o.F(p.(P).a)
+			},
 		)
 		if err != nil {
 			return nil, err
 		}
 
-		neighbors := make([]agent.A, 0, len(ps))
-		for _, p := range ps {
-			if !vector.Within(p.P(), vector.V(a.P())) && o.F(p.(P).a) {
-				neighbors = append(neighbors, p.(P).a)
-			}
-		}
-
 		cs := make([]constraint.C, 0, len(ps))
-		for _, p := range neighbors {
-			b, err := ball.New(a, p, o.Tau)
+		for _, p := range ps {
+			b, err := ball.New(a, p.(P).a, o.Tau)
 			if err != nil {
 				return nil, err
 			}
