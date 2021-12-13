@@ -40,7 +40,7 @@ go mod tidy
 
 ```bash
 go run \
-  demo/generator/main.go --mode=random | go run \
+  demo/generator/main.go --mode=grid| go run \
   demo/main.go > demo.gif
 ```
 
