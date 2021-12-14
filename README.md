@@ -46,9 +46,6 @@ go run \
 
 ![ORCA demo](demo/output/animation.gif)
 
-Here, we have 250 agents of random size and speeds travelling in 2D ambient
-space to some random nearby destination.
-
 ## Profiling
 
 **N.B.**: WSL does not profile correctly. See
