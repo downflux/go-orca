@@ -18,7 +18,14 @@ import (
 	mock "github.com/downflux/go-orca/internal/agent/testdata/mock"
 )
 
-var _ point.P = P{}
+var _ P = p{}
+
+type p struct {
+	a agent.A
+}
+
+func (p p) A() agent.A  { return p.a }
+func (p p) P() vector.V { return vector.V(p.a.P()) }
 
 func rn() float64 { return rand.Float64()*200 - 100 }
 func rv() v2d.V   { return *v2d.New(rn(), rn()) }
@@ -43,7 +50,8 @@ func rt(n int) *kd.T {
 
 	ps := make([]point.P, 0, n)
 	for i := 0; i < n; i++ {
-		ps = append(ps, *New(ra()))
+		a := ra()
+		ps = append(ps, p{a: &a})
 	}
 	t, _ := kd.New(ps)
 	return t
@@ -89,7 +97,7 @@ func TestStep(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			var ps []point.P
 			for _, a := range c.agents {
-				ps = append(ps, *New(a))
+				ps = append(ps, p{a: a})
 			}
 
 			tr, err := kd.New(ps)
@@ -98,8 +106,8 @@ func TestStep(t *testing.T) {
 			}
 
 			s := math.Inf(-1)
-			for _, a := range kd.Data(tr) {
-				s = math.Max(s, a.(P).a.S())
+			for _, p := range kd.Data(tr) {
+				s = math.Max(s, p.(P).A().S())
 			}
 
 			got, err := Step(O{
@@ -145,8 +153,8 @@ func BenchmarkStep(b *testing.B) {
 
 	for _, c := range testConfigs {
 		s := math.Inf(-1)
-		for _, a := range kd.Data(c.t) {
-			s = math.Max(s, a.(P).a.S())
+		for _, p := range kd.Data(c.t) {
+			s = math.Max(s, p.(P).A().S())
 		}
 
 		b.Run(c.name, func(b *testing.B) {

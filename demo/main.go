@@ -5,7 +5,7 @@
 //
 //   go run \
 //     demo/generator/main.go --mode=random | go run \
-//     demo/main.go > demo/output/animation.gif
+//     demo/main.go > demo.gif
 package main
 
 import (
@@ -13,7 +13,6 @@ import (
 	"flag"
 	"image"
 	"image/color"
-	"image/draw"
 	"image/gif"
 	"io"
 	"log"
@@ -32,6 +31,7 @@ import (
 
 	v2d "github.com/downflux/go-geometry/2d/vector"
 	demo "github.com/downflux/go-orca/demo/agent"
+	demodraw "github.com/downflux/go-orca/demo/draw"
 )
 
 const (
@@ -65,61 +65,47 @@ var (
 	frames = flag.Int("frames", 120, "number of frames to render")
 )
 
+var (
+	_ point.P = &P{}
+)
+
+type P demo.A
+
+func (p *P) A() agent.A  { return (*demo.A)(p) }
+func (p *P) P() vector.V { return vector.V((*demo.A)(p).P()) }
+
 func rn(min float64, max float64) float64 { return rand.Float64()*(max-min) + min }
 
-func drawCircle(img draw.Image, v v2d.V, r int, c color.Color) {
-	x, y, dx, dy := r-1, 0, 1, 1
-	err := dx - (r * 2)
-
-	for x > y {
-		img.Set(int(v.X())+x, int(v.Y())+y, c)
-		img.Set(int(v.X())+y, int(v.Y())+x, c)
-		img.Set(int(v.X())-y, int(v.Y())+x, c)
-		img.Set(int(v.X())-x, int(v.Y())+y, c)
-		img.Set(int(v.X())-x, int(v.Y())-y, c)
-		img.Set(int(v.X())-y, int(v.Y())-x, c)
-		img.Set(int(v.X())+y, int(v.Y())-x, c)
-		img.Set(int(v.X())+x, int(v.Y())-y, c)
-
-		if err <= 0 {
-			y++
-			err += dy
-			dy += 2
-		}
-		if err > 0 {
-			x--
-			dx += 2
-			err += dx - (r * 2)
-		}
-	}
-}
-
-func generate(data []byte) []agent.A {
+func generate(data []byte) []point.P {
 	opts := generator.Unmarshal(data)
-	agents := make([]agent.A, 0, len(opts))
+	points := make([]point.P, 0, len(opts))
 
 	for _, o := range opts {
-		agents = append(agents, demo.New(o))
+		a := *demo.New(o)
+		p := P(a)
+		points = append(points, &p)
 	}
-	return agents
+	return points
 }
 
 var (
 	margin = *v2d.New(50, 50)
 )
 
-func bound(agents []agent.A) hyperrectangle.R {
+// bound calculates the bounding rectangle around all agents.
+func bound(points []point.P) hyperrectangle.R {
 	min := *v2d.New(math.Inf(0), math.Inf(0))
 	max := *v2d.New(math.Inf(-1), math.Inf(-1))
 
-	for _, a := range agents {
+	for _, p := range points {
+		p := v2d.V(p.P())
 		min = *v2d.New(
-			math.Min(min.X(), a.P().X()),
-			math.Min(min.Y(), a.P().Y()),
+			math.Min(min.X(), p.X()),
+			math.Min(min.Y(), p.Y()),
 		)
 		max = *v2d.New(
-			math.Max(max.X(), a.P().X()),
-			math.Max(max.Y(), a.P().Y()),
+			math.Max(max.X(), p.X()),
+			math.Max(max.Y(), p.Y()),
 		)
 	}
 
@@ -137,22 +123,16 @@ func bound(agents []agent.A) hyperrectangle.R {
 func main() {
 	flag.Parse()
 
+	// Read agent configuration from specified input file.
 	r, err := os.Open(*in)
 	if err != nil {
 		log.Fatalf("cannot open file %v: %v", *in, err)
 	}
-
 	data, err := bufio.NewReader(r).ReadBytes(byte(0))
 	if err != io.EOF {
 		log.Fatalf("could not read from file %v: %v", *in, err)
 	}
-
-	agents := generate(data)
-	points := make([]point.P, 0, len(agents))
-
-	for _, a := range agents {
-		points = append(points, *orca.New(a))
-	}
+	points := generate(data)
 
 	// Construct a new K-D tree for neighbor queries. Note the scope of this
 	// variable -- in real applications, this tree is very useful for
@@ -166,16 +146,18 @@ func main() {
 	var images []*image.Paletted
 	var delay []int
 
-	b := bound(agents)
+	b := bound(points)
 
-	// trail is a buffer of the last N positions of agents.
-	var trail [50][]v2d.V
+	// trailbuf keeps the last N positions of agents in memory for
+	// visualization.
+	var trailbuf [50][]v2d.V
 
 	// Run the simulator for some steps.
 	for i := 0; i < *frames; i++ {
-		trail[i%len(trail)] = nil
-		for _, a := range agents {
-			trail[i%len(trail)] = append(trail[i%len(trail)], a.P())
+		// Overwrite trail buffer
+		trailbuf[i%len(trailbuf)] = nil
+		for _, p := range points {
+			trailbuf[i%len(trailbuf)] = append(trailbuf[i%len(trailbuf)], p.(*P).A().P())
 		}
 
 		img := image.NewPaletted(
@@ -200,13 +182,22 @@ func main() {
 		)
 
 		// Draw historical agent paths.
-		for _, buf := range trail {
-			for _, p := range buf {
-				p := v2d.Add(margin, p)
-				img.Set(int(p.X()), int(p.Y()), gray)
-			}
+		for _, buf := range trailbuf {
+			demodraw.Trail(img, margin, buf, gray)
 		}
 
+		// Draw agents.
+		for _, p := range points {
+			a := p.(*P).A().(*demo.A)
+
+			// Draw agent goal positions.
+			demodraw.Circle(img, v2d.Add(margin, a.G()), 2, green)
+
+			// Draw circle.
+			demodraw.Circle(img, v2d.Add(margin, a.P()), int(a.R()), black)
+		}
+
+		// ORCA may be run at a slower rate than the tick rate.
 		if i%ORCAInterval == 0 {
 			res, err := orca.Step(orca.O{
 				T:   tr,
@@ -214,7 +205,7 @@ func main() {
 				F:   func(a agent.A) bool { return true },
 				// We found this is the fastest configuration
 				// via benchmarking.
-				PoolSize: 8 * runtime.GOMAXPROCS(0),
+				PoolSize: 4 * runtime.GOMAXPROCS(0),
 			})
 			if err != nil {
 				log.Fatalf("error while stepping through ORCA: %v", err)
@@ -225,15 +216,9 @@ func main() {
 			}
 		}
 
-		for _, a := range agents {
-			a := a.(*demo.A)
-
-			// Draw agent goals.
-			drawCircle(img, v2d.Add(margin, a.G()), 2, green)
-
-			// Draw agents.
-			drawCircle(img, v2d.Add(margin, a.P()), int(a.R()), black)
-
+		// Run simulation for the current server tick.
+		for _, p := range points {
+			a := p.(*P).A().(*demo.A)
 			a.SetP(
 				v2d.Add(
 					a.P(),
@@ -242,11 +227,14 @@ func main() {
 			)
 		}
 
-		images = append(images, img)
-
 		// Render with approximately 2/100 s delay, i.e. at 50Hz.
+		images = append(images, img)
 		delay = append(delay, 2)
 
+		// Update the K-D tree, as positions have changed in the
+		// interim. Note that the K-D tree is mutated outside of calling
+		// ORCA -- this allows the tree to be used elsewhere, as it's a
+		// very useful struct for other range queries.
 		tr.Balance()
 	}
 

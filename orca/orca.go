@@ -14,17 +14,11 @@ import (
 	"github.com/downflux/go-orca/internal/vo/ball"
 )
 
-// TODO(minkezhang): Export this to a seperate package, as this struct is
-// necessary for multiple packages.
-type P struct {
-	a agent.A
+// P defines a point used in the K-D tree.
+type P interface {
+	A() agent.A
+	P() vector.V
 }
-
-func New(a agent.A) *P {
-	return &P{a: a}
-}
-
-func (p P) P() vector.V { return vector.V(p.a.P()) }
 
 // Mutation pairs an agent with a velocity change calculated by ORCA.
 type Mutation struct {
@@ -35,7 +29,7 @@ type Mutation struct {
 func agents(ps []point.P) []agent.A {
 	agents := make([]agent.A, 0, len(ps))
 	for _, p := range ps {
-		agents = append(agents, p.(P).a)
+		agents = append(agents, p.(P).A())
 	}
 
 	return agents
@@ -44,6 +38,8 @@ func agents(ps []point.P) []agent.A {
 // O is an options struct passed into the Step function.
 type O struct {
 	// T is a K-D tree containing all agents.
+	//
+	// TODO(minkezhang): Specify this as a generic T[P].
 	T *kd.T
 
 	// Tau is the lookahead time -- Step will avoid agent velocities which
@@ -90,7 +86,7 @@ func step(a agent.A, t *kd.T, f func(a agent.A) bool, tau float64) (Mutation, er
 			return !vector.Within(
 				p.P(),
 				vector.V(a.P()),
-			) && f(p.(P).a)
+			) && f(p.(P).A())
 		},
 	)
 	if err != nil {
@@ -99,7 +95,7 @@ func step(a agent.A, t *kd.T, f func(a agent.A) bool, tau float64) (Mutation, er
 
 	cs := make([]constraint.C, 0, len(ps))
 	for _, p := range ps {
-		b, err := ball.New(a, p.(P).a, tau)
+		b, err := ball.New(a, p.(P).A(), tau)
 		if err != nil {
 			return Mutation{}, err
 		}
