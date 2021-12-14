@@ -78,30 +78,31 @@ goos: linux
 goarch: amd64
 pkg: github.com/downflux/go-orca/orca
 cpu: Intel(R) Core(TM) i7-6700K CPU @ 4.00GHz
-BenchmarkStep/Size=1/N=1000-8                224           5291836 ns/op
-BenchmarkStep/Size=2/N=1000-8                388           3168457 ns/op
-BenchmarkStep/Size=4/N=1000-8                508           2633228 ns/op
-BenchmarkStep/Size=8/N=1000-8                576           2321055 ns/op
-BenchmarkStep/Size=16/N=1000-8               693           2004639 ns/op
-BenchmarkStep/Size=32/N=1000-8               730           1948345 ns/op
-BenchmarkStep/Size=64/N=1000-8               705           1974854 ns/op
-BenchmarkStep/Size=1/N=10000-8                 7         171990286 ns/op
-BenchmarkStep/Size=2/N=10000-8                 9         112703811 ns/op
-BenchmarkStep/Size=4/N=10000-8                19          75218658 ns/op
-BenchmarkStep/Size=8/N=10000-8                19          66837863 ns/op
-BenchmarkStep/Size=16/N=10000-8               24          67420958 ns/op
-BenchmarkStep/Size=32/N=10000-8               32          59837678 ns/op
-BenchmarkStep/Size=64/N=10000-8               24          58414696 ns/op
-BenchmarkStep/Size=1/N=100000-8                1        32582184800 ns/op
-BenchmarkStep/Size=2/N=100000-8                1        19468817500 ns/op
-BenchmarkStep/Size=4/N=100000-8                1        12772734100 ns/op
-BenchmarkStep/Size=8/N=100000-8                1        10489621800 ns/op
-BenchmarkStep/Size=16/N=100000-8               1        10855534900 ns/op
-BenchmarkStep/Size=32/N=100000-8               1        10736456000 ns/op
-BenchmarkStep/Size=64/N=100000-8               1        10513208500 ns/op
+BenchmarkStep/PoolSize=1/N=1000-8                    201           5874149 ns/op
+BenchmarkStep/PoolSize=2/N=1000-8                    304           3818542 ns/op
+BenchmarkStep/PoolSize=4/N=1000-8                    469           2760155 ns/op
+BenchmarkStep/PoolSize=8/N=1000-8                    638           2163011 ns/op
+BenchmarkStep/PoolSize=16/N=1000-8                   778           1790053 ns/op
+BenchmarkStep/PoolSize=32/N=1000-8                   759           1797966 ns/op
+BenchmarkStep/PoolSize=64/N=1000-8                   758           1837833 ns/op
+BenchmarkStep/PoolSize=1/N=10000-8                     7         164411857 ns/op
+BenchmarkStep/PoolSize=2/N=10000-8                    13          96502769 ns/op
+BenchmarkStep/PoolSize=4/N=10000-8                    20          64978580 ns/op
+BenchmarkStep/PoolSize=8/N=10000-8                    26          54633023 ns/op
+BenchmarkStep/PoolSize=16/N=10000-8                   27          54048937 ns/op
+BenchmarkStep/PoolSize=32/N=10000-8                   30          50821777 ns/op
+BenchmarkStep/PoolSize=64/N=10000-8                   28          52647196 ns/op
+BenchmarkStep/PoolSize=1/N=100000-8                    1        29744473100 ns/op
+BenchmarkStep/PoolSize=2/N=100000-8                    1        17573546400 ns/op
+BenchmarkStep/PoolSize=4/N=100000-8                    1        12624980100 ns/op
+BenchmarkStep/PoolSize=8/N=100000-8                    1        10821498000 ns/op
+BenchmarkStep/PoolSize=16/N=100000-8                   1        10191115200 ns/op
+BenchmarkStep/PoolSize=32/N=100000-8                   1        10799581500 ns/op
+BenchmarkStep/PoolSize=64/N=100000-8                   1        11008062500 ns/op
 PASS
-ok      github.com/downflux/go-orca/orca        139.516s
+ok      github.com/downflux/go-orca/orca        134.500s
 ```
+
 ### Performance
 
 Performance metrics shoud be compared against [Granberg][1], [Snape et al.][2],

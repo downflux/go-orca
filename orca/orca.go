@@ -57,6 +57,9 @@ type O struct {
 	// we want to support unit squishing.
 	F func(a agent.A) bool
 
+	// PoolSize is the number of workers that will process the the agents in
+	// parallel. We want this to be on the order of magnitude of the number
+	// of cores on the system for fastest processing times.
 	PoolSize int
 }
 
@@ -142,11 +145,17 @@ func Step(o O) ([]Mutation, error) {
 		}
 	}(ach)
 
-	for i := 0; i < int(math.Min(float64(len(as)), float64(o.PoolSize))); i++ {
-		go func(ach <-chan agent.A, rch chan<- result) {
-			for a := range ach {
+	n := int(
+		math.Min(
+			float64(len(as)),
+			float64(o.PoolSize)),
+	)
+	// Start up a number of workers.
+	for i := 0; i < n; i++ {
+		go func(jobs <-chan agent.A, results chan<- result) {
+			for a := range jobs {
 				mutation, err := step(a, o.T, o.F, o.Tau)
-				rch <- result{
+				results <- result{
 					m:   mutation,
 					err: err,
 				}

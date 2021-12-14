@@ -136,7 +136,7 @@ func BenchmarkStep(b *testing.B) {
 	for n := 1000; n < 1000000; n = n * 10 {
 		for size := 1; size <= n && size < 128; size = size << 1 {
 			testConfigs = append(testConfigs, config{
-				name: fmt.Sprintf("Size=%v/N=%v", size, n),
+				name: fmt.Sprintf("PoolSize=%v/N=%v", size, n),
 				t:    rt(n),
 				size: size,
 			})
