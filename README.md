@@ -25,21 +25,22 @@ More prosaic documentation of this library will be made available at
 ## Installation
 
 ```bash
-go version
-> go version go1.17.4 linux/amd64
+$ go version
+
+go version go1.17.4 linux/amd64
 ```
 
 ## Updating
 
 ```bash
-go get -u ./...
-go mod tidy
+$ go get -u ./...
+$ go mod tidy
 ```
 
 ## Demo
 
 ```bash
-go run \
+$ go run \
   examples/generator/main.go --mode=grid | go run \
   examples/main.go --frames=1250 > demo.gif
 ```
@@ -52,19 +53,19 @@ go run \
 [golang/go#22366](https://github.com/golang/go/issues/22366).
 
 ```bash
-go test -v \
+$ go test -v \
   github.com/downflux/go-orca/... \
   -bench . \
   -benchmem -cpu 1,2,4,8,16,32,64
 
-go test -v \
+$ go test -v \
   github.com/downflux/go-orca/orca \
   -bench BenchmarkStep/N=1000000 \
   -benchmem \
   -cpuprofile cpu.out
   -memprofile mem.out
 
-go tool pprof -tree -nodecount=10 cpu.out
+$ go tool pprof -tree -nodecount=10 cpu.out
 ```
 
 See [pprof](https://github.com/google/pprof/blob/master/README.md) for more
@@ -74,6 +75,7 @@ information.
 
 ```bash
 $ go test github.com/downflux/go-orca/orca -bench .
+
 goos: linux
 goarch: amd64
 pkg: github.com/downflux/go-orca/orca
