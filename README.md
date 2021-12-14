@@ -111,6 +111,102 @@ Performance metrics shoud be compared against [Granberg][1], [Snape et al.][2],
 and [van den Berg et al.][3]. We estimate that there is about another 50%
 optimization achievable in the current implementation of the ORCA algorithm.
 
+## Example
+
+```golang
+package main
+
+import (
+	"fmt"
+
+	"github.com/downflux/go-geometry/nd/vector"
+	"github.com/downflux/go-kd/kd"
+	"github.com/downflux/go-kd/point"
+	"github.com/downflux/go-orca/agent"
+	"github.com/downflux/go-orca/orca"
+
+	v2d "github.com/downflux/go-geometry/2d/vector"
+)
+
+// Define a K-D tree point which satisfies ORCA's P interface as well.
+//
+// Ensure the point is mutable, as we will be updating the point velocities.
+type a struct {
+	// r is the collision radius of the agent.
+	r float64
+
+	// s is the max speed of the agent.
+	s float64
+
+	// p is the current position of the agent.
+	p v2d.V
+
+	// v is the current veloicty of the agent.
+	v v2d.V
+
+	// t is the target velocity of the agent.
+	t v2d.V
+}
+
+func (a *a) P() v2d.V   { return a.p }
+func (a *a) V() v2d.V   { return a.v }
+func (a *a) T() v2d.V   { return a.t }
+func (a *a) R() float64 { return a.r }
+func (a *a) S() float64 { return a.s }
+
+type p a
+
+func (p *p) A() agent.A  { return (*a)(p) }
+func (p *p) P() vector.V { return vector.V((*a)(p).P()) }
+
+// Check interface fulfilment.
+var (
+	_ agent.A = &a{}
+	_ orca.P  = &p{}
+	_ point.P = &p{}
+)
+
+func main() {
+	// Construct some agents.
+	agents := []point.P{
+		&p{
+			r: 1,
+			// Max speed just means the agent has the capability to
+			// move this fast, but the goal of ORCA is to minimize
+			// the difference to the target velocity instead.
+			s: 10,
+			p: *v2d.New(0, 0),
+			v: *v2d.New(0, 1),
+			t: *v2d.New(0, 1),
+		},
+		&p{
+			r: 1,
+			s: 10,
+			p: *v2d.New(0, 5),
+			v: *v2d.New(0, -1),
+			t: *v2d.New(0, -1),
+		},
+	}
+
+	t, _ := kd.New(agents)
+
+	// Simulate one simulation loop. Step() is a pure function and does not
+	// mutate any state -- the caller will need to manually set the position
+	// and velocity vectors. Or not, im_a_sign_not_a_cop.jpg.
+	mutations, _ := orca.Step(orca.O{
+		T: t,
+		// Pick a sensible value for the lookhead -- this depends on how
+		// fast the agents are travelling per tick.
+		Tau:      10,
+		F:        func(a agent.A) bool { return true },
+		PoolSize: 2,
+	})
+	for _, m := range mutations {
+		a := m.A.(*a)
+		fmt.Printf("input velocity for agent at position %v is %v, but output velocity is %v\n", a.P(), a.V(), m.V)
+	}
+}
+```
 
 ## TODO
 
