@@ -150,7 +150,8 @@ func Step(o O) ([]Mutation, error) {
 			float64(len(as)),
 			float64(o.PoolSize)),
 	)
-	// Start up a number of workers.
+	// Start up a number of workers to find the iterative velocity in
+	// parallel.
 	for i := 0; i < n; i++ {
 		go func(jobs <-chan agent.A, results chan<- result) {
 			for a := range jobs {
