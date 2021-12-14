@@ -40,11 +40,11 @@ go mod tidy
 
 ```bash
 go run \
-  demo/generator/main.go --mode=grid | go run \
-  demo/main.go --frames=1250 > demo.gif
+  examples/generator/main.go --mode=grid | go run \
+  examples/main.go --frames=1250 > demo.gif
 ```
 
-![ORCA demo](demo/output/animation.gif)
+![ORCA demo](examples/output/animation.gif)
 
 ## Profiling
 

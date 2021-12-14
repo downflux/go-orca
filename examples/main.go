@@ -4,8 +4,8 @@
 // Example:
 //
 //   go run \
-//     demo/generator/main.go --mode=random | go run \
-//     demo/main.go > demo.gif
+//     examples/generator/main.go --mode=random | go run \
+//     examples/main.go > demo.gif
 package main
 
 import (
@@ -26,12 +26,12 @@ import (
 	"github.com/downflux/go-kd/kd"
 	"github.com/downflux/go-kd/point"
 	"github.com/downflux/go-orca/agent"
-	"github.com/downflux/go-orca/demo/generator/generator"
+	"github.com/downflux/go-orca/examples/generator/generator"
 	"github.com/downflux/go-orca/orca"
 
 	v2d "github.com/downflux/go-geometry/2d/vector"
-	demo "github.com/downflux/go-orca/demo/agent"
-	demodraw "github.com/downflux/go-orca/demo/draw"
+	examples "github.com/downflux/go-orca/examples/agent"
+	examplesdraw "github.com/downflux/go-orca/examples/draw"
 )
 
 const (
@@ -69,10 +69,10 @@ var (
 	_ point.P = &P{}
 )
 
-type P demo.A
+type P examples.A
 
-func (p *P) A() agent.A  { return (*demo.A)(p) }
-func (p *P) P() vector.V { return vector.V((*demo.A)(p).P()) }
+func (p *P) A() agent.A  { return (*examples.A)(p) }
+func (p *P) P() vector.V { return vector.V((*examples.A)(p).P()) }
 
 func rn(min float64, max float64) float64 { return rand.Float64()*(max-min) + min }
 
@@ -81,7 +81,7 @@ func generate(data []byte) []point.P {
 	points := make([]point.P, 0, len(opts))
 
 	for _, o := range opts {
-		a := *demo.New(o)
+		a := *examples.New(o)
 		p := P(a)
 		points = append(points, &p)
 	}
@@ -183,18 +183,18 @@ func main() {
 
 		// Draw historical agent paths.
 		for _, buf := range trailbuf {
-			demodraw.Trail(img, margin, buf, gray)
+			examplesdraw.Trail(img, margin, buf, gray)
 		}
 
 		// Draw agents.
 		for _, p := range points {
-			a := p.(*P).A().(*demo.A)
+			a := p.(*P).A().(*examples.A)
 
 			// Draw agent goal positions.
-			demodraw.Circle(img, v2d.Add(margin, a.G()), 2, green)
+			examplesdraw.Circle(img, v2d.Add(margin, a.G()), 2, green)
 
 			// Draw circle.
-			demodraw.Circle(img, v2d.Add(margin, a.P()), int(a.R()), black)
+			examplesdraw.Circle(img, v2d.Add(margin, a.P()), int(a.R()), black)
 		}
 
 		// ORCA may be run at a slower rate than the tick rate.
@@ -211,14 +211,14 @@ func main() {
 				log.Fatalf("error while stepping through ORCA: %v", err)
 			}
 			for _, m := range res {
-				a := m.A.(*demo.A)
+				a := m.A.(*examples.A)
 				a.SetV(v2d.V(m.V))
 			}
 		}
 
 		// Run simulation for the current server tick.
 		for _, p := range points {
-			a := p.(*P).A().(*demo.A)
+			a := p.(*P).A().(*examples.A)
 			a.SetP(
 				v2d.Add(
 					a.P(),

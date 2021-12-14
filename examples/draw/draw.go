@@ -38,7 +38,6 @@ func Circle(img draw.Image, v vector.V, r int, c color.Color) {
 }
 
 func Trail(img *image.Paletted, margin vector.V, trailbuf []vector.V, c color.Color) {
-	// Draw historical agent paths.
 	for _, p := range trailbuf {
 		p := vector.Add(margin, p)
 		img.Set(int(p.X()), int(p.Y()), c)
