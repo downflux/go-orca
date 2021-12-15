@@ -212,7 +212,7 @@ func main() {
 			}
 			for _, m := range res {
 				a := m.A.(*examples.A)
-				a.SetV(v2d.V(m.V))
+				a.SetV(m.V)
 			}
 		}
 

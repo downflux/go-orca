@@ -12,18 +12,20 @@ import (
 	"github.com/downflux/go-orca/agent"
 	"github.com/downflux/go-orca/internal/solver"
 	"github.com/downflux/go-orca/internal/vo/ball"
+
+	v2d "github.com/downflux/go-geometry/2d/vector"
 )
 
 // P defines a point used in the K-D tree.
 type P interface {
+	point.P
 	A() agent.A
-	P() vector.V
 }
 
 // Mutation pairs an agent with a velocity change calculated by ORCA.
 type Mutation struct {
 	A agent.A
-	V vector.V
+	V v2d.V
 }
 
 func agents(ps []point.P) []agent.A {
@@ -108,7 +110,7 @@ func step(a agent.A, t *kd.T, f func(a agent.A) bool, tau float64) (Mutation, er
 
 	return Mutation{
 		A: a,
-		V: vector.V(solver.Solve(cs, a.T(), a.S())),
+		V: solver.Solve(cs, a.T(), a.S()),
 	}, nil
 }
 

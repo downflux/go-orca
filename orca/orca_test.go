@@ -86,7 +86,7 @@ func TestStep(t *testing.T) {
 				want: []Mutation{
 					Mutation{
 						A: a,
-						V: vector.V(a.T()),
+						V: a.T(),
 					},
 				},
 			}
