@@ -32,6 +32,7 @@ import (
 	v2d "github.com/downflux/go-geometry/2d/vector"
 	examples "github.com/downflux/go-orca/examples/agent"
 	examplesdraw "github.com/downflux/go-orca/examples/draw"
+	okd "github.com/downflux/go-orca/kd"
 )
 
 const (
@@ -66,6 +67,7 @@ var (
 )
 
 var (
+	_ okd.P   = &P{}
 	_ point.P = &P{}
 )
 
@@ -200,7 +202,7 @@ func main() {
 		// ORCA may be run at a slower rate than the tick rate.
 		if i%ORCAInterval == 0 {
 			res, err := orca.Step(orca.O{
-				T:   tr,
+				T:   okd.Lift(tr),
 				Tau: Tau,
 				F:   func(a agent.A) bool { return true },
 				// We found this is the fastest configuration

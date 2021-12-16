@@ -126,6 +126,7 @@ import (
 	"github.com/downflux/go-orca/orca"
 
 	v2d "github.com/downflux/go-geometry/2d/vector"
+	okd "github.com/downflux/go-orca/kd"
 )
 
 // Define a K-D tree point which satisfies ORCA's P interface as well.
@@ -162,7 +163,7 @@ func (p *p) P() vector.V { return vector.V((*a)(p).P()) }
 // Check interface fulfilment.
 var (
 	_ agent.A = &a{}
-	_ orca.P  = &p{}
+	_ okd.P   = &p{}
 	_ point.P = &p{}
 )
 
@@ -194,7 +195,7 @@ func main() {
 	// mutate any state -- the caller will need to manually set the position
 	// and velocity vectors. Or not, im_a_sign_not_a_cop.jpg.
 	mutations, _ := orca.Step(orca.O{
-		T: t,
+		T: okd.Lift(t),
 		// Pick a sensible value for the lookhead -- this depends on how
 		// fast the agents are travelling per tick.
 		Tau:      10,

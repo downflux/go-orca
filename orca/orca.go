@@ -7,20 +7,13 @@ import (
 	"github.com/downflux/go-geometry/2d/constraint"
 	"github.com/downflux/go-geometry/nd/hypersphere"
 	"github.com/downflux/go-geometry/nd/vector"
-	"github.com/downflux/go-kd/kd"
-	"github.com/downflux/go-kd/point"
 	"github.com/downflux/go-orca/agent"
 	"github.com/downflux/go-orca/internal/solver"
 	"github.com/downflux/go-orca/internal/vo/ball"
+	"github.com/downflux/go-orca/kd"
 
 	v2d "github.com/downflux/go-geometry/2d/vector"
 )
-
-// P defines a point used in the K-D tree.
-type P interface {
-	point.P
-	A() agent.A
-}
 
 // Mutation pairs an agent with a velocity change calculated by ORCA.
 type Mutation struct {
@@ -28,10 +21,10 @@ type Mutation struct {
 	V v2d.V
 }
 
-func agents(ps []point.P) []agent.A {
+func agents(ps []kd.P) []agent.A {
 	agents := make([]agent.A, 0, len(ps))
 	for _, p := range ps {
-		agents = append(agents, p.(P).A())
+		agents = append(agents, p.(kd.P).A())
 	}
 
 	return agents
@@ -40,8 +33,6 @@ func agents(ps []point.P) []agent.A {
 // O is an options struct passed into the Step function.
 type O struct {
 	// T is a K-D tree containing all agents.
-	//
-	// TODO(minkezhang): Specify this as a generic T[P].
 	T *kd.T
 
 	// Tau is the lookahead time -- Step will avoid agent velocities which
@@ -84,11 +75,11 @@ func step(a agent.A, t *kd.T, f func(a agent.A) bool, tau float64) (Mutation, er
 		//
 		// This technically may introduce a bug when multiple
 		// points are extremely close together.
-		func(p point.P) bool {
+		func(p kd.P) bool {
 			return !vector.Within(
 				p.P(),
 				vector.V(a.P()),
-			) && f(p.(P).A())
+			) && f(p.(kd.P).A())
 		},
 	)
 	if err != nil {
@@ -97,7 +88,7 @@ func step(a agent.A, t *kd.T, f func(a agent.A) bool, tau float64) (Mutation, er
 
 	cs := make([]constraint.C, 0, len(ps))
 	for _, p := range ps {
-		b, err := ball.New(a, p.(P).A(), tau)
+		b, err := ball.New(a, p.(kd.P).A(), tau)
 		if err != nil {
 			return Mutation{}, err
 		}

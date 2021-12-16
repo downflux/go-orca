@@ -16,9 +16,10 @@ import (
 
 	v2d "github.com/downflux/go-geometry/2d/vector"
 	mock "github.com/downflux/go-orca/internal/agent/testdata/mock"
+	okd "github.com/downflux/go-orca/kd"
 )
 
-var _ P = p{}
+var _ okd.P = p{}
 
 type p struct {
 	a agent.A
@@ -107,11 +108,11 @@ func TestStep(t *testing.T) {
 
 			s := math.Inf(-1)
 			for _, p := range kd.Data(tr) {
-				s = math.Max(s, p.(P).A().S())
+				s = math.Max(s, p.(okd.P).A().S())
 			}
 
 			got, err := Step(O{
-				T:        tr,
+				T:        okd.Lift(tr),
 				Tau:      c.tau,
 				F:        c.f,
 				PoolSize: 1,
@@ -154,13 +155,13 @@ func BenchmarkStep(b *testing.B) {
 	for _, c := range testConfigs {
 		s := math.Inf(-1)
 		for _, p := range kd.Data(c.t) {
-			s = math.Max(s, p.(P).A().S())
+			s = math.Max(s, p.(okd.P).A().S())
 		}
 
 		b.Run(c.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				if _, err := Step(O{
-					T:        c.t,
+					T:        okd.Lift(c.t),
 					Tau:      1e-2,
 					F:        func(a agent.A) bool { return true },
 					PoolSize: c.size,
