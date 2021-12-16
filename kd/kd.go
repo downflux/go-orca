@@ -1,5 +1,8 @@
 // Package kd provides a shim to lift and downcast caller K-D tree instances to
 // the correct type to be consumed by ORCA.
+//
+// The alternative is using generics to enforce types, but after
+// experimentation, this syntax is very unwieldy.
 package kd
 
 import (
@@ -11,26 +14,38 @@ import (
 	"github.com/downflux/go-orca/agent"
 )
 
+// P defines the data that is stored in the ORCA K-D tree. Callers to ORCA need
+// to implement their K-D trees with this point interface instead of the base
+// point.P interface.
 type P interface {
 	point.P
 	A() agent.A
 }
 
+// T is the ORCA K-D tree definition.
 type T kd.T
 
-func (t *T) Balance() {
-	kdt := kd.T(*t)
-	(&kdt).Balance()
-}
-
+// Lift ensures the base K-D tree is explicitly casted as an ORCA K-D tree
+// instead.
 func Lift(t *kd.T) *T {
 	lt := T(*t)
 	return &lt
 }
 
+// Downcast transforms the ORCA K-D tree back into the base K-D tree.
+//
+// Note that this function does not normally need to be called -- the ORCA
+// caller should have separately kept track of the base K-D tree, and only call
+// Lift to pass the tree into orca.Step. The underlying tree data has not
+// changed.
 func Downcast(t *T) *kd.T {
 	dt := kd.T(*t)
 	return &dt
+}
+
+func (t *T) Balance() {
+	kdt := kd.T(*t)
+	(&kdt).Balance()
 }
 
 func Filter(t *T, r hyperrectangle.R, f func(datum P) bool) ([]P, error) {
