@@ -161,10 +161,16 @@ func (p *p) A() agent.A  { return (*a)(p) }
 func (p *p) P() vector.V { return vector.V((*a)(p).P()) }
 
 // Check interface fulfilment.
+//
+// Ensure that our point fulfills the ORCA K-D tree data point interface.
 var (
-	_ agent.A = &a{}
-	_ okd.P   = &p{}
+	_ okd.P = &p{}
+
+	// These checks are technically unnecessary (okd.P is a superset of
+	// point.P), but we're adding the check here to facilitate the reader's
+	// understanding of the underlying types being used in this example.
 	_ point.P = &p{}
+	_ agent.A = &a{}
 )
 
 func main() {
@@ -194,6 +200,9 @@ func main() {
 	// Simulate one simulation loop. Step() is a pure function and does not
 	// mutate any state -- the caller will need to manually set the position
 	// and velocity vectors. Or not, im_a_sign_not_a_cop.jpg.
+	//
+	// Note that we are manually casting the base K-D tree into the
+	// ORCA-specific K-D tree.
 	mutations, _ := orca.Step(orca.O{
 		T: okd.Lift(t),
 		// Pick a sensible value for the lookhead -- this depends on how
@@ -204,7 +213,12 @@ func main() {
 	})
 	for _, m := range mutations {
 		a := m.A.(*a)
-		fmt.Printf("input velocity for agent at position %v is %v, but output velocity is %v\n", a.P(), a.V(), m.V)
+		fmt.Printf(
+			"input velocity for agent at position %v is %v, but output velocity is %v\n",
+			a.P(),
+			a.V(),
+			m.V,
+		)
 	}
 }
 ```
