@@ -23,10 +23,19 @@ func (t *T) Balance() {
 	(&kdt).Balance()
 }
 
+func Lift(t *kd.T) *T {
+	lt := T(*t)
+	return &lt
+}
+
+func Downcast(t *T) *kd.T {
+	dt := kd.T(*t)
+	return &dt
+}
+
 func Filter(t *T, r hyperrectangle.R, f func(datum P) bool) ([]P, error) {
-	kdt := kd.T(*t)
 	ps, err := kd.Filter(
-		&kdt,
+		Downcast(t),
 		r,
 		func(datum point.P) bool { return f(datum.(P)) },
 	)
@@ -43,9 +52,8 @@ func Filter(t *T, r hyperrectangle.R, f func(datum P) bool) ([]P, error) {
 }
 
 func RadialFilter(t *T, c hypersphere.C, f func(datum P) bool) ([]P, error) {
-	kdt := kd.T(*t)
 	ps, err := kd.RadialFilter(
-		&kdt,
+		Downcast(t),
 		c,
 		func(datum point.P) bool { return f(datum.(P)) },
 	)
@@ -61,8 +69,7 @@ func RadialFilter(t *T, c hypersphere.C, f func(datum P) bool) ([]P, error) {
 }
 
 func KNN(t *T, position vector.V, k int) ([]P, error) {
-	kdt := kd.T(*t)
-	ps, err := kd.KNN(&kdt, position, k)
+	ps, err := kd.KNN(Downcast(t), position, k)
 	if err != nil {
 		return nil, err
 	}
@@ -75,8 +82,7 @@ func KNN(t *T, position vector.V, k int) ([]P, error) {
 }
 
 func Data(t *T) []P {
-	kdt := kd.T(*t)
-	ps := kd.Data(&kdt)
+	ps := kd.Data(Downcast(t))
 
 	data := make([]P, 0, len(ps))
 	for _, p := range ps {

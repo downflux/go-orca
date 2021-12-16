@@ -1,7 +1,6 @@
 package kd
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/downflux/go-geometry/2d/hypersphere"
@@ -58,14 +57,13 @@ func TestKNN(t *testing.T) {
 			for _, p := range c.ps {
 				ps = append(ps, point.P(p))
 			}
-			fmt.Printf("DEBUG: ps = %v\n", ps)
+
 			kdtree, err := kd.New(ps)
 			if err != nil {
 				t.Errorf("New() = _, %v, want = _, %v", err, nil)
 			}
 
-			wt := T(*kdtree)
-			got, err := KNN(&wt, c.p, c.n)
+			got, err := KNN(Lift(kdtree), c.p, c.n)
 			if err != nil {
 				t.Errorf("KNN() = _, %v, want = _, %v", err, nil)
 			}
