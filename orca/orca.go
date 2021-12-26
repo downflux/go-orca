@@ -9,10 +9,10 @@ import (
 	"github.com/downflux/go-geometry/nd/vector"
 	"github.com/downflux/go-orca/agent"
 	"github.com/downflux/go-orca/internal/solver"
-	"github.com/downflux/go-orca/internal/vo/ball"
 	"github.com/downflux/go-orca/kd"
 
 	v2d "github.com/downflux/go-geometry/2d/vector"
+	voagent "github.com/downflux/go-orca/internal/vo/agent"
 )
 
 // Mutation pairs an agent with a velocity change calculated by ORCA.
@@ -88,15 +88,9 @@ func step(a agent.A, t *kd.T, f func(a agent.A) bool, tau float64) (Mutation, er
 
 	cs := make([]constraint.C, 0, len(ps))
 	for _, p := range ps {
-		b, err := ball.New(a, p.(kd.P).A(), tau)
-		if err != nil {
-			return Mutation{}, err
-		}
-		hp, err := b.ORCA()
-		if err != nil {
-			return Mutation{}, err
-		}
-		cs = append(cs, constraint.C(hp))
+		cs = append(cs, constraint.C(
+			voagent.New(a).ORCA(p.(kd.P).A(), tau),
+		))
 	}
 
 	return Mutation{
