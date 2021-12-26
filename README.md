@@ -195,11 +195,18 @@ func main() {
 		},
 	}
 
+	// Create a K-D tree which tracks agent-agent proximity.
+	//
+	// N.B.: This tree will need to be rebalanced if velocities are updated,
+	// which takes a non-trivial amount of time. This additional time is not
+	// accounted for in the ORCA performance tests. In the course of a
+	// simulation, we would expect multiple other (user-defined) steps to
+	// occur, and so have exposed the tree rebalance call.
 	t, _ := kd.New(agents)
 
-	// Simulate one simulation loop. Step() is a pure function and does not
-	// mutate any state -- the caller will need to manually set the position
-	// and velocity vectors. Or not, im_a_sign_not_a_cop.jpg.
+	// Simulate one loop. Step() is a pure function and does not mutate any
+	// state -- the caller will need to manually set the position and
+	// velocity vectors. Or not, im_a_sign_not_a_cop.jpg.
 	//
 	// Note that we are manually casting the base K-D tree into the
 	// ORCA-specific K-D tree.
