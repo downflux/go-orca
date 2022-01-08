@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/downflux/go-geometry/2d/hyperplane"
+	"github.com/downflux/go-geometry/2d/line"
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-orca/agent"
@@ -40,12 +41,12 @@ func (vo VO) r(a agent.A) vector.V { return vector.V{} }
 
 // s generates a scaled line segment based on the lookahead time and the agent.
 func s(s segment.S, a agent.A, tau float64) segment.S {
-	return segment.New(
-		line.New(
-			vector.Scale(1/tau, vector.Sub(vo.s.L().P(), a.P())),
-			vector.Scale(1/tau, vo.s.L().D()),
+	return *segment.New(
+		*line.New(
+			vector.Scale(1/tau, vector.Sub(s.L().P(), a.P())),
+			vector.Scale(1/tau, s.L().D()),
 		),
-		vo.s.Min(),
-		vo.s.Max(),
+		s.TMin(),
+		s.TMax(),
 	)
 }
