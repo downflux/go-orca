@@ -43,7 +43,7 @@ func New(s segment.S, v vector.V) *VO {
 
 func (vo VO) domain(a agent.A, tau float64) domain {
 	d := s(vo.s, a, tau).L().Distance(v(vo.v, a))
-	if d < a.R() {
+	if d <= a.R() {
 		return collision
 	}
 

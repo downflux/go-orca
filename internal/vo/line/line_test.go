@@ -25,10 +25,10 @@ func TestDomain(t *testing.T) {
 		want domain
 	}
 
-	testConfigs := []config{
-		{
-			name: "TrivialCollision",
-			vo: *New(
+	testConfigs := append(
+		[]config{},
+		func() []config {
+			vo := *New(
 				*segment.New(
 					*line.New(
 						*vector.New(-1, 1),
@@ -38,18 +38,63 @@ func TestDomain(t *testing.T) {
 					2,
 				),
 				*vector.New(0, 0),
-			),
-			tau: 1,
-			a: mock.New(
-				mock.O{
-					V: *vector.New(-2, 1),
-					R: 1,
-					P: *vector.New(0, 0),
+			)
+			return []config{
+				{
+					name: "Collision/Left",
+					vo:   vo,
+					tau:  1,
+					a: mock.New(
+						mock.O{
+							V: *vector.New(-2, 1),
+							R: 1,
+							P: *vector.New(0, 0),
+						},
+					),
+					want: collision,
 				},
-			),
-			want: collision,
-		},
-	}
+				{
+					name: "Collision/Right",
+					vo:   vo,
+					tau:  1,
+					a: mock.New(
+						mock.O{
+							V: *vector.New(2, 1),
+							R: 1,
+							P: *vector.New(0, 0),
+						},
+					),
+					want: collision,
+				},
+				{
+					name: "Collision/Top",
+					vo:   vo,
+					tau:  1,
+					a: mock.New(
+						mock.O{
+							V: *vector.New(-1, 2),
+							R: 1,
+							P: *vector.New(0, 0),
+						},
+					),
+					want: collision,
+				},
+				{
+					name: "Collision/Bottom",
+					vo:   vo,
+					tau:  1,
+					a: mock.New(
+						mock.O{
+							V: *vector.New(-1, 0),
+							R: 1,
+							P: *vector.New(0, 0),
+						},
+					),
+					want: collision,
+				},
+			}
+		}()...,
+	)
 
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
