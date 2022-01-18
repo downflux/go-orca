@@ -41,6 +41,7 @@ func New(s segment.S, v vector.V) *VO {
 	}
 }
 
+// domain returns the side of the truncated cone nearest the relative velocity.
 func (vo VO) domain(a agent.A, tau float64) domain {
 	d := s(vo.s, a, tau).L().Distance(v(vo.v, a))
 	if d <= a.R() {
@@ -54,9 +55,15 @@ func (vo VO) ORCA(a agent.A, tau float64) hyperplane.HP {
 	return hyperplane.HP{}
 }
 
+// l returns the line segment extending from the base of the truncated cone to
+// the "left" side of the object line.
 func (vo VO) l(a agent.A) vector.V { return vector.V{} }
+
+// r returns the line segment extending from the base of the truncated cone to
+// the "right" side of the object line.
 func (vo VO) r(a agent.A) vector.V { return vector.V{} }
 
+// v returns the relative velocity between the agent and the obstacle line.
 func v(v vector.V, a agent.A) vector.V {
 	return vector.Sub(a.V(), v)
 }
