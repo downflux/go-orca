@@ -10,7 +10,7 @@ import (
 
 	"github.com/downflux/go-geometry/2d/hyperplane"
 	"github.com/downflux/go-orca/agent"
-	"github.com/downflux/go-orca/internal/vo/internal/ball"
+	"github.com/downflux/go-orca/internal/vo/agent/internal/ball"
 )
 
 type VO struct {
