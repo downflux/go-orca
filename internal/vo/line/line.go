@@ -18,7 +18,6 @@ type domain int
 
 const (
 	collision domain = iota
-	unimplemented
 )
 
 type VO struct {
@@ -47,12 +46,21 @@ func (vo VO) domain(a agent.A, tau float64) domain {
 	if d <= a.R() {
 		return collision
 	}
-
-	return unimplemented
+	panic("unimplemented")
 }
 
 func (vo VO) ORCA(a agent.A, tau float64) hyperplane.HP {
 	return hyperplane.HP{}
+}
+
+// w returns the perpendicular vector from the line to the relative velocity v.
+func (vo VO) w(a agent.A, tau float64) vector.V {
+	vs := s(vo.s, a, tau)
+	vv := v(vo.v, a)
+	return vector.Sub(
+		vv,
+		vs.L().L(vs.T(vv)),
+	)
 }
 
 // l returns the line segment extending from the base of the truncated cone to
