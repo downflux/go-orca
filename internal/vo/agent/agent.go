@@ -13,6 +13,7 @@ import (
 	"github.com/downflux/go-orca/internal/vo/agent/internal/ball"
 )
 
+// TODO(minkezhang): Migrate to a generic point VO instead.
 type VO struct {
 	a agent.A
 }
