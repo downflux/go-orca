@@ -20,8 +20,8 @@ func New(center hypersphere.C) (*C, error) {
 	return &c, nil
 }
 
-func (c C) R() float64  { return hypersphere.C(c).R() }
-func (c C) P() vector.V { return hypersphere.C(c).P() }
+// C returns the circle representing the base of the truncated cone.
+func (c C) C() hypersphere.C { return hypersphere.C(c) }
 
 // beta returns the complementary angle between ℓ and p, i.e. the angle
 // boundaries at which u should be directed towards the circular bottom of the
@@ -30,7 +30,7 @@ func (c C) P() vector.V { return hypersphere.C(c).P() }
 // Returns:
 //   Angle in radians between 0 and π; w is bound by 𝛽 if -𝛽 < 𝜃 < 𝛽.
 func (c C) beta() float64 {
-	return math.Acos(c.R() / vector.Magnitude(c.P()))
+	return math.Acos(c.C().R() / vector.Magnitude(c.C().P()))
 }
 
 // L calculates the left vector of the tangent line segment from the base of p
@@ -55,14 +55,14 @@ func (c C) beta() float64 {
 // See design doc for more information.
 func (c C) L() vector.V {
 	l := math.Sqrt(
-		vector.SquaredMagnitude(c.P()) - c.R()*c.R(),
+		vector.SquaredMagnitude(c.C().P()) - c.C().R()*c.C().R(),
 	)
 	return vector.Scale(
 		l,
 		vector.Unit(
 			*vector.New(
-				c.P().X()*l-c.P().Y()*c.R(),
-				c.P().X()*c.R()+c.P().Y()*l,
+				c.C().P().X()*l-c.C().P().Y()*c.C().R(),
+				c.C().P().X()*c.C().R()+c.C().P().Y()*l,
 			),
 		),
 	)
