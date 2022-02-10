@@ -25,21 +25,13 @@ import (
 	"github.com/downflux/go-geometry/2d/hyperplane"
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-orca/agent"
+	"github.com/downflux/go-orca/internal/vo/agent/internal/ball/domain"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 const (
 	minTau = 1e-3
-)
-
-type Domain string
-
-const (
-	Left      Domain = "LEFT"
-	Right            = "RIGHT"
-	Circle           = "CIRCLE"
-	Collision        = "COLLISION"
 )
 
 type VO struct {
@@ -82,7 +74,7 @@ type VO struct {
 	rCache        float64
 	betaCache     float64
 	thetaCache    float64
-	checkCache    Domain
+	checkCache    domain.D
 }
 
 func New(a, b agent.A, tau float64) (*VO, error) {
@@ -119,21 +111,21 @@ func (vo *VO) n() (vector.V, error) {
 
 	orientation := 1.0
 	switch d := vo.check(); d {
-	case Collision:
+	case domain.Collision:
 		fallthrough
-	case Circle:
+	case domain.Circle:
 		tr := vo.r()
 		tw := vo.w()
-		if d == Collision {
+		if d == domain.Collision {
 			tr = r(vo.a, vo.b, minTau)
 			tw = w(vo.a, vo.b, minTau)
 		}
 		if vector.SquaredMagnitude(tw) > tr*tr {
 			orientation = -1.
 		}
-	case Right:
+	case domain.Right:
 		fallthrough
-	case Left:
+	case domain.Left:
 		l := vo.l()
 
 		// We check the side of v compared to the projected edge ℓ, with
@@ -157,20 +149,20 @@ func (vo *VO) n() (vector.V, error) {
 // and the closest part of the VO, pointing into the VO edge.
 func (vo *VO) u() (vector.V, error) {
 	switch d := vo.check(); d {
-	case Collision:
+	case domain.Collision:
 		fallthrough
-	case Circle:
+	case domain.Circle:
 		tr := vo.r()
 		tw := vo.w()
-		if d == Collision {
+		if d == domain.Collision {
 			tr = r(vo.a, vo.b, minTau)
 			tw = w(vo.a, vo.b, minTau)
 		}
 
 		return vector.Scale(tr/vector.Magnitude(tw)-1, tw), nil
-	case Right:
+	case domain.Right:
 		fallthrough
-	case Left:
+	case domain.Left:
 		l := vo.l()
 
 		// The distance u between the relative velocity v and the
@@ -214,7 +206,7 @@ func (vo *VO) l() vector.V {
 		vo.lIsCached = true
 
 		l := vo.t()
-		if vo.check() == Right {
+		if vo.check() == domain.Right {
 			beta, _ := vo.beta()
 			l = vector.Rotate(2*beta, l)
 		}
@@ -368,32 +360,32 @@ func (vo *VO) theta() (float64, error) {
 }
 
 // check returns the indicated edge of the truncated VO that is closest to w.
-func (vo *VO) check() Domain {
+func (vo *VO) check() domain.D {
 	if !vo.checkIsCached {
 		vo.checkIsCached = true
 
-		vo.checkCache = func() Domain {
+		vo.checkCache = func() domain.D {
 			beta, err := vo.beta()
 			// Retain parity with RVO2 behavior.
 			if err != nil {
-				return Collision
+				return domain.Collision
 			}
 
 			theta, err := vo.theta()
 			// Retain parity with RVO2 behavior.
 			if err != nil {
-				return Right
+				return domain.Right
 			}
 
 			if theta < beta || math.Abs(2*math.Pi-theta) < beta {
-				return Circle
+				return domain.Circle
 			}
 
 			if theta < math.Pi {
-				return Left
+				return domain.Left
 			}
 
-			return Right
+			return domain.Right
 		}()
 	}
 	return vo.checkCache

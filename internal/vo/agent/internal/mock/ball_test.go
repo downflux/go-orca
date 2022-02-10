@@ -1,7 +1,6 @@
 package ball
 
 import (
-	"fmt"
 	"math"
 	"math/rand"
 	"testing"
@@ -13,11 +12,10 @@ import (
 	"github.com/downflux/go-orca/internal/vo/agent/internal/ball/domain"
 
 	mock "github.com/downflux/go-orca/internal/agent/testdata/mock"
-	reference "github.com/downflux/go-orca/internal/vo/agent/internal/mock"
 )
 
 var (
-	_ vo.VO = &VO{}
+	_ vo.VO = Reference{}
 )
 
 // rn returns a random int between [-100, 100).
@@ -149,8 +147,23 @@ func TestVOReference(t *testing.T) {
 	}
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
+			r := Reference{a: c.a, b: c.b, tau: c.tau}
+			t.Run("domain.D", func(t *testing.T) {
+				if got := r.check(); got != c.domain {
+					t.Errorf("check() = %v, want = %v", got, c.domain)
+				}
+			})
+			t.Run("U", func(t *testing.T) {
+				got, err := r.u()
+				if err != nil {
+					t.Fatalf("u() returned error: %v", err)
+				}
+				if !vector.Within(got, c.u) {
+					t.Errorf("u() = %v, want = %v", got, c.u)
+				}
+			})
 			t.Run("ORCA", func(t *testing.T) {
-				got, err := reference.New(c.a, c.b, c.tau).ORCA()
+				got, err := r.ORCA()
 				if err != nil {
 					t.Fatalf("ORCA() returned error: %v", err)
 				}
@@ -158,168 +171,6 @@ func TestVOReference(t *testing.T) {
 					t.Errorf("ORCA() = %v, want = %v", got, c.orca)
 				}
 			})
-		})
-	}
-}
-
-// TestVOT tests that the tangent line t is being calculated correctly.
-func TestVOT(t *testing.T) {
-	testConfigs := []struct {
-		name string
-		a    mock.A
-		b    mock.A
-		tau  float64
-		want vector.V
-	}{
-		{
-			name: "345",
-			a:    *mock.New(mock.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
-			b:    *mock.New(mock.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
-			tau:  1,
-			want: *vector.New(-2.4, 3.2),
-		},
-		{
-			name: "345LargeTau",
-			a:    *mock.New(mock.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
-			b:    *mock.New(mock.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
-			tau:  3,
-			want: vector.Scale(1.0/3, *vector.New(-2.4, 3.2)),
-		},
-		{
-			name: "Inverse345",
-			a:    *mock.New(mock.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
-			b:    *mock.New(mock.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
-			tau:  1,
-			want: vector.Scale(
-				-1,
-				*vector.New(-2.4, 3.2),
-			),
-		},
-		{
-			name: "Inverse345LargeTau",
-			a:    *mock.New(mock.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
-			b:    *mock.New(mock.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
-			tau:  3,
-			want: vector.Scale(
-				-1,
-				vector.Scale(1.0/3, *vector.New(-2.4, 3.2)),
-			),
-		},
-	}
-
-	for _, c := range testConfigs {
-		t.Run(c.name, func(t *testing.T) {
-			v, err := New(c.a, c.b, c.tau)
-			if err != nil {
-				t.Fatalf("New() returned error: %v", err)
-			}
-
-			if got := v.t(); !vector.Within(got, c.want) {
-				t.Errorf("t() = %v, want = %v", got, c.want)
-			}
-		})
-	}
-}
-
-// TestVOConformance tests that agent-agent VOs will return u in the correct
-// domain using the reference implementation as a sanity check.
-func TestVOConformance(t *testing.T) {
-	const nTests = 1000
-	const delta = 1e-10
-
-	type config struct {
-		name string
-		a    mock.A
-		b    mock.A
-		tau  float64
-	}
-
-	testConfigs := []config{
-		{
-			name: "SimpleCase",
-			a:    *mock.New(mock.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
-			b:    *mock.New(mock.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
-			tau:  1,
-		},
-		{
-			name: "SimpleCaseLargeTimeStep",
-			a:    *mock.New(mock.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
-			b:    *mock.New(mock.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
-			tau:  3,
-		},
-		{
-			name: "domain.Collision",
-			a:    *mock.New(mock.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
-			b:    *mock.New(mock.O{P: *vector.New(0, 3), V: *vector.New(1, -1), R: 2}),
-			tau:  1,
-		},
-	}
-
-	for i := 0; i < nTests; i++ {
-		testConfigs = append(testConfigs, config{
-			name: fmt.Sprintf("Random-%v", i),
-			a:    ra(),
-			b:    ra(),
-			// A simulation timestep scalar of 0 indicates the
-			// simulation will never advance to the next snapshot,
-			// which is a meaningless case (and will produce
-			// boundary condition errors in our implementation).
-			tau: math.Abs(rn()) + delta,
-		})
-	}
-
-	for _, c := range testConfigs {
-		t.Run(c.name, func(t *testing.T) {
-			v, err := New(c.a, c.b, c.tau)
-			if err != nil {
-				t.Fatalf("New() returned a non-nil error: %v", err)
-			}
-
-			t.Run("ORCA", func(t *testing.T) {
-				want, err := reference.New(c.a, c.b, float64(c.tau)).ORCA()
-				if err != nil {
-					t.Fatalf("ORCA() returned error: %v", err)
-				}
-				got, err := v.ORCA()
-				if err != nil {
-					t.Fatalf("ORCA() returned error: %v", err)
-				}
-
-				if !hyperplane.Within(got, want) {
-					t.Errorf("ORCA() = %v, want = %v", got, want)
-				}
-			})
-		})
-	}
-}
-
-// BenchmarkORCA compares the relative performance of VO.check() bewteen the
-// official RVO2 spec vs. the custom implementation provided.
-func BenchmarkORCA(t *testing.B) {
-	testConfigs := []struct {
-		name        string
-		constructor func(a, b mock.A) vo.VO
-	}{
-		{
-			name:        "VOReference",
-			constructor: func(a, b mock.A) vo.VO { return reference.New(a, b, 1) },
-		},
-		{
-			name: "VO",
-			constructor: func(a, b mock.A) vo.VO {
-				v, _ := New(a, b, 1)
-				return v
-			},
-		},
-	}
-	for _, c := range testConfigs {
-		t.Run(c.name, func(t *testing.B) {
-			v := c.constructor(ra(), ra())
-
-			t.ResetTimer()
-			for i := 0; i < t.N; i++ {
-				v.ORCA()
-			}
 		})
 	}
 }
