@@ -10,7 +10,7 @@ import (
 
 	"github.com/downflux/go-geometry/2d/hyperplane"
 	"github.com/downflux/go-orca/agent"
-	"github.com/downflux/go-orca/internal/vo/ball"
+	"github.com/downflux/go-orca/internal/geometry/ball"
 )
 
 // TODO(minkezhang): Migrate to a generic point VO instead.

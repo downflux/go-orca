@@ -7,7 +7,7 @@ import (
 	"github.com/downflux/go-geometry/2d/hyperplane"
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-orca/agent"
-	"github.com/downflux/go-orca/internal/vo/ball/domain"
+	"github.com/downflux/go-orca/internal/geometry/ball/domain"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 

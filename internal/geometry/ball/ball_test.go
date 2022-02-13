@@ -9,8 +9,8 @@ import (
 	"github.com/downflux/go-geometry/2d/hyperplane"
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-geometry/epsilon"
+	"github.com/downflux/go-orca/internal/geometry/ball/domain"
 	"github.com/downflux/go-orca/internal/vo/agent/testdata"
-	"github.com/downflux/go-orca/internal/vo/ball/domain"
 
 	mock "github.com/downflux/go-orca/internal/agent/testdata/mock"
 	reference "github.com/downflux/go-orca/internal/vo/agent/testdata/mock"
