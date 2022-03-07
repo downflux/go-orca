@@ -1,33 +1,33 @@
 package cone
 
 import (
-	"math"
 	"fmt"
+	"math"
 	"testing"
 
-	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-geometry/2d/hypersphere"
+	"github.com/downflux/go-geometry/2d/vector"
 )
 
 func TestL(t *testing.T) {
 	type config struct {
-		name string
+		name   string
 		center hypersphere.C
-		l vector.V
-		r vector.V
+		l      vector.V
+		r      vector.V
 	}
 	testConfigs := []config{
 		{
-			name: "Trivial",
+			name:   "Trivial",
 			center: *hypersphere.New(*vector.New(0, 2), 1),
-			l: *vector.New(-math.Sqrt(3) / 2, 1.5),
-			r: *vector.New(-math.Sqrt(3) / 2, -1.5),
+			l:      *vector.New(-math.Sqrt(3)/2, 1.5),
+			r:      *vector.New(-math.Sqrt(3)/2, -1.5),
 		},
 		{
-			name: "345",
+			name:   "345",
 			center: *hypersphere.New(*vector.New(0, 5), 3),
-			l: *vector.New(-2.4, 3.2),
-			r: *vector.New(-2.4, -3.2),
+			l:      *vector.New(-2.4, 3.2),
+			r:      *vector.New(-2.4, -3.2),
 		},
 		// 𝜏 values in the ORCA context is a time scalar factor attached
 		// to the truncated velocity cone. Larger 𝜏 values indicate the
@@ -40,16 +40,15 @@ func TestL(t *testing.T) {
 				name: "345LargeTau",
 				center: *hypersphere.New(
 					vector.Scale(
-						1.0 / tau,
+						1.0/tau,
 						*vector.New(0, 5),
 					),
-					3.0 / tau,
+					3.0/tau,
 				),
-				l: vector.Scale(1.0 / tau, *vector.New(-2.4, 3.2)),
-				r: vector.Scale(1.0 / tau, *vector.New(-2.4, -3.2)),
+				l: vector.Scale(1.0/tau, *vector.New(-2.4, 3.2)),
+				r: vector.Scale(1.0/tau, *vector.New(-2.4, -3.2)),
 			}
 		}(),
-		
 	}
 
 	for _, c := range testConfigs {
