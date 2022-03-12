@@ -23,13 +23,18 @@ func New(center hypersphere.C) (*C, error) {
 // C returns the circle representing the base of the truncated cone.
 func (c C) C() hypersphere.C { return hypersphere.C(c) }
 
-// beta returns the complementary angle between ℓ and p, i.e. the angle
+// Beta returns the complementary angle between ℓ and p, i.e. the angle
 // boundaries at which u should be directed towards the circular bottom of the
 // truncated VO.
 //
+// Consider the right triangle constructed from the tangent line ℓ, the
+// position vector of the center of the truncated cone, and the line from p to
+// the tangent point on ℓ. 𝛽 measures the angle between p and the line to the
+// tangent point.
+//
 // Returns:
 //   Angle in radians between 0 and π; w is bound by 𝛽 if -𝛽 < 𝜃 < 𝛽.
-func (c C) beta() float64 {
+func (c C) Beta() float64 {
 	return math.Acos(c.C().R() / vector.Magnitude(c.C().P()))
 }
 
@@ -70,6 +75,4 @@ func (c C) L() vector.V {
 
 // R calculates the right vector of the tangent line segment from the base of p
 // to the edge of te truncation circle.
-func (c C) R() vector.V {
-	return vector.Rotate(2*c.beta(), c.L())
-}
+func (c C) R() vector.V { return vector.Rotate(2*c.Beta(), c.L()) }

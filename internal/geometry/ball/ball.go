@@ -23,9 +23,11 @@ import (
 	"math/rand"
 
 	"github.com/downflux/go-geometry/2d/hyperplane"
+	"github.com/downflux/go-geometry/2d/hypersphere"
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-orca/agent"
 	"github.com/downflux/go-orca/internal/geometry/ball/domain"
+	"github.com/downflux/go-orca/internal/geometry/cone"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -37,6 +39,12 @@ const (
 type VO struct {
 	a agent.A
 	b agent.A
+
+	circle hypersphere.C
+
+	// The cone cache is set at construct time, and is only valid for
+	// non-collision domains.
+	cone cone.C
 
 	// tau is a scalar determining the bottom vertex of the truncated VO;
 	// large 𝜏 forces the bottom of the VO closer to the origin. When tau is
@@ -60,7 +68,6 @@ type VO struct {
 	pIsCached     bool
 	wIsCached     bool
 	rIsCached     bool
-	tIsCached     bool
 	lIsCached     bool
 	vIsCached     bool
 	betaIsCached  bool
@@ -68,7 +75,6 @@ type VO struct {
 	checkIsCached bool
 	pCache        vector.V
 	wCache        vector.V
-	tCache        vector.V
 	lCache        vector.V
 	vCache        vector.V
 	rCache        float64
@@ -81,7 +87,27 @@ func New(a, b agent.A, tau float64) (*VO, error) {
 	if tau <= 0 {
 		return nil, status.Errorf(codes.OutOfRange, "invalid minimum lookahead timestep")
 	}
-	return &VO{a: a, b: b, tau: tau}, nil
+
+	c := *hypersphere.New(p(a, b, tau), r(a, b, tau))
+	d, err := cone.New(
+		*hypersphere.New(
+			p(a, b, tau),
+			r(a, b, tau),
+		),
+	)
+	// We cannot construct a valid cone if the two agents are overlapping,
+	// i.e. in the collision domain.
+	if err != nil {
+		d = &cone.C{}
+	}
+
+	return &VO{
+		a:      a,
+		b:      b,
+		circle: c,
+		cone:   *d,
+		tau:    tau,
+	}, nil
 }
 
 // ORCA returns the half-plane of permissable velocities for an agent, given the
@@ -193,7 +219,7 @@ func (vo *VO) u() (vector.V, error) {
 func (vo *VO) r() float64 {
 	if !vo.rIsCached {
 		vo.rIsCached = true
-		vo.rCache = r(vo.a, vo.b, vo.tau)
+		vo.rCache = vo.circle.R()
 	}
 	return vo.rCache
 }
@@ -201,55 +227,19 @@ func (vo *VO) r() float64 {
 // l calulates the domain-aware leg of the tangent line. That is, if u projects
 // onto the right leg, ℓ is the tangent line t rotated by -2𝛽, i.e. flipped
 // about p.
+//
+// N.B.: This function must only be called when not in the collision domain.
 func (vo *VO) l() vector.V {
 	if !vo.lIsCached {
 		vo.lIsCached = true
 
-		l := vo.t()
+		l := vo.cone.L()
 		if vo.check() == domain.Right {
-			beta, _ := vo.beta()
-			l = vector.Rotate(2*beta, l)
+			l = vo.cone.R()
 		}
 		vo.lCache = l
 	}
 	return vo.lCache
-}
-
-// t calculates the left vector of the tangent line segment from the base of p
-// to the edge of the truncation circle.
-//
-// N.B.: The domain of ℓ can be calculated by rotating p anti-clockwise about
-// the origin by
-//
-//   𝛼 := π / 2 - 𝛽
-//
-// ℓ may be scaled via
-//
-//   ||p|| ** 2 = ||ℓ|| ** 2 + r ** 2.
-//
-// Note that ℓ, p, and a third leg with length r form a right triangle. Because
-// of this, We know cos(𝛼) = ||ℓ|| / ||p|| and sin(𝛼) = r / ||p||. These can be
-// substituted directly to the rotation matrix:
-//
-//   ℓ ~ V{ x: p.x * cos(𝛼) - p.y * sin(𝛼),
-//          y: p.x * sin(𝛼) + p.y * cos(𝛼) }
-//
-// See design doc for more information.
-func (vo *VO) t() vector.V {
-	if !vo.tIsCached {
-		vo.tIsCached = true
-		l := math.Sqrt(vector.SquaredMagnitude(vo.p()) - vo.r()*vo.r())
-		vo.tCache = vector.Scale(
-			l,
-			vector.Unit(
-				*vector.New(
-					vo.p().X()*l-vo.p().Y()*vo.r(),
-					vo.p().X()*vo.r()+vo.p().Y()*l,
-				),
-			),
-		)
-	}
-	return vo.tCache
 }
 
 // p calculates the center of the truncation circle. Geometrically, this is the
@@ -257,7 +247,7 @@ func (vo *VO) t() vector.V {
 func (vo *VO) p() vector.V {
 	if !vo.pIsCached {
 		vo.pIsCached = true
-		vo.pCache = p(vo.a, vo.b, vo.tau)
+		vo.pCache = vo.circle.P()
 	}
 	return vo.pCache
 }
@@ -287,22 +277,20 @@ func (vo *VO) w() vector.V {
 // Returns:
 //   Angle in radians between 0 and π; w is bound by 𝛽 if -𝛽 < 𝜃 < 𝛽.
 func (vo *VO) beta() (float64, error) {
-	// Check for collisions between agents -- i.e. the combined radii
-	// should be greater than the distance between the agents.
-	//
-	// Note that r and p are both scaled by 𝜏 here, and as such, cancels
-	// out, giving us the straightforward conclusion that we should be able
-	// to detect collisions independent of the lookahead time.
-	if vo.r()*vo.r() >= vector.SquaredMagnitude(vo.p()) {
-		return 0, status.Errorf(codes.OutOfRange, "cannot find the tangent VO angle of colliding agents")
-	}
-
 	if !vo.betaIsCached {
-		vo.betaIsCached = true
-		// Domain error when Acos({x | x > 1}).
-		vo.betaCache = math.Acos(vo.r() / vector.Magnitude(vo.p()))
-	}
+		// Check for collisions between agents -- i.e. the combined radii
+		// should be greater than the distance between the agents.
+		//
+		// Note that r and p are both scaled by 𝜏 here, and as such, cancels
+		// out, giving us the straightforward conclusion that we should be able
+		// to detect collisions independent of the lookahead time.
+		if vo.r()*vo.r() >= vector.SquaredMagnitude(vo.p()) {
+			return 0, status.Errorf(codes.OutOfRange, "cannot find the tangent VO angle of colliding agents")
+		}
 
+		vo.betaIsCached = true
+		vo.betaCache = vo.cone.Beta()
+	}
 	return vo.betaCache, nil
 }
 

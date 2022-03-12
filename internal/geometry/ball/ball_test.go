@@ -162,65 +162,6 @@ func TestVOReference(t *testing.T) {
 	}
 }
 
-// TestVOT tests that the tangent line t is being calculated correctly.
-func TestVOT(t *testing.T) {
-	testConfigs := []struct {
-		name string
-		a    mock.A
-		b    mock.A
-		tau  float64
-		want vector.V
-	}{
-		{
-			name: "345",
-			a:    *mock.New(mock.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
-			b:    *mock.New(mock.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
-			tau:  1,
-			want: *vector.New(-2.4, 3.2),
-		},
-		{
-			name: "345LargeTau",
-			a:    *mock.New(mock.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
-			b:    *mock.New(mock.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
-			tau:  3,
-			want: vector.Scale(1.0/3, *vector.New(-2.4, 3.2)),
-		},
-		{
-			name: "Inverse345",
-			a:    *mock.New(mock.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
-			b:    *mock.New(mock.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
-			tau:  1,
-			want: vector.Scale(
-				-1,
-				*vector.New(-2.4, 3.2),
-			),
-		},
-		{
-			name: "Inverse345LargeTau",
-			a:    *mock.New(mock.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
-			b:    *mock.New(mock.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
-			tau:  3,
-			want: vector.Scale(
-				-1,
-				vector.Scale(1.0/3, *vector.New(-2.4, 3.2)),
-			),
-		},
-	}
-
-	for _, c := range testConfigs {
-		t.Run(c.name, func(t *testing.T) {
-			v, err := New(c.a, c.b, c.tau)
-			if err != nil {
-				t.Fatalf("New() returned error: %v", err)
-			}
-
-			if got := v.t(); !vector.Within(got, c.want) {
-				t.Errorf("t() = %v, want = %v", got, c.want)
-			}
-		})
-	}
-}
-
 // TestVOConformance tests that agent-agent VOs will return u in the correct
 // domain using the reference implementation as a sanity check.
 func TestVOConformance(t *testing.T) {
