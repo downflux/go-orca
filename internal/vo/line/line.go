@@ -36,6 +36,7 @@ func New(s segment.S, v vector.V) *VO {
 			),
 		)
 	}
+
 	return &VO{
 		s: s,
 		v: v,
@@ -66,30 +67,38 @@ func (vo VO) domain(a agent.A, tau float64) domain {
 
 func (vo VO) ORCA(a agent.A, tau float64) hyperplane.HP {
 	seg := s(vo.s, a, tau)
-	vec := v(vo.v, a)
+	vel := v(vo.v, a)
 
-	ld := seg.L().Distance(vec)
-	t := seg.T(a.V())
+	// ld is the distance from the relative velocity between the line
+	// obstacle and the agent to the VO cutoff line.
+	ld := seg.L().Distance(vel)
 
-	if t <= seg.TMin() && (vector.Magnitude(
-		vector.Sub(a.V(), seg.L().L(seg.TMin())),
-	) <= a.R()) || ld < a.R() {
+	// t is the projected parametric value along the extended line. We need
+	// to detect the case where t extends beyond the segment itself, and
+	// seg.T() truncates at the segment endpoints.
+	t := seg.L().T(vel)
+
+	// Handle the case where the agent collides with the semicircle on the
+	// left side of the line segment.
+	if t <= seg.TMin() && (vector.Magnitude(vector.Sub(vel, seg.L().L(seg.TMin()))) <= a.R() || ld < a.R()) {
 		return voagent.New(mockAgent{
-			p: seg.L().L(seg.TMin()),
+			p: vo.s.L().L(vo.s.TMin()),
 			v: vo.v,
-		}).ORCA(a, 1)
+		}).ORCA(a, tau)
 	}
 
-	if t >= seg.TMax() && (vector.Magnitude(
-		vector.Sub(a.V(), seg.L().L(seg.TMax())),
-	) <= a.R()) || ld < a.R() {
+	// Handle the case where the agent collides with the semicircle on the
+	// right side of the line segment.
+	if t >= seg.TMax() && (vector.Magnitude(vector.Sub(vel, seg.L().L(seg.TMax()))) <= a.R() || ld < a.R()) {
 		return voagent.New(mockAgent{
-			p: seg.L().L(seg.TMax()),
+			p: vo.s.L().L(vo.s.TMax()),
 			v: vo.v,
-		}).ORCA(a, 1)
+		}).ORCA(a, tau)
 	}
 
-	if (seg.TMin() > t || t > seg.TMax()) && ld < a.R() {
+	// Handle the case where the agent collides with the line segment
+	// itself.
+	if (seg.TMin() > t && t > seg.TMax()) && ld < a.R() {
 		return *hyperplane.New(
 			seg.L().P(),
 			*vector.New(
@@ -123,9 +132,7 @@ func (vo VO) l(a agent.A) vector.V { return vector.V{} }
 func (vo VO) r(a agent.A) vector.V { return vector.V{} }
 
 // v returns the relative velocity between the agent and the obstacle line.
-func v(v vector.V, a agent.A) vector.V {
-	return vector.Sub(a.V(), v)
-}
+func v(v vector.V, a agent.A) vector.V { return vector.Sub(a.V(), v) }
 
 // s generates a scaled line segment based on the lookahead time and the agent.
 func s(s segment.S, a agent.A, tau float64) segment.S {

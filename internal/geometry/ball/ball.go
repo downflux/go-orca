@@ -42,7 +42,7 @@ type VO struct {
 
 	circle hypersphere.C
 
-	// The cone cache is set at construct time, and is only valid for
+	// The cone cache is set at construct time, and is only set for
 	// non-collision domains.
 	cone cone.C
 
