@@ -12,6 +12,7 @@ import (
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-orca/agent"
+	"github.com/downflux/go-orca/internal/vo/line/cache"
 
 	voagent "github.com/downflux/go-orca/internal/vo/agent"
 )
@@ -19,12 +20,18 @@ import (
 type domain int
 
 const (
-	collision domain = iota
+	collisionLeft domain = iota
+	collisionRight
+	collisionLine
+
+	collision
 )
 
 type VO struct {
 	s segment.S
 	v vector.V
+
+	c cache.C
 }
 
 func New(s segment.S, v vector.V) *VO {
@@ -58,6 +65,7 @@ func (a mockAgent) T() vector.V { return a.P() }
 
 // domain returns the side of the truncated cone nearest the relative velocity.
 func (vo VO) domain(a agent.A, tau float64) domain {
+	
 	d := s(vo.s, a, tau).L().Distance(v(vo.v, a))
 	if d <= a.R() {
 		return collision
@@ -66,8 +74,7 @@ func (vo VO) domain(a agent.A, tau float64) domain {
 }
 
 func (vo VO) ORCA(a agent.A, tau float64) hyperplane.HP {
-	seg := s(vo.s, a, tau)
-	vel := v(vo.v, a)
+	c := *cache.New(vo.s, vo.v, a, tau)
 
 	// ld is the distance from the relative velocity between the line
 	// obstacle and the agent to the VO cutoff line.
@@ -80,7 +87,7 @@ func (vo VO) ORCA(a agent.A, tau float64) hyperplane.HP {
 
 	// Handle the case where the agent collides with the semicircle on the
 	// left side of the line segment.
-	if t <= seg.TMin() && (vector.Magnitude(vector.Sub(vel, seg.L().L(seg.TMin()))) <= a.R() || ld < a.R()) {
+	if t <= seg.TMin() && vector.Magnitude(vector.Sub(vel, seg.L().L(seg.TMin()))) <= a.R() {
 		return voagent.New(mockAgent{
 			p: vo.s.L().L(vo.s.TMin()),
 			v: vo.v,
@@ -89,7 +96,7 @@ func (vo VO) ORCA(a agent.A, tau float64) hyperplane.HP {
 
 	// Handle the case where the agent collides with the semicircle on the
 	// right side of the line segment.
-	if t >= seg.TMax() && (vector.Magnitude(vector.Sub(vel, seg.L().L(seg.TMax()))) <= a.R() || ld < a.R()) {
+	if t >= seg.TMax() && vector.Magnitude(vector.Sub(vel, seg.L().L(seg.TMax()))) <= a.R() {
 		return voagent.New(mockAgent{
 			p: vo.s.L().L(vo.s.TMax()),
 			v: vo.v,
