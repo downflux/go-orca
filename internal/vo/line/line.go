@@ -65,7 +65,7 @@ func (a mockAgent) T() vector.V { return a.P() }
 
 // domain returns the side of the truncated cone nearest the relative velocity.
 func (vo VO) domain(a agent.A, tau float64) domain {
-	
+
 	d := s(vo.s, a, tau).L().Distance(v(vo.v, a))
 	if d <= a.R() {
 		return collision
