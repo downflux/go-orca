@@ -109,3 +109,21 @@ func TestDomain(t *testing.T) {
 		})
 	}
 }
+
+func TestW(t *testing.T) {
+	type config struct {
+		name string
+		c    C
+		want vector.V
+	}
+
+	testConfigs := []config{}
+
+	for _, c := range testConfigs {
+		t.Run(c.name, func(t *testing.T) {
+			if got := c.c.w(); !vector.Within(got, c.want) {
+				t.Errorf("w() = %v, want = %v", got, c.want)
+			}
+		})
+	}
+}

@@ -1,11 +1,15 @@
 package cache
 
 import (
+	"github.com/downflux/go-geometry/2d/hyperplane"
 	"github.com/downflux/go-geometry/2d/line"
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-orca/agent"
 	"github.com/downflux/go-orca/internal/vo/line/domain"
+
+	voagent "github.com/downflux/go-orca/internal/vo/agent"
+	mock "github.com/downflux/go-orca/internal/vo/line/agent"
 )
 
 type C struct {
@@ -67,8 +71,42 @@ func (c C) domain() domain.D {
 	panic("unimplemented domain")
 }
 
+func (c C) ORCA() hyperplane.HP {
+	switch c.domain() {
+	case domain.CollisionLeft:
+		return voagent.New(*mock.New(
+			c.segment.L().L(c.segment.TMin()),
+			c.velocity,
+		)).ORCA(c.agent, c.tau)
+	case domain.CollisionRight:
+		return voagent.New(*mock.New(
+			c.segment.L().L(c.segment.TMax()),
+			c.velocity,
+		)).ORCA(c.agent, c.tau)
+	case domain.CollisionLine:
+		return *hyperplane.New(
+			c.S().L().P(),
+			*vector.New(
+				c.S().L().N().Y(),
+				-c.S().L().N().X(),
+			),
+		)
+	}
+	panic("unimplemented case")
+}
+
 func (c C) S() segment.S { return s(c.segment, c.agent, c.tau) }
 func (c C) V() vector.V  { return v(c.velocity, c.agent) }
+
+// w returns the perpendicular vector from the line to the relative velocity v.
+func (c C) w() vector.V {
+	p, ok := c.S().L().Intersect(*line.New(*vector.New(0, 0), c.V()))
+	if !ok {
+		// TODO(minkezhang): Implement normal line.
+		return *vector.New(0, 0)
+	}
+	return vector.Sub(c.V(), c.S().L().L(c.S().T(p)))
+}
 
 // v returns the relative velocity between the agent and the obstacle line.
 func v(v vector.V, a agent.A) vector.V { return vector.Sub(a.V(), v) }
