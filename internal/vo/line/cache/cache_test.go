@@ -6,7 +6,7 @@ import (
 	"github.com/downflux/go-geometry/2d/line"
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
-	"github.com/downflux/go-orca/internal/vo/line/domain"
+	"github.com/downflux/go-orca/internal/vo/line/cache/domain"
 
 	mock "github.com/downflux/go-orca/internal/agent/testdata/mock"
 )
