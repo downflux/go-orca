@@ -13,6 +13,7 @@ import (
 )
 
 type C struct {
+	// segment represents the physical line segment of the obstacle.
 	segment segment.S
 
 	// velocity is the absolute obstacle velocity.
@@ -32,39 +33,30 @@ func New(s segment.S, v vector.V, a agent.A, tau float64) *C {
 }
 
 func (c C) domain() domain.D {
-	// ld is the distance from the relative velocity between the line
-	// obstacle and the agent to the VO cutoff line.
-	ld := c.S().L().Distance(c.V())
-
-	// t is the projected parametric value along the extended line. We need
+	// pt is the projected parametric value along the extended line. We need
 	// to detect the case where t extends beyond the segment itself, and
 	// seg.T() truncates at the segment endpoints.
-	t := c.S().L().T(c.V())
+	pt := c.segment.L().T(c.agent.P())
 
-	// Agent collides with the semicircle on the left side of the line
+	// Agent physically collides with the semicircle on the left side of the line
 	// segment.
-	if t <= c.S().TMin() && vector.Magnitude(
-		vector.Sub(
-			c.V(),
-			c.S().L().L(c.S().TMin()),
-		),
+	if pt <= c.segment.TMin() && vector.Magnitude(
+		c.P(c.segment.TMin()),
 	) <= c.agent.R() {
 		return domain.CollisionLeft
 	}
 
-	// Agent collides with the semicircle on the right side of the line
+	// Agent physically collides with the semicircle on the right side of the line
 	// segment.
-	if t >= c.S().TMax() && vector.Magnitude(
-		vector.Sub(
-			c.V(),
-			c.S().L().L(c.S().TMax()),
-		),
+	if pt >= c.segment.TMax() && vector.Magnitude(
+		c.P(c.segment.TMax()),
 	) <= c.agent.R() {
 		return domain.CollisionRight
 	}
 
-	// Agent collides wth the line segment itself.
-	if (c.S().TMin() <= t && t <= c.S().TMax()) && ld <= c.agent.R() {
+	// Agent physically collides wth the line segment itself.
+	if (c.segment.TMin() < pt && pt < c.segment.TMax()) && c.segment.L().Distance(
+		c.agent.P()) <= c.agent.R() {
 		return domain.CollisionLine
 	}
 
@@ -98,6 +90,10 @@ func (c C) ORCA() hyperplane.HP {
 func (c C) S() segment.S { return s(c.segment, c.agent, c.tau) }
 func (c C) V() vector.V  { return v(c.velocity, c.agent) }
 
+// TODO(minkezhang): Consider changing to passing c.S() directly instead,
+// changing the p() API.
+func (c C) P(t float64) vector.V { return p(c.segment, c.agent, t) }
+
 // w returns the perpendicular vector from the line to the relative velocity v.
 func (c C) w() vector.V {
 	p, ok := c.S().L().Intersect(*line.New(*vector.New(0, 0), c.V()))
@@ -106,6 +102,18 @@ func (c C) w() vector.V {
 		return *vector.New(0, 0)
 	}
 	return vector.Sub(c.V(), c.S().L().L(c.S().T(p)))
+}
+
+// P calculates the relative physical position from the line obstacle to the
+// agent position.
+//
+// The input parameter t is the parametric value along the line segment.
+//
+// The returned relative position vector points away from the line segment.
+//
+// N.B.: The position does not scale with the time factor 𝜏.
+func p(s segment.S, a agent.A, t float64) vector.V {
+	return vector.Sub(s.L().L(t), a.P())
 }
 
 // v returns the relative velocity between the agent and the obstacle line.

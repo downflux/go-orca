@@ -31,7 +31,9 @@ func TestDomain(t *testing.T) {
 				0,
 				2,
 			)
+			tau := 1.0
 			v := *vector.New(0, 0)
+			r := 1.0
 			return []config{
 				{
 					name: "Collision/Left",
@@ -40,12 +42,11 @@ func TestDomain(t *testing.T) {
 						v,
 						*mock.New(
 							mock.O{
-								V: *vector.New(-2, 1),
-								R: 1,
-								P: *vector.New(0, 0),
+								P: *vector.New(-2, 1),
+								R: r,
 							},
 						),
-						1,
+						tau,
 					),
 					want: domain.CollisionLeft,
 				},
@@ -56,12 +57,11 @@ func TestDomain(t *testing.T) {
 						v,
 						*mock.New(
 							mock.O{
-								V: *vector.New(2, 1),
-								R: 1,
-								P: *vector.New(0, 0),
+								P: *vector.New(2, 1),
+								R: r,
 							},
 						),
-						1,
+						tau,
 					),
 					want: domain.CollisionRight,
 				},
@@ -72,12 +72,11 @@ func TestDomain(t *testing.T) {
 						v,
 						*mock.New(
 							mock.O{
-								V: *vector.New(0, 2),
-								R: 1,
-								P: *vector.New(0, 0),
+								P: *vector.New(0, 2),
+								R: r,
 							},
 						),
-						1,
+						tau,
 					),
 					want: domain.CollisionLine,
 				},
@@ -88,12 +87,11 @@ func TestDomain(t *testing.T) {
 						v,
 						*mock.New(
 							mock.O{
-								V: *vector.New(0, 0),
-								R: 1,
 								P: *vector.New(0, 0),
+								R: r,
 							},
 						),
-						1,
+						tau,
 					),
 					want: domain.CollisionLine,
 				},
