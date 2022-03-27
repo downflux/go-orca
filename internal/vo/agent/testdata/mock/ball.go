@@ -84,7 +84,7 @@ func (vo Reference) u() (vector.V, error) {
 		tw := vo.w()
 
 		if d == domain.Collision {
-			tr = r(vo.a, vo.b, minTau)
+			tr = r(vo.a, vo.b) / minTau
 			tw = w(vo.a, vo.b, minTau)
 		}
 
@@ -98,8 +98,8 @@ func (vo Reference) u() (vector.V, error) {
 		return vector.V{}, status.Errorf(codes.Internal, "invalid domain %v", d)
 	}
 }
-func (vo Reference) r() float64  { return r(vo.a, vo.b, vo.tau) }
-func (vo Reference) p() vector.V { return p(vo.a, vo.b, vo.tau) }
+func (vo Reference) r() float64  { return r(vo.a, vo.b) }
+func (vo Reference) p() vector.V { return p(vo.a, vo.b) }
 func (vo Reference) w() vector.V { return w(vo.a, vo.b, vo.tau) }
 func (vo Reference) v() vector.V { return v(vo.a, vo.b) }
 
@@ -108,8 +108,8 @@ func (vo Reference) v() vector.V { return v(vo.a, vo.b) }
 // the RVO2 implementation. Returns the left or right vector based on the
 // projected side of u onto the VO.
 func (vo Reference) t() vector.V {
-	tp := p(vo.a, vo.b, 1)
-	tr := r(vo.a, vo.b, 1)
+	tp := p(vo.a, vo.b)
+	tr := r(vo.a, vo.b)
 	l := math.Sqrt(vector.SquaredMagnitude(tp) - math.Pow(tr, 2))
 	return vector.Scale(1/vector.SquaredMagnitude(tp), *vector.New(
 		tp.X()*l-tp.Y()*tr,
@@ -121,8 +121,8 @@ func (vo Reference) t() vector.V {
 func (vo Reference) l() vector.V {
 	t := vo.t()
 	if vo.check() == domain.Right {
-		tp := p(vo.a, vo.b, 1)
-		tr := r(vo.a, vo.b, 1)
+		tp := p(vo.a, vo.b)
+		tr := r(vo.a, vo.b)
 		l := math.Sqrt(vector.SquaredMagnitude(tp) - math.Pow(tr, 2))
 		t = vector.Scale(-1/vector.SquaredMagnitude(tp), *vector.New(
 			tp.X()*l+tp.Y()*tr,
@@ -155,32 +155,30 @@ func (vo Reference) check() domain.D {
 // Note that the relative velocity here is oriented from b.V to a.V.
 func v(a agent.A, b agent.A) vector.V { return vector.Sub(a.V(), b.V()) }
 
-// r is a utility function calculating the radius of the truncated VO circle.
-func r(a agent.A, b agent.A, tau float64) float64 { return (a.R() + b.R()) / tau }
+// r is a utility function calculating the radius of the untruncated VO circle.
+func r(a agent.A, b agent.A) float64 { return a.R() + b.R() }
 
 // p is a utility function calculating the relative position vector between two
-// agents, scaled to the center of the truncated circle.
+// agents. p is in position space, and as such, is not directly scaled by the
+// truncation factor.
 //
-// Note the relative position is oriented from a.P to b.P.
-func p(a agent.A, b agent.A, tau float64) vector.V {
+// Note the relative position is directed from a.P to b.P.
+func p(a agent.A, b agent.A) vector.V {
 	// Check for the degenerate case -- if two agents are too close, return
 	// some sensical non-zero answer.
 	if vector.Within(a.P(), b.P()) {
-		return vector.Scale(
-			1/tau,
-			vector.Unit(
-				*vector.New(
-					rand.Float64(),
-					rand.Float64(),
-				),
+		return vector.Unit(
+			*vector.New(
+				rand.Float64(),
+				rand.Float64(),
 			),
 		)
 	}
-	return vector.Scale(1/tau, vector.Sub(b.P(), a.P()))
+	return vector.Sub(b.P(), a.P())
 }
 
 // w is a utility function calculating the relative velocity between a and b,
 // centered on the truncation circle.
 func w(a agent.A, b agent.A, tau float64) vector.V {
-	return vector.Sub(v(a, b), p(a, b, tau))
+	return vector.Sub(v(a, b), vector.Scale(1/tau, p(a, b)))
 }

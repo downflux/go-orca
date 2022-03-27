@@ -40,19 +40,19 @@ func TestOrientation(t *testing.T) {
 
 	t.Run("P", func(t *testing.T) {
 		want := *vector.New(0, 5)
-		if got := p(a, b, 1); !vector.Within(got, want) {
+		if got := p(a, b); !vector.Within(got, want) {
 			t.Errorf("p() = %v, want = %v", got, want)
 		}
-		if got := p(b, a, 1); !vector.Within(got, vector.Scale(-1, want)) {
+		if got := p(b, a); !vector.Within(got, vector.Scale(-1, want)) {
 			t.Errorf("p() = %v, want = %v", got, vector.Scale(-1, want))
 		}
 	})
 	t.Run("R", func(t *testing.T) {
 		want := 3.0
-		if got := r(a, b, 1); !epsilon.Within(got, want) {
+		if got := r(a, b); !epsilon.Within(got, want) {
 			t.Errorf("r() = %v, want = %v", got, want)
 		}
-		if got := r(b, a, 1); !epsilon.Within(got, want) {
+		if got := r(b, a); !epsilon.Within(got, want) {
 			t.Errorf("r() = %v, want = %v", got, want)
 		}
 	})
@@ -274,7 +274,7 @@ func TestP(t *testing.T) {
 	a := *mock.New(o)
 	b := *mock.New(o)
 
-	got := p(a, b, 1)
+	got := p(a, b)
 	if epsilon.Within(vector.Magnitude(got), 0) {
 		t.Errorf("p() = %v, want a non-zero result", got)
 	}

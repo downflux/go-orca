@@ -40,14 +40,14 @@ type VO struct {
 	a agent.A
 	b agent.A
 
-	circle hypersphere.C
+	base hypersphere.C
 
 	// The cone cache is set at construct time, and is only set for
 	// non-collision domains.
 	cone cone.C
 
 	// tau is a scalar determining the bottom vertex of the truncated VO;
-	// large 𝜏 forces the bottom of the VO closer to the origin. When tau is
+	// large 𝜏 forces the bottom of the VO closer to the origin. When 𝜏 is
 	// infinite, the VO generated is a cone with a point vertex (and the
 	// agents cannot move towards one another at all).
 	//
@@ -88,25 +88,22 @@ func New(a, b agent.A, tau float64) (*VO, error) {
 		return nil, status.Errorf(codes.OutOfRange, "invalid minimum lookahead timestep")
 	}
 
-	c := *hypersphere.New(p(a, b, tau), r(a, b, tau))
-	d, err := cone.New(
-		*hypersphere.New(
-			p(a, b, tau),
-			r(a, b, tau),
-		),
-	)
+	// c defines the truncation circle.
+	c := *hypersphere.New(vector.Scale(1/tau, p(a, b)), r(a, b)/tau)
+
 	// We cannot construct a valid cone if the two agents are overlapping,
 	// i.e. in the collision domain.
+	d, err := cone.New(c)
 	if err != nil {
 		d = &cone.C{}
 	}
 
 	return &VO{
-		a:      a,
-		b:      b,
-		circle: c,
-		cone:   *d,
-		tau:    tau,
+		a:    a,
+		b:    b,
+		base: c,
+		cone: *d,
+		tau:  tau,
 	}, nil
 }
 
@@ -142,10 +139,12 @@ func (vo *VO) n() (vector.V, error) {
 	case domain.Circle:
 		tr := vo.r()
 		tw := vo.w()
+
 		if d == domain.Collision {
-			tr = r(vo.a, vo.b, minTau)
+			tr = r(vo.a, vo.b) / minTau
 			tw = w(vo.a, vo.b, minTau)
 		}
+
 		if vector.SquaredMagnitude(tw) > tr*tr {
 			orientation = -1.
 		}
@@ -180,8 +179,9 @@ func (vo *VO) u() (vector.V, error) {
 	case domain.Circle:
 		tr := vo.r()
 		tw := vo.w()
+
 		if d == domain.Collision {
-			tr = r(vo.a, vo.b, minTau)
+			tr = r(vo.a, vo.b) / minTau
 			tw = w(vo.a, vo.b, minTau)
 		}
 
@@ -215,11 +215,11 @@ func (vo *VO) u() (vector.V, error) {
 	}
 }
 
-// r calculates the radius of the truncation circle.
+// r calculates the radius of the unscaled velocity object.
 func (vo *VO) r() float64 {
 	if !vo.rIsCached {
 		vo.rIsCached = true
-		vo.rCache = vo.circle.R()
+		vo.rCache = r(vo.a, vo.b)
 	}
 	return vo.rCache
 }
@@ -237,17 +237,20 @@ func (vo *VO) l() vector.V {
 		if vo.check() == domain.Right {
 			l = vo.cone.R()
 		}
-		vo.lCache = l
+		// ℓ is calculated based on the truncated circle; we are
+		// artificially scaling the tangent leg by the scaling factor to
+		// match the official RVO2 implementation.
+		vo.lCache = vector.Scale(vo.tau, l)
 	}
 	return vo.lCache
 }
 
-// p calculates the center of the truncation circle. Geometrically, this is the
-// relative position of b from a, scaled by 𝜏.
+// p calculates the center of the characteristic circle of the velocity object.
+// Note that this vector is not scaled by the time scalar 𝜏.
 func (vo *VO) p() vector.V {
 	if !vo.pIsCached {
 		vo.pIsCached = true
-		vo.pCache = vo.circle.P()
+		vo.pCache = p(vo.a, vo.b)
 	}
 	return vo.pCache
 }
@@ -256,7 +259,7 @@ func (vo *VO) p() vector.V {
 func (vo *VO) v() vector.V {
 	if !vo.vIsCached {
 		vo.vIsCached = true
-		vo.vCache = vector.Sub(vo.a.V(), vo.b.V())
+		vo.vCache = v(vo.a, vo.b)
 	}
 	return vo.vCache
 }
@@ -265,7 +268,7 @@ func (vo *VO) v() vector.V {
 func (vo *VO) w() vector.V {
 	if !vo.wIsCached {
 		vo.wIsCached = true
-		vo.wCache = vector.Sub(vo.v(), vo.p())
+		vo.wCache = w(vo.a, vo.b, vo.tau)
 	}
 	return vo.wCache
 }
@@ -274,16 +277,14 @@ func (vo *VO) w() vector.V {
 // boundaries at which u should be directed towards the circular bottom of the
 // truncated VO.
 //
+// Note that while 𝛽 is independent of the scaling factor 𝜏.
+//
 // Returns:
 //   Angle in radians between 0 and π; w is bound by 𝛽 if -𝛽 < 𝜃 < 𝛽.
 func (vo *VO) beta() (float64, error) {
 	if !vo.betaIsCached {
 		// Check for collisions between agents -- i.e. the combined radii
 		// should be greater than the distance between the agents.
-		//
-		// Note that r and p are both scaled by 𝜏 here, and as such, cancels
-		// out, giving us the straightforward conclusion that we should be able
-		// to detect collisions independent of the lookahead time.
 		if vo.r()*vo.r() >= vector.SquaredMagnitude(vo.p()) {
 			return 0, status.Errorf(codes.OutOfRange, "cannot find the tangent VO angle of colliding agents")
 		}
@@ -385,32 +386,30 @@ func (vo *VO) check() domain.D {
 // Note that the relative velocity here is oriented from b.V to a.V.
 func v(a agent.A, b agent.A) vector.V { return vector.Sub(a.V(), b.V()) }
 
-// r is a utility function calculating the radius of the truncated VO circle.
-func r(a agent.A, b agent.A, tau float64) float64 { return (a.R() + b.R()) / tau }
+// r is a utility function calculating the radius of the untruncated VO circle.
+func r(a agent.A, b agent.A) float64 { return a.R() + b.R() }
 
 // p is a utility function calculating the relative position vector between two
-// agents, scaled to the center of the truncated circle.
+// agents. p is in position space, and as such, is not directly scaled by the
+// truncation factor.
 //
-// Note the relative position is oriented from a.P to b.P.
-func p(a agent.A, b agent.A, tau float64) vector.V {
+// Note the relative position is directed from a.P to b.P.
+func p(a agent.A, b agent.A) vector.V {
 	// Check for the degenerate case -- if two agents are too close, return
 	// some sensical non-zero answer.
 	if vector.Within(a.P(), b.P()) {
-		return vector.Scale(
-			1/tau,
-			vector.Unit(
-				*vector.New(
-					rand.Float64(),
-					rand.Float64(),
-				),
+		return vector.Unit(
+			*vector.New(
+				rand.Float64(),
+				rand.Float64(),
 			),
 		)
 	}
-	return vector.Scale(1/tau, vector.Sub(b.P(), a.P()))
+	return vector.Sub(b.P(), a.P())
 }
 
 // w is a utility function calculating the relative velocity between a and b,
 // centered on the truncation circle.
 func w(a agent.A, b agent.A, tau float64) vector.V {
-	return vector.Sub(v(a, b), p(a, b, tau))
+	return vector.Sub(v(a, b), vector.Scale(1/tau, p(a, b)))
 }

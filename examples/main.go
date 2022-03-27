@@ -45,10 +45,26 @@ const (
 )
 
 var (
-	// Tau is passed into ORCA and dictates the event horizon of the VO
-	// object. We expand the event horizon slightly compared to the
-	// ORCAInterval to help smooth out the velocity changes a bit.
-	Tau = 50 * float64(ORCAInterval) / Framerate
+	// Tau is a time interval passed into the ORCA simulation; this scalar
+	// is used in conjunction with the agent speed to help determine an
+	// event horizon for the simulated agents. Agents beyond this event
+	// horizon are not considered for collision detection.
+	//
+	// If a neighbor of an agent is moving at a much greater max speed, it
+	// is possible with a small enough event horizon for a collision event
+	// to occur. In order to guarantee these types of collisions do not
+	// occur, we need to set the event horizon radius to the maximum
+	// traversable distance in between ORCA steps, but in reality we can set
+	// the actual event horizon radius to be a bit smaller than this.
+	//
+	// The time in between ORCA steps can be calculated via
+	//
+	//   ORCAInterval / Framerate
+	//
+	// If we set 𝜏 too small however, agent-agent collision detection occurs
+	// at the very last moment, which will result in unnatural simulations.
+	// The value here was determined experimentally to look good.
+	Tau = (0.9 * Framerate) * float64(ORCAInterval) / Framerate
 )
 
 var (
