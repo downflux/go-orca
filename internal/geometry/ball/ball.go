@@ -40,6 +40,8 @@ type VO struct {
 	a agent.A
 	b agent.A
 
+	// base is the scaled, characteristic circle of the truncated velocity
+	// object.
 	base hypersphere.C
 
 	// The cone cache is set at construct time, and is only set for
@@ -245,8 +247,8 @@ func (vo *VO) l() vector.V {
 	return vo.lCache
 }
 
-// p calculates the center of the characteristic circle of the velocity object.
-// Note that this vector is not scaled by the time scalar 𝜏.
+// p calculates the center of the unscaled circle of the velocity object -- this
+// vector does not take the time scalar 𝜏 into account.
 func (vo *VO) p() vector.V {
 	if !vo.pIsCached {
 		vo.pIsCached = true
