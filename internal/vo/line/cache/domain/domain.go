@@ -1,9 +1,14 @@
 package domain
 
-type D int
+type P int
 
 const (
-	CollisionLeft D = iota
+	CollisionLeft P = iota
 	CollisionRight
 	CollisionLine
+
+	ObliqueLeft
+	ObliqueRight
+
+	Normal
 )

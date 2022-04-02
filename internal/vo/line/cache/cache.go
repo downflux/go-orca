@@ -32,8 +32,14 @@ func New(s segment.S, v vector.V, a agent.A, tau float64) *C {
 	}
 }
 
-func (c C) domain() domain.D {
-	// pt is the projected parametric value along the extended line. We need
+// pDomain returns the domain in p-space of interaction between the velocity
+// obstacle and
+// the agent positions. Here, "left" refers the the end of the characteristic line segment
+// which has a minimal parametric t value, and "right" refers to the opposite
+// end. Note that this convention does not take into account the relative
+// orientation of agent itself.
+func (c C) pDomain() domain.P {
+	// t is the projected parametric value along the extended line. We need
 	// to detect the case where t extends beyond the segment itself, and
 	// seg.T() truncates at the segment endpoints.
 	t := c.segment.L().T(c.agent.P())
@@ -54,27 +60,54 @@ func (c C) domain() domain.D {
 		return domain.CollisionRight
 	}
 
+	// d is perpendicular distance between the agent and the line.
+	d := c.segment.L().Distance(c.agent.P())
+
 	// Agent physically collides wth the line segment itself.
-	if (c.segment.TMin() < t && t < c.segment.TMax()) && c.segment.L().Distance(
-		c.agent.P()) <= c.agent.R() {
+	if (c.segment.TMin() <= t && t <= c.segment.TMax()) && d <= c.agent.R() {
 		return domain.CollisionLine
 	}
 
-	panic("unimplemented domain")
+	// The left truncation circle obscures the right truncation circle.
+	if t <= c.segment.TMin() && d <= c.agent.R() {
+		return domain.ObliqueLeft
+	}
+
+	// The right truncation circle obscures the left truncation circle.
+	if t >= c.segment.TMax() && d <= c.agent.R() {
+		return domain.ObliqueRight
+	}
+
+	return domain.Normal
+}
+
+func (c C) r() vector.V {
+	return *vector.New(0, 0)
+}
+
+func (c C) l() vector.V {
+	return *vector.New(0, 0)
 }
 
 func (c C) ORCA() hyperplane.HP {
-	switch c.domain() {
-	case domain.CollisionLeft:
-		return voagent.New(*mock.New(
+	lvo := voagent.New(
+		*mock.New(
 			c.segment.L().L(c.segment.TMin()),
 			c.velocity,
-		)).ORCA(c.agent, c.tau)
-	case domain.CollisionRight:
-		return voagent.New(*mock.New(
+		),
+	)
+	rvo := voagent.New(
+		*mock.New(
 			c.segment.L().L(c.segment.TMax()),
 			c.velocity,
-		)).ORCA(c.agent, c.tau)
+		),
+	)
+
+	switch c.pDomain() {
+	case domain.CollisionLeft:
+		return lvo.ORCA(c.agent, c.tau)
+	case domain.CollisionRight:
+		return rvo.ORCA(c.agent, c.tau)
 	case domain.CollisionLine:
 		return *hyperplane.New(
 			c.S().L().P(),

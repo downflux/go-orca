@@ -11,11 +11,11 @@ import (
 	mock "github.com/downflux/go-orca/internal/agent/testdata/mock"
 )
 
-func TestDomain(t *testing.T) {
+func TestPDomain(t *testing.T) {
 	type config struct {
 		name string
 		c    C
-		want domain.D
+		want domain.P
 	}
 
 	testConfigs := append(
@@ -99,10 +99,62 @@ func TestDomain(t *testing.T) {
 		}()...,
 	)
 
+	testConfigs = append(
+		testConfigs,
+		func() []config {
+			// s is a segment spanning (-1, 1) to
+			// (1, 1).
+			s := *segment.New(
+				*line.New(
+					*vector.New(-1, 1),
+					*vector.New(1, 0),
+				),
+				0,
+				2,
+			)
+			tau := 1.0
+			v := *vector.New(0, 0)
+			r := 1.0
+
+			return []config{
+				{
+					name: "Oblique/Left",
+					c: *New(
+						s,
+						v,
+						*mock.New(
+							mock.O{
+								P: *vector.New(-2, 0),
+								R: r,
+							},
+						),
+						tau,
+					),
+					want: domain.ObliqueLeft,
+				},
+				{
+					name: "Oblique/Right",
+					c: *New(
+						s,
+						v,
+						*mock.New(
+							mock.O{
+								P: *vector.New(2, 0),
+								R: r,
+							},
+						),
+						tau,
+					),
+					want: domain.ObliqueRight,
+				},
+			}
+		}()...,
+	)
+
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
-			if got := c.c.domain(); got != c.want {
-				t.Errorf("domain() = %v, want = %v", got, c.want)
+			if got := c.c.pDomain(); got != c.want {
+				t.Errorf("pDomain() = %v, want = %v", got, c.want)
 			}
 		})
 	}
