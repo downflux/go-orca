@@ -36,11 +36,11 @@ func (c C) domain() domain.D {
 	// pt is the projected parametric value along the extended line. We need
 	// to detect the case where t extends beyond the segment itself, and
 	// seg.T() truncates at the segment endpoints.
-	pt := c.segment.L().T(c.agent.P())
+	t := c.segment.L().T(c.agent.P())
 
 	// Agent physically collides with the semicircle on the left side of the line
 	// segment.
-	if pt <= c.segment.TMin() && vector.Magnitude(
+	if t <= c.segment.TMin() && vector.Magnitude(
 		c.P(c.segment.TMin()),
 	) <= c.agent.R() {
 		return domain.CollisionLeft
@@ -48,14 +48,14 @@ func (c C) domain() domain.D {
 
 	// Agent physically collides with the semicircle on the right side of the line
 	// segment.
-	if pt >= c.segment.TMax() && vector.Magnitude(
+	if t >= c.segment.TMax() && vector.Magnitude(
 		c.P(c.segment.TMax()),
 	) <= c.agent.R() {
 		return domain.CollisionRight
 	}
 
 	// Agent physically collides wth the line segment itself.
-	if (c.segment.TMin() < pt && pt < c.segment.TMax()) && c.segment.L().Distance(
+	if (c.segment.TMin() < t && t < c.segment.TMax()) && c.segment.L().Distance(
 		c.agent.P()) <= c.agent.R() {
 		return domain.CollisionLine
 	}
@@ -87,11 +87,15 @@ func (c C) ORCA() hyperplane.HP {
 	panic("unimplemented case")
 }
 
+// S returns the characteristic line segment defining the velocity obstacle,
+// taking into account the time scalar 𝜏.
 func (c C) S() segment.S { return s(c.segment, c.agent, c.tau) }
-func (c C) V() vector.V  { return v(c.velocity, c.agent) }
 
-// TODO(minkezhang): Consider changing to passing c.S() directly instead,
-// changing the p() API.
+func (c C) V() vector.V { return v(c.velocity, c.agent) }
+
+// P returns the position vector in p-space from the agent to a specific point
+// along the velocity obstacle line. Note that the distance here is independent
+// of the time scaling factor 𝜏.
 func (c C) P(t float64) vector.V { return p(c.segment, c.agent, t) }
 
 // w returns the perpendicular vector from the line to the relative velocity v.
