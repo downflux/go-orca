@@ -2,6 +2,7 @@ package cache
 
 import (
 	"fmt"
+	"math"
 	"testing"
 
 	"github.com/downflux/go-geometry/2d/line"
@@ -72,7 +73,38 @@ func TestL(t *testing.T) {
 					l: *vector.New(1, 0),
 					r: *vector.New(1, 0),
 				},
-				// TODO(minkezhang): Add oblique cases.
+				{
+					name: "Oblique/Left",
+					c: *New(
+						s,
+						v,
+						*mock.New(
+							mock.O{
+								P: *vector.New(-3, 1),
+								R: r,
+							},
+						),
+						tau,
+					),
+					l: *vector.New(1.5, math.Sqrt(3)/2),
+					r: *vector.New(-1.5, math.Sqrt(3)/2),
+				},
+				{
+					name: "Oblique/Right",
+					c: *New(
+						s,
+						v,
+						*mock.New(
+							mock.O{
+								P: *vector.New(3, 1),
+								R: r,
+							},
+						),
+						tau,
+					),
+					l: *vector.New(-1.5, -math.Sqrt(3)/2),
+					r: *vector.New(1.5, -math.Sqrt(3)/2),
+				},
 			}
 		}()...,
 	)
