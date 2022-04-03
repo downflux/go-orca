@@ -1,14 +1,14 @@
 package domain
 
-type P int
+type D int
 
 const (
-	CollisionLeft P = iota
+	// Collision p-domains indicate a physical overlap between the obstacle
+	// and the agent.
+
+	CollisionLeft D = iota
 	CollisionRight
 	CollisionLine
-
-	ObliqueLeft
-	ObliqueRight
 
 	Normal
 )
