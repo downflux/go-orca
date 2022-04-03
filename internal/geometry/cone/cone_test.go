@@ -29,6 +29,14 @@ func TestL(t *testing.T) {
 			l:      *vector.New(-2.4, 3.2),
 			r:      *vector.New(-2.4, -3.2),
 		},
+		// Check that L and R are calculated with respect to the view of
+		// the agent.
+		{
+			name: "345/Mirror",
+			center: *hypersphere.New(*vector.New(0, -5), 3),
+			l: *vector.New(2.4, -3.2),
+			r: *vector.New(2.4, 3.2),
+		},
 		// 𝜏 values in the ORCA context is a time scalar factor attached
 		// to the truncated velocity cone. Larger 𝜏 values indicate the
 		// cone needs to exclude more velocity values, i.e. the base of
