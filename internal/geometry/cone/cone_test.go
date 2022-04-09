@@ -75,6 +75,19 @@ func TestL(t *testing.T) {
 					t.Errorf("R() = %v, want = %v", got, c.r)
 				}
 			})
+			// By convention, we force establish the right tangent
+			// leg is rotated anti-clockwise relative to the left
+			// leg, i.e.  the left and right legs are in the
+			// standard orientation. This convention is useful to
+			// uphold when dealing with linear VOs, as the line
+			// segment defining the linear VO is defined in terms of
+			// a parametric equation, and will need an established
+			// orientation.
+			t.Run(fmt.Sprintf("%s/Orientation", c.name), func(t *testing.T) {
+				if vector.Determinant(co.L(), co.R()) < 0 {
+					t.Errorf("Determinant(L(), R()) < 0, want >= 0")
+				}
+			})
 		})
 	}
 }
