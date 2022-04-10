@@ -7,6 +7,8 @@ import (
 
 	"github.com/downflux/go-geometry/2d/hypersphere"
 	"github.com/downflux/go-geometry/2d/vector"
+
+	ov "github.com/downflux/go-orca/internal/geometry/2d/vector"
 )
 
 func TestL(t *testing.T) {
@@ -84,8 +86,8 @@ func TestL(t *testing.T) {
 			// a parametric equation, and will need an established
 			// orientation.
 			t.Run(fmt.Sprintf("%s/Orientation", c.name), func(t *testing.T) {
-				if vector.Determinant(co.L(), co.R()) < 0 {
-					t.Errorf("Determinant(L(), R()) < 0, want >= 0")
+				if !ov.IsNormalOrientation(co.L(), co.R()) {
+					t.Errorf("IsNormalOrientation() = false, want = true")
 				}
 			})
 		})

@@ -72,6 +72,19 @@ func (c C) domain() domain.D {
 		return domain.CollisionLine
 	}
 
+	/*
+	l := line.New(c.lc().P(), c.l())
+	r := line.New(c.rc().P(), c.r())
+
+	wl := vector.Sub(c.V(), l.P())
+	wr := vector.Sub(c.V(), r.P())
+
+	t := c.S().L().T(wl)
+	tl := l.T(wl)
+	tr := r.T(wr)
+
+	if 
+	 */
 	return domain.Line
 }
 
@@ -161,7 +174,13 @@ func (c C) l() vector.V { return c.lc().L() }
 
 // r calculates the right vector of the tangent line from the agent position to
 // the base of the truncated line segment.
-func (c C) r() vector.V { return c.rc().R() }
+func (c C) r() vector.V {
+	r := c.rc().R()
+	if vector.Determinant(c.l(), r) < 0 {
+		panic("DEBUG: UH OH")
+	}
+	return r
+}
 
 func (c C) ORCA() hyperplane.HP {
 	lvo := voagent.New(
