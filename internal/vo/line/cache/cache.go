@@ -8,6 +8,7 @@ import (
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-orca/agent"
+	"github.com/downflux/go-orca/internal/geometry/cone"
 	"github.com/downflux/go-orca/internal/vo/line/cache/domain"
 
 	vosegment "github.com/downflux/go-orca/internal/geometry/segment"
@@ -75,29 +76,95 @@ func (c C) domain() domain.D {
 	// absolute position does not matter anymore), scaled.
 	s := *vosegment.New(c.S(), c.agent.R()/c.tau)
 
-	// TODO(minkezhang): Fix this how we calculate nearest side. Currently
-	// is inaccurate.
+	// If the agent does not physically collide with the obstacle in p-space,
+	// we need to determine if the agent will collide with the line in the
+	// future -- that is, if the agent and line obstacles will collide in
+	// v-space. We can split the VO into five separate domains, per the
+	// official RVO2 implementation, as follows
+	//
+	//    \     |     /
+	//   L \ 2 /3\ 4 / R
+	//   1  \ /___\ /  5
+	//       |  S  |
+	//       |  6  |
+	//
+	// Here, L, R are directed in the same direction as the tangential lines
+	// of the VO, but originate from the bottom line segment S, instead of
+	// at the tangential points. We use this construction to define regions
+	// 2 and 4, which are points in v-space that are closer to L and R than
+	// S. Region 6 is defined by convenience -- we remember that for the
+	// perpendicular bounds for this region, the generated normal to the VO
+	// is just the normal of the line segment itself.
+	//
+	// Complicating this calculation is the fact that we do not enforce a
+	// convention of directionality for L, S, or R directly -- that is, S
+	// here may point either to the left or right. We do enforce that L, S,
+	// and R are normally oriented with one another, i.e.
+	//
+	//   |L x S| > 0, and
+	//   |S x R| > 0
+	//
+	// This means the line segments defining the cone are actually directed
+	// either as
+	//
+	//     ____/ R  or  L \____
+	//   L \ S              S / R
+	//
+	// We can check for which orientation we are in by checking which end of
+	// the S corresponds with the base of the left line segment L.
+	//
+	// We (rather arbitrarily) define the "left-negative" orientation as the
+	// first case, and "left-positive" as the second.
 	l := line.New(s.CL().C().P(), s.L())
 	r := line.New(s.CR().C().P(), s.R())
 
 	t = s.S().T(c.V())
-	dt := s.S().L().Distance(c.V())
+
+	isLeftNegative := vector.Within(
+		s.CL().C().P(),
+		s.S().L().L(s.S().TMin()))
+
+	if t < s.S().TMin() {
+		return map[bool]domain.D{
+			// Covers region 1 and parts of region 2.
+			true: domain.Left,
+			// Covers region 5 and parts of region 4.
+			false: domain.Right,
+		}[isLeftNegative]
+	}
+	if t > s.S().TMin() {
+		return map[bool]domain.D{
+			true:  domain.Right,
+			false: domain.Left,
+		}[isLeftNegative]
+	}
+
+	// We know that t is bounded between the min and max t-values of S by
+	// now. The official implementation uses w to calculate the distance to
+	// the line segments; however, we note that this distance may be
+	// visually represented by measuring the distance between v and the
+	// perpendicular distance to the segments, which can be reasoned by
+	// drawing a diagram; note that w is important for relating to the VO
+	// radius, but here, we are deferring the circular domain calculations
+	// to the cone VO objects themselves.
+	//
+	// TODO(minkezhang): Replace with (l|s|r).Distance(c.V()) instead.
+	tl := s.S().L().T(c.V())
+
+	d = s.S().L().Distance(c.V())
 	dl := l.Distance(c.V())
 	dr := r.Distance(c.V())
 
-	if t < s.S().TMin() || t > s.S().TMax() {
-		dt = math.Inf(1)
-	}
-	if dt < dl && dt < dr {
+	if isLeftNegative && tl > 0 || !isLeftNegative && tl < 0 {
 		return domain.Line
 	}
-	if dl < dt && dl < dr {
-		return domain.Left
-	}
-	if dr < dt && dr < dl {
-		return domain.Right
-	}
-	return domain.Line
+
+	md := min([]float64{d, dl, dr})
+	return map[float64]domain.D{
+		d:  domain.Line,
+		dl: domain.Left,
+		dr: domain.Right,
+	}[md]
 }
 
 func (c C) ORCA() hyperplane.HP {
@@ -167,4 +234,23 @@ func s(s segment.S, a agent.A, tau float64) segment.S {
 		s.TMin(),
 		s.TMax(),
 	)
+}
+
+// w returns the relative velocity between the agent and the line, as seen from
+// one end of the characteristic line segment. Note that the input cone is
+// already accounts for the scaling factor 𝜏.
+//
+// w points away from the base of the cone.
+func w(c cone.C, v vector.V) vector.V {
+	return vector.Sub(v, c.C().P())
+}
+
+func min(vs []float64) float64 {
+	m := math.Inf(1)
+	for _, v := range vs {
+		if v < m {
+			m = v
+		}
+	}
+	return m
 }

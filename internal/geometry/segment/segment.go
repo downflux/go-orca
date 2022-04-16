@@ -1,3 +1,15 @@
+// Package segment defines a truncated cone-like object whose bottom is defined
+// by a characteristic line segment (instead of a point). This object also has a
+// characteristic "turning radius", which defines the sharpness of the curve
+// from the bottom line segment to the edges.
+//
+//   L \     / R
+//      \___/
+//        S
+//
+// As with the case of the point-defined cone, we define tangential lines from
+// the origin to the left and right circles of at the ends of the line segment
+// S.
 package segment
 
 import (
