@@ -115,10 +115,22 @@ func (c C) domain() domain.D {
 	//
 	// We (rather arbitrarily) define the "left-negative" orientation as the
 	// first case, and "left-positive" as the second.
+	//
+	// We are modifying the six regions above to a slightly altered version
+	// for ease of calculations
+	//
+	//    \1 |2 | 4|  /
+	//   L \ | /3\ | / R
+	//   1  \|/___\|/  5
+	//       |  S  |
+	//       |  6  |
+	//
+	// These regions are the ones mentioned hereafter and in the tests.
+
 	l := line.New(s.CL().C().P(), s.L())
 	r := line.New(s.CR().C().P(), s.R())
 
-	t = s.S().T(c.V())
+	t = s.S().L().T(c.V())
 
 	isLeftNegative := vector.Within(
 		s.CL().C().P(),
@@ -126,13 +138,13 @@ func (c C) domain() domain.D {
 
 	if t < s.S().TMin() {
 		return map[bool]domain.D{
-			// Covers region 1 and parts of region 2.
+			// Covers region 1.
 			true: domain.Left,
-			// Covers region 5 and parts of region 4.
+			// Covers region 5.
 			false: domain.Right,
 		}[isLeftNegative]
 	}
-	if t > s.S().TMin() {
+	if t > s.S().TMax() {
 		return map[bool]domain.D{
 			true:  domain.Right,
 			false: domain.Left,
@@ -149,7 +161,7 @@ func (c C) domain() domain.D {
 	// to the cone VO objects themselves.
 	//
 	// TODO(minkezhang): Replace with (l|s|r).Distance(c.V()) instead.
-	tl := s.S().L().T(c.V())
+	tl := l.T(c.V())
 
 	d = s.S().L().Distance(c.V())
 	dl := l.Distance(c.V())
