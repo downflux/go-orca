@@ -8,7 +8,6 @@ import (
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-orca/agent"
-	"github.com/downflux/go-orca/internal/geometry/cone"
 	"github.com/downflux/go-orca/internal/vo/line/cache/domain"
 
 	vosegment "github.com/downflux/go-orca/internal/geometry/segment"
@@ -96,6 +95,9 @@ func (c C) domain() domain.D {
 	// perpendicular bounds for this region, the generated normal to the VO
 	// is just the normal of the line segment itself.
 	//
+	// Note that the boundary lines opposite L and R, defining regions 2 and
+	// 4, respectively, bisects S.
+	//
 	// Complicating this calculation is the fact that we do not enforce a
 	// convention of directionality for L, S, or R directly -- that is, S
 	// here may point either to the left or right. We do enforce that L, S,
@@ -159,8 +161,6 @@ func (c C) domain() domain.D {
 	// drawing a diagram; note that w is important for relating to the VO
 	// radius, but here, we are deferring the circular domain calculations
 	// to the cone VO objects themselves.
-	//
-	// TODO(minkezhang): Replace with (l|s|r).Distance(c.V()) instead.
 	tl := l.T(c.V())
 
 	d = s.S().L().Distance(c.V())
@@ -246,15 +246,6 @@ func s(s segment.S, a agent.A, tau float64) segment.S {
 		s.TMin(),
 		s.TMax(),
 	)
-}
-
-// w returns the relative velocity between the agent and the line, as seen from
-// one end of the characteristic line segment. Note that the input cone is
-// already accounts for the scaling factor 𝜏.
-//
-// w points away from the base of the cone.
-func w(c cone.C, v vector.V) vector.V {
-	return vector.Sub(v, c.C().P())
 }
 
 func min(vs []float64) float64 {
