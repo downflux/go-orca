@@ -162,12 +162,15 @@ func (c C) domain() domain.D {
 	// radius, but here, we are deferring the circular domain calculations
 	// to the cone VO objects themselves.
 	tl := l.T(c.V())
+	tr := r.T(c.V())
 
 	d = s.S().L().Distance(c.V())
 	dl := l.Distance(c.V())
 	dr := r.Distance(c.V())
 
-	if isLeftNegative && tl > 0 || !isLeftNegative && tl < 0 {
+	// This check is for region 7 and parts of region 3 (specifically, the
+	// parts "under" region 3 bounded by the tl = 0 and tr = 0 normal lines.
+	if isLeftNegative && (tl > 0 && tr < 0) || !isLeftNegative && (tl < 0 && tr > 0) {
 		return domain.Line
 	}
 
