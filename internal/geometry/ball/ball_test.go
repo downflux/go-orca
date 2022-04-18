@@ -10,14 +10,14 @@ import (
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-geometry/epsilon"
 	"github.com/downflux/go-orca/internal/geometry/ball/domain"
-	"github.com/downflux/go-orca/internal/vo/agent/testdata"
 
 	mock "github.com/downflux/go-orca/internal/agent/testdata/mock"
+	testdata "github.com/downflux/go-orca/internal/vo/agent/testdata"
 	reference "github.com/downflux/go-orca/internal/vo/agent/testdata/mock"
 )
 
 var (
-	_ vo.VO = &VO{}
+	_ testdata.VO = &VO{}
 )
 
 // rn returns a random int between [-100, 100).
@@ -239,15 +239,15 @@ func TestVOConformance(t *testing.T) {
 func BenchmarkORCA(t *testing.B) {
 	testConfigs := []struct {
 		name        string
-		constructor func(a, b mock.A) vo.VO
+		constructor func(a, b mock.A) testdata.VO
 	}{
 		{
 			name:        "VOReference",
-			constructor: func(a, b mock.A) vo.VO { return reference.New(a, b, 1) },
+			constructor: func(a, b mock.A) testdata.VO { return reference.New(a, b, 1) },
 		},
 		{
 			name: "VO",
-			constructor: func(a, b mock.A) vo.VO {
+			constructor: func(a, b mock.A) testdata.VO {
 				v, _ := New(a, b, 1)
 				return v
 			},
