@@ -36,27 +36,31 @@ func New(s segment.S, v vector.V, a agent.A, tau float64) *C {
 }
 
 // domain returns the domain in p-space of interaction between the velocity
-// obstacle and
-// the agent positions. Here, "left" refers the the end of the characteristic line segment
-// which has a minimal parametric t value, and "right" refers to the opposite
-// end. Note that this convention does not take into account the relative
-// orientation of agent itself.
+// obstacle and the agent positions.
+//
+// Obstacle "left" and "right" domains are hard to consruct ahead of time; when
+// referring to the collision domains, "left" refers to the end of the
+// characteristic line segment which has a minimal parametric t value, while in
+// the non-collision domains, the characteristic line segment may be flipped to
+// preserve normal orientation between the three lines. Note that this
+// convention does not take into account the relative orientation of agent
+// itself.
 func (c C) domain() domain.D {
 	// t is the projected parametric value along the extended line. We need
 	// to detect the case where t extends beyond the segment itself, and
 	// seg.T() truncates at the segment endpoints.
 	t := c.segment.L().T(c.agent.P())
 
-	// Agent physically collides with the semicircle on the left side of the line
-	// segment.
+	// Agent physically collides with the semicircle on the left side of the
+	// line segment.
 	if t <= c.segment.TMin() && vector.Magnitude(
 		c.P(c.segment.TMin()),
 	) <= c.agent.R() {
 		return domain.CollisionLeft
 	}
 
-	// Agent physically collides with the semicircle on the right side of the line
-	// segment.
+	// Agent physically collides with the semicircle on the right side of
+	// the line segment.
 	if t >= c.segment.TMax() && vector.Magnitude(
 		c.P(c.segment.TMax()),
 	) <= c.agent.R() {
@@ -71,15 +75,15 @@ func (c C) domain() domain.D {
 		return domain.CollisionLine
 	}
 
-	// Construct a truncated line segment obstacle in v-space (i.e. where the
-	// absolute position does not matter anymore), scaled.
+	// Construct a truncated line segment obstacle in v-space (i.e. where
+	// the absolute position does not matter anymore), scaled.
 	s := *vosegment.New(c.S(), c.agent.R()/c.tau)
 
-	// If the agent does not physically collide with the obstacle in p-space,
-	// we need to determine if the agent will collide with the line in the
-	// future -- that is, if the agent and line obstacles will collide in
-	// v-space. We can split the VO into five separate domains, per the
-	// official RVO2 implementation, as follows
+	// If the agent does not physically collide with the obstacle in
+	// p-space, we need to determine if the agent will collide with the line
+	// in the future -- that is, if the agent and line obstacles will
+	// collide in v-space. We can split the VO into five separate domains,
+	// per the official RVO2 implementation, as follows
 	//
 	//    \     |     /
 	//   L \ 2 /3\ 4 / R
@@ -183,25 +187,26 @@ func (c C) domain() domain.D {
 }
 
 func (c C) ORCA() hyperplane.HP {
-	lvo := voagent.New(
-		*mock.New(
-			c.segment.L().L(c.segment.TMin()),
-			c.velocity,
-		),
-	)
-	rvo := voagent.New(
-		*mock.New(
-			c.segment.L().L(c.segment.TMax()),
-			c.velocity,
-		),
-	)
-
 	switch c.domain() {
 	case domain.CollisionLeft:
-		return lvo.ORCA(c.agent, c.tau)
+		return voagent.New(
+			*mock.New(
+				c.segment.L().L(c.segment.TMin()),
+				c.velocity,
+			),
+		).ORCA(c.agent, c.tau)
 	case domain.CollisionRight:
-		return rvo.ORCA(c.agent, c.tau)
+		return voagent.New(
+			*mock.New(
+				c.segment.L().L(c.segment.TMax()),
+				c.velocity,
+			),
+		).ORCA(c.agent, c.tau)
 	case domain.CollisionLine:
+		// TODO(minkezhang): Fix CollisionLine, Line case to be segment
+		// orientation-agnostic.
+		//
+		// TODO(minkezhang): Move IsLeftNegative into vosegment.S.
 		return *hyperplane.New(
 			c.S().L().P(),
 			*vector.New(
@@ -209,6 +214,22 @@ func (c C) ORCA() hyperplane.HP {
 				-c.S().L().N().X(),
 			),
 		)
+	case domain.Left:
+		s := *vosegment.New(c.segment, c.agent.R())
+		return voagent.New(
+			mock.New(
+				s.CL().C().P(),
+				c.velocity,
+			),
+		).ORCA(c.agent, c.tau)
+	case domain.Right:
+		s := *vosegment.New(c.segment, c.agent.R())
+		return voagent.New(
+			mock.New(
+				s.CR().C().P(),
+				c.velocity,
+			),
+		).ORCA(c.agent, c.tau)
 	}
 	panic("unimplemented case")
 }
