@@ -220,7 +220,7 @@ func (c C) ORCA() hyperplane.HP {
 		}
 
 		s := s(c.segment, c.agent, tau)
-		p := vector.Scale(1 / tau, c.agent.P())
+		p := vector.Scale(1/tau, c.agent.P())
 		u := vector.Sub(
 			s.L().L(s.T(p)),
 			p,

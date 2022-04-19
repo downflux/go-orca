@@ -4,6 +4,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/downflux/go-geometry/2d/hyperplane"
 	"github.com/downflux/go-geometry/2d/line"
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
@@ -15,6 +16,22 @@ import (
 const (
 	epsilon = 1e-2
 )
+
+func TestORCA(t *testing.T) {
+	testConfigs := []struct {
+		name string
+		c    C
+		want hyperplane.HP
+	}{}
+
+	for _, c := range testConfigs {
+		t.Run(c.name, func(t *testing.T) {
+			if got := c.c.ORCA(); !hyperplane.Within(got, c.want) {
+				t.Errorf("ORCA() = %v, want = %v", got, c.want)
+			}
+		})
+	}
+}
 
 func TestDomain(t *testing.T) {
 	type config struct {
