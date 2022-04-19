@@ -102,26 +102,6 @@ func (c C) domain() domain.D {
 	// Note that the boundary lines opposite L and R, defining regions 2 and
 	// 4, respectively, bisects S.
 	//
-	// Complicating this calculation is the fact that we do not enforce a
-	// convention of directionality for L, S, or R directly -- that is, S
-	// here may point either to the left or right. We do enforce that L, S,
-	// and R are normally oriented with one another, i.e.
-	//
-	//   |L x S| > 0, and
-	//   |S x R| > 0
-	//
-	// This means the line segments defining the cone are actually directed
-	// either as
-	//
-	//     ____/ R  or  L \____
-	//   L \ S              S / R
-	//
-	// We can check for which orientation we are in by checking which end of
-	// the S corresponds with the base of the left line segment L.
-	//
-	// We (rather arbitrarily) define the "left-negative" orientation as the
-	// first case, and "left-positive" as the second.
-	//
 	// We are modifying the six regions above to a slightly altered version
 	// for ease of calculations
 	//
@@ -138,23 +118,24 @@ func (c C) domain() domain.D {
 
 	t = s.S().L().T(c.V())
 
-	isLeftNegative := vector.Within(
-		s.CL().C().P(),
-		s.S().L().L(s.S().TMin()))
-
+	// The characteristic segment s may be oriented in either direction
+	// relative to the "left" and "right" tangent lines with respect to the
+	// parametric value t = 0; thus, we need to check the underlying segment
+	// construction to determine which direction s is pointing, and use that
+	// to determine what domain we are in.
 	if t < s.S().TMin() {
 		return map[bool]domain.D{
 			// Covers region 1.
 			true: domain.Left,
 			// Covers region 5.
 			false: domain.Right,
-		}[isLeftNegative]
+		}[s.IsLeftNegative()]
 	}
 	if t > s.S().TMax() {
 		return map[bool]domain.D{
 			true:  domain.Right,
 			false: domain.Left,
-		}[isLeftNegative]
+		}[s.IsLeftNegative()]
 	}
 
 	// We know that t is bounded between the min and max t-values of S by
@@ -174,7 +155,7 @@ func (c C) domain() domain.D {
 
 	// This check is for region 7 and parts of region 3 (specifically, the
 	// parts "under" region 3 bounded by the tl = 0 and tr = 0 normal lines.
-	if isLeftNegative && (tl > 0 && tr < 0) || !isLeftNegative && (tl < 0 && tr > 0) {
+	if s.IsLeftNegative() && (tl > 0 && tr < 0) || !s.IsLeftNegative() && (tl < 0 && tr > 0) {
 		return domain.Line
 	}
 

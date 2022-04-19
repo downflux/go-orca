@@ -124,6 +124,35 @@ func (s S) S() segment.S {
 	return v
 }
 
+// IsLeftNegative calculates the relative orientation of L, S, and R.
+//
+// W do not enforce a convention of directionality for L, S, or R directly --
+// that is, S here may point either to the left or right. We do enforce that L,
+// S, and R are normally oriented with one another, i.e.
+//
+//   |L x S| > 0, and
+//   |S x R| > 0
+//
+// This means the line segments defining the cone are actually directed either
+// as
+//
+//     ____/ R  or  L \____
+//   L \ S              S / R
+//
+// We can check for which orientation we are in by checking which end of the S
+// corresponds with the base of the left line segment L.
+//
+// We (rather arbitrarily) define the "left-negative" orientation as the first
+// case, and "left-positive" as the second.
+//
+// In the left-negative orientation, L is pointing downwards, S is right, and R
+// is pointing upwards.
+func (s S) IsLeftNegative() bool {
+	return vector.Within(
+		s.CL().C().P(),
+		s.S().L().L(s.S().TMin()))
+}
+
 // L calculates the left vector of the tangent line from the agent position to
 // the base of the truncated line segment.
 //
