@@ -17,6 +17,21 @@ const (
 	epsilon = 1e-2
 )
 
+func cache(s segment.S, p vector.V, v vector.V) C {
+	return *New(
+		s,
+		/* v = */ *vector.New(0, 0),
+		*mock.New(
+			mock.O{
+				P: p,
+				R: 1.0,
+				V: v,
+			},
+		),
+		/* tau = */ 1.0,
+	)
+}
+
 func TestORCA(t *testing.T) {
 	testConfigs := []struct {
 		name string
@@ -40,25 +55,6 @@ func TestDomain(t *testing.T) {
 		want domain.D
 	}
 
-	f := func(name string, s segment.S, p vector.V, v vector.V, d domain.D) config {
-		return config{
-			name: name,
-			c: *New(
-				s,
-				/* v = */ *vector.New(0, 0),
-				*mock.New(
-					mock.O{
-						P: p,
-						R: 1.0,
-						V: v,
-					},
-				),
-				/* tau = */ 1.0,
-			),
-			want: d,
-		}
-	}
-
 	testConfigs := append(
 		[]config{},
 		func() []config {
@@ -73,34 +69,42 @@ func TestDomain(t *testing.T) {
 				2,
 			)
 			return []config{
-				f(
-					"Collision/Left",
-					s,
-					/* p = */ *vector.New(-2, 1),
-					/* v = */ *vector.New(0, 0),
-					domain.CollisionLeft,
-				),
-				f(
-					"Collision/Right",
-					s,
-					*vector.New(2, 1),
-					*vector.New(0, 0),
-					domain.CollisionRight,
-				),
-				f(
-					"Collision/Top",
-					s,
-					*vector.New(0, 2),
-					*vector.New(0, 0),
-					domain.CollisionLine,
-				),
-				f(
-					"Collision/Bottom",
-					s,
-					*vector.New(0, 0),
-					*vector.New(0, 0),
-					domain.CollisionLine,
-				),
+				{
+					name: "Collision/Left",
+					c: cache(
+						s,
+						/* p = */ *vector.New(-2, 1),
+						/* v = */ *vector.New(0, 0),
+					),
+					want: domain.CollisionLeft,
+				},
+				{
+					name: "Collision/Right",
+					c: cache(
+						s,
+						*vector.New(2, 1),
+						*vector.New(0, 0),
+					),
+					want: domain.CollisionRight,
+				},
+				{
+					name: "Collision/Top",
+					c: cache(
+						s,
+						*vector.New(0, 2),
+						*vector.New(0, 0),
+					),
+					want: domain.CollisionLine,
+				},
+				{
+					name: "Collision/Bottom",
+					c: cache(
+						s,
+						*vector.New(0, 0),
+						*vector.New(0, 0),
+					),
+					want: domain.CollisionLine,
+				},
 			}
 		}()...,
 	)
@@ -161,7 +165,6 @@ func TestDomain(t *testing.T) {
 			)
 			l := *vector.New(-1-math.Sqrt(7), -1+math.Sqrt(7))
 			r := *vector.New(-1-math.Sqrt(7), 1-math.Sqrt(7))
-
 			lpp := *line.New(
 				s.L().L(s.TMin()),
 				vector.Unit(
@@ -182,162 +185,198 @@ func TestDomain(t *testing.T) {
 			)
 
 			return []config{
-				f(
-					"Region=3",
-					s,
-					/* p = */ *vector.New(0, 0),
-					/* v = */ *vector.New(0, 4),
-					domain.Line,
-				),
-				f(
-					"Region=3/Border=4",
-					s,
-					*vector.New(0, 0),
-					vector.Add(
-						// Move the resultant velocity a
-						// bit downwards to be firmly in
-						// region 3.
-						*vector.New(0, -epsilon),
+				{
+					name: "Region=3",
+					c: cache(
+						s,
+						/* p = */ *vector.New(0, 0),
+						/* v = */ *vector.New(0, 4),
+					),
+					want: domain.Line,
+				},
+				{
+					name: "Region=3/Border=4",
+					c: cache(
+						s,
+						*vector.New(0, 0),
 						vector.Add(
-							s.L().L(s.TMax()),
-							// Ensure the resultant
-							// velocity does not
-							// point past the
-							// midpoint of S (i.e.
-							// cross the Y-axis in
-							// this example).
-							vector.Scale(1.5, rpp.D()),
+							// Move the resultant
+							// velocity a bit
+							// downwards to be
+							// firmly in region 3.
+							*vector.New(0, -epsilon),
+							vector.Add(
+								s.L().L(s.TMax()),
+								// Ensure the
+								// resultant
+								// velocity does
+								// not point
+								// past the
+								// midpoint of S
+								// (i.e.  cross
+								// the Y-axis in
+								// this
+								// example).
+								vector.Scale(1.5, rpp.D()),
+							),
 						),
 					),
-					domain.Line,
-				),
-				f(
-					"Region=4/Border=3",
-					s,
-					*vector.New(0, 0),
-					vector.Add(
-						// Move the resultant velocity a
-						// bit upwards to be firmly in
-						// region 4.
-						*vector.New(0, epsilon),
+					want: domain.Line,
+				},
+				{
+					name: "Region=4/Border=3",
+					c: cache(
+						s,
+						*vector.New(0, 0),
 						vector.Add(
-							s.L().L(s.TMax()),
-							vector.Scale(1.5, rpp.D()),
+							// Move the resultant
+							// velocity a bit
+							// upwards to be firmly
+							// in region 4.
+							*vector.New(0, epsilon),
+							vector.Add(
+								s.L().L(s.TMax()),
+								vector.Scale(1.5, rpp.D()),
+							),
 						),
 					),
-					domain.Right,
-				),
-				f(
-					"Region=3/Border=2",
-					s,
-					*vector.New(0, 0),
-					vector.Add(
-						*vector.New(0, -epsilon),
+					want: domain.Right,
+				},
+				{
+					name: "Region=3/Border=2",
+					c: cache(
+						s,
+						*vector.New(0, 0),
 						vector.Add(
-							s.L().L(s.TMin()),
-							vector.Scale(1.5, lpp.D()),
+							*vector.New(0, -epsilon),
+							vector.Add(
+								s.L().L(s.TMin()),
+								vector.Scale(1.5, lpp.D()),
+							),
 						),
 					),
-					domain.Line,
-				),
-				f(
-					"Region=2/Border=3",
-					s,
-					*vector.New(0, 0),
-					vector.Add(
-						*vector.New(0, epsilon),
+					want: domain.Line,
+				},
+				{
+					name: "Region=2/Border=3",
+					c: cache(
+						s,
+						*vector.New(0, 0),
 						vector.Add(
-							s.L().L(s.TMin()),
-							vector.Scale(1.5, lpp.D()),
+							*vector.New(0, epsilon),
+							vector.Add(
+								s.L().L(s.TMin()),
+								vector.Scale(1.5, lpp.D()),
+							),
 						),
 					),
-					domain.Left,
-				),
-				f(
-					"Region=6",
-					s,
-					*vector.New(0, 0),
-					*vector.New(0, 0),
-					domain.Line,
-				),
-				f(
-					"Region=6/Border=1",
-					s,
-					*vector.New(0, 0),
-					*vector.New(-2, 0),
-					domain.Line,
-				),
-				f(
-					"Region=1/Border=6",
-					s,
-					*vector.New(0, 0),
-					vector.Add(
-						*vector.New(-epsilon, 0),
+					want: domain.Left,
+				},
+				{
+					name: "Region=6",
+					c: cache(
+						s,
+						*vector.New(0, 0),
+						*vector.New(0, 0),
+					),
+					want: domain.Line,
+				},
+				{
+					name: "Region=6/Border=1",
+					c: cache(
+						s,
+						*vector.New(0, 0),
 						*vector.New(-2, 0),
 					),
-					domain.Left,
-				),
-				f(
-					"Region=6/Border=5",
-					s,
-					*vector.New(0, 0),
-					*vector.New(2, 0),
-					domain.Line,
-				),
-				f(
-					"Region=5/Border=6",
-					s,
-					*vector.New(0, 0),
-					vector.Add(
-						*vector.New(epsilon, 0),
+					want: domain.Line,
+				},
+				{
+					name: "Region=1/Border=6",
+					c: cache(
+						s,
+						*vector.New(0, 0),
+						vector.Add(
+							*vector.New(-epsilon, 0),
+							*vector.New(-2, 0),
+						),
+					),
+					want: domain.Left,
+				},
+				{
+					name: "Region=6/Border=5",
+					c: cache(
+						s,
+						*vector.New(0, 0),
 						*vector.New(2, 0),
 					),
-					domain.Right,
-				),
-				f(
-					"Region=1/Border=2",
-					s,
-					*vector.New(0, 0),
-					vector.Add(
-						*vector.New(-epsilon, 0),
-						*vector.New(-2, 100),
+					want: domain.Line,
+				},
+				{
+					name: "Region=5/Border=6",
+					c: cache(
+						s,
+						*vector.New(0, 0),
+						vector.Add(
+							*vector.New(epsilon, 0),
+							*vector.New(2, 0),
+						),
 					),
-					domain.Left,
-				),
-				f(
-					"Region=4/Border=5",
-					s,
-					*vector.New(0, 0),
-					vector.Add(
-						*vector.New(-epsilon, 0),
-						*vector.New(2, 100),
+					want: domain.Right,
+				},
+				{
+					name: "Region=1/Border=2",
+					c: cache(
+						s,
+						*vector.New(0, 0),
+						vector.Add(
+							*vector.New(-epsilon, 0),
+							*vector.New(-2, 100),
+						),
 					),
-					domain.Right,
-				),
-				f(
-					"Region=5/Border=4",
-					s,
-					*vector.New(0, 0),
-					vector.Add(
-						*vector.New(epsilon, 0),
-						*vector.New(2, 100),
+					want: domain.Left,
+				},
+				{
+					name: "Region=4/Border=5",
+					c: cache(
+						s,
+						*vector.New(0, 0),
+						vector.Add(
+							*vector.New(-epsilon, 0),
+							*vector.New(2, 100),
+						),
 					),
-					domain.Right,
-				),
-				f(
-					"Region=2/Border=4",
-					s,
-					*vector.New(0, 0),
-					*vector.New(-epsilon, 100),
-					domain.Left,
-				),
-				f(
-					"Region=4/Border=2",
-					s,
-					*vector.New(0, 0),
-					*vector.New(epsilon, 100),
-					domain.Right,
-				),
+					want: domain.Right,
+				},
+				{
+					name: "Region=5/Border=4",
+					c: cache(
+						s,
+						*vector.New(0, 0),
+						vector.Add(
+							*vector.New(epsilon, 0),
+							*vector.New(2, 100),
+						),
+					),
+					want: domain.Right,
+				},
+				{
+					name: "Region=2/Border=4",
+					c: cache(
+						s,
+						*vector.New(0, 0),
+						*vector.New(-epsilon, 100),
+					),
+					want: domain.Left,
+				},
+				{
+					name: "Region=4/Border=2",
+					c: cache(
+						s,
+						*vector.New(0, 0),
+						*vector.New(epsilon, 100),
+					),
+					want: domain.Right,
+				},
 			}
 		}()...,
 	)
