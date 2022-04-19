@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/downflux/go-geometry/2d/hyperplane"
@@ -13,6 +14,10 @@ import (
 	vosegment "github.com/downflux/go-orca/internal/geometry/segment"
 	voagent "github.com/downflux/go-orca/internal/vo/agent"
 	mock "github.com/downflux/go-orca/internal/vo/line/agent"
+)
+
+const (
+	minTau = 1e-3
 )
 
 type C struct {
@@ -168,7 +173,7 @@ func (c C) domain() domain.D {
 }
 
 func (c C) ORCA() hyperplane.HP {
-	switch c.domain() {
+	switch d := c.domain(); d {
 	case domain.CollisionLeft:
 		return voagent.New(
 			*mock.New(
@@ -183,18 +188,6 @@ func (c C) ORCA() hyperplane.HP {
 				c.velocity,
 			),
 		).ORCA(c.agent, c.tau)
-	case domain.CollisionLine:
-		// TODO(minkezhang): Fix CollisionLine, Line case to be segment
-		// orientation-agnostic.
-		//
-		// TODO(minkezhang): Move IsLeftNegative into vosegment.S.
-		return *hyperplane.New(
-			c.S().L().P(),
-			*vector.New(
-				c.S().L().N().Y(),
-				-c.S().L().N().X(),
-			),
-		)
 	case domain.Left:
 		s := *vosegment.New(c.segment, c.agent.R())
 		return voagent.New(
@@ -211,8 +204,36 @@ func (c C) ORCA() hyperplane.HP {
 				c.velocity,
 			),
 		).ORCA(c.agent, c.tau)
+	case domain.CollisionLine:
+		fallthrough
+	case domain.Line:
+		tau := c.tau
+		orientation := 1.0
+
+		if d == domain.CollisionLine {
+			tau = minTau
+			// n calculates the normal of the hyperlane pointing
+			// into the feasible region. Note that u points into the
+			// VO segment, but since we are in a collision domain,
+			// we need to move away instead.
+			orientation = -1.
+		}
+
+		s := s(c.segment, c.agent, tau)
+		p := vector.Scale(1 / tau, c.agent.P())
+		u := vector.Sub(
+			s.L().L(s.T(p)),
+			p,
+		)
+		n := vector.Scale(orientation, vector.Unit(u))
+
+		return *hyperplane.New(
+			vector.Add(c.agent.V(), vector.Scale(0.5, u)),
+			n,
+		)
+	default:
+		panic(fmt.Sprintf("invalid VO projection %v", d))
 	}
-	panic("unimplemented case")
 }
 
 // S returns the characteristic line segment defining the velocity obstacle,
@@ -231,7 +252,7 @@ func (c C) P(t float64) vector.V { return p(c.segment, c.agent, t) }
 //
 // The input parameter t is the parametric value along the line segment.
 //
-// The returned relative position vector points away from the line segment.
+// The returned relative position vector points towards the line segment.
 //
 // N.B.: The position does not scale with the time factor 𝜏.
 func p(s segment.S, a agent.A, t float64) vector.V {
