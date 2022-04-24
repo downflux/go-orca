@@ -33,11 +33,77 @@ func cache(s segment.S, p vector.V, v vector.V) C {
 }
 
 func TestORCA(t *testing.T) {
-	testConfigs := []struct {
+	type config struct {
 		name string
 		c    C
 		want hyperplane.HP
-	}{}
+	}
+
+	testConfigs := append(
+		[]config{},
+		func() []config {
+			// s is a horizontal line segment spanning (-2, 2) to
+			// (2, 2).
+			s := *segment.New(
+				*line.New(
+					*vector.New(-2, 2),
+					*vector.New(1, 0),
+				),
+				0,
+				4,
+			)
+			return []config{
+				{
+					name: "Line/Top",
+					c: cache(
+						s,
+						/* p = */ *vector.New(0, 4),
+						/* v = */ *vector.New(0, 0),
+					),
+					want: *hyperplane.New(
+						*vector.New(0, -0.5),
+						*vector.New(0, 1),
+					),
+				},
+				{
+					name: "Line/Bottom",
+					c: cache(
+						s,
+						*vector.New(0, 0),
+						*vector.New(0, 0),
+					),
+					want: *hyperplane.New(
+						*vector.New(0, 0.5),
+						*vector.New(0, -1),
+					),
+				},
+				{
+					name: "Collision/Top",
+					c: cache(
+						s,
+						*vector.New(0, 2.5),
+						*vector.New(0, 0),
+					),
+					want: *hyperplane.New(
+						*vector.New(0, 250),
+						*vector.New(0, 1),
+					),
+				},
+				{
+					name: "Collision/Bottom",
+					c: cache(
+						s,
+						*vector.New(0, 1.5),
+						*vector.New(0, 0),
+					),
+					want: *hyperplane.New(
+						*vector.New(0, -250),
+						*vector.New(0, -1),
+					),
+				},
+			}
+		}()...,
+	)
 
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {

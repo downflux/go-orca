@@ -208,22 +208,27 @@ func (c C) ORCA() hyperplane.HP {
 		fallthrough
 	case domain.Line:
 		tau := c.tau
-		orientation := 1.0
+		// n calculates the normal of the hyperlane pointing into the
+		// feasible region. Note that u points away from the VO segment,
+		// so for non-collision cases, we need to flip the orientation
+		// of the normal.
+		orientation := -1.0
 
 		if d == domain.CollisionLine {
 			tau = minTau
-			// n calculates the normal of the hyperlane pointing
-			// into the feasible region. Note that u points into the
-			// VO segment, but since we are in a collision domain,
-			// we need to move away instead.
-			orientation = -1.
+			orientation = 1.
 		}
 
+		// tau could be minTau; we cannot assume c.S() is valid here.
 		s := s(c.segment, c.agent, tau)
-		p := vector.Scale(1/tau, c.agent.P())
-		u := vector.Sub(
-			s.L().L(s.T(p)),
-			p,
+		w := vector.Sub(
+			c.agent.V(),
+			s.L().L(s.T(c.agent.V())),
+		)
+		r := c.agent.R() / tau
+		u := vector.Scale(
+			r/vector.Magnitude(w)-1,
+			w,
 		)
 		n := vector.Scale(orientation, vector.Unit(u))
 

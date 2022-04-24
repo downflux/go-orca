@@ -189,7 +189,7 @@ func TestVOConformance(t *testing.T) {
 			tau:  3,
 		},
 		{
-			name: "domain.Collision",
+			name: "Collision",
 			a:    *mock.New(mock.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
 			b:    *mock.New(mock.O{P: *vector.New(0, 3), V: *vector.New(1, -1), R: 2}),
 			tau:  1,
