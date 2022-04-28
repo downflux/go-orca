@@ -1,4 +1,4 @@
-package agent
+package line
 
 import (
 	"github.com/downflux/go-orca/internal/vo"

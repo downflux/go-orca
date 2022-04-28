@@ -1,8 +1,8 @@
-// Package agent defines a velocity obstacle object which is constructed from a
+// Package line defines a velocity obstacle object which is constructed from a
 // line segment.
 //
 // The line segment obstacle is impermeable from either side.
-package agent
+package line
 
 import (
 	"fmt"
