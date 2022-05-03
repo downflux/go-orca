@@ -1,35 +1,18 @@
 package generator
 
 import (
-	"encoding/json"
-	"log"
 	"math/rand"
 
 	"github.com/downflux/go-geometry/2d/vector"
-
-	examples "github.com/downflux/go-orca/examples/agent"
+	"github.com/downflux/go-orca/examples/agent"
+	// "github.com/downflux/go-orca/examples/region"
+	"github.com/downflux/go-orca/examples/generator/config"
 )
 
 func rn(min float64, max float64) float64 { return rand.Float64()*(max-min) + min }
 
-func Marshal(agents []examples.O) []byte {
-	b, err := json.MarshalIndent(agents, "", " ")
-	if err != nil {
-		log.Fatalf("cannot export agents: %v", err)
-	}
-	return b
-}
-
-func Unmarshal(data []byte) []examples.O {
-	var agents []examples.O
-	if err := json.Unmarshal(data, &agents); err != nil {
-		log.Fatalf("cannot import agents: %v", err)
-	}
-	return agents
-}
-
 // G generates a grid of points.
-func G(x int, y int, s float64, r float64) []examples.O {
+func G(x int, y int, s float64, r float64) config.C {
 	var ps []vector.V
 	var gs []vector.V
 
@@ -42,44 +25,48 @@ func G(x int, y int, s float64, r float64) []examples.O {
 
 	rand.Shuffle(len(gs), func(i, j int) { gs[i], gs[j] = gs[j], gs[i] })
 
-	var os []examples.O
+	var os []agent.O
 	for i, p := range ps {
-		os = append(os, examples.O{
+		os = append(os, agent.O{
 			P: p,
 			G: gs[i],
 			R: r,
 			S: s,
 		})
 	}
-	return os
+	return config.C{
+		Agents: os,
+	}
 }
 
 // C generates colliding points.
-func C(s float64, r float64) []examples.O {
+func C(s float64, r float64) config.C {
 	ps := []vector.V{
 		*vector.New(-50, 0),
 		*vector.New(50, 0),
 	}
 
-	return []examples.O{
-		examples.O{
-			P: ps[0],
-			G: vector.Add(ps[0], *vector.New(100, 0)),
-			S: s,
-			R: r,
-		},
-		examples.O{
-			P: ps[1],
-			G: vector.Add(ps[1], *vector.New(-100, 0)),
-			S: s,
-			R: r,
+	return config.C{
+		Agents: []agent.O{
+			agent.O{
+				P: ps[0],
+				G: vector.Add(ps[0], *vector.New(100, 0)),
+				S: s,
+				R: r,
+			},
+			agent.O{
+				P: ps[1],
+				G: vector.Add(ps[1], *vector.New(-100, 0)),
+				S: s,
+				R: r,
+			},
 		},
 	}
 }
 
 // R generates n random agents.
-func R(w int, h int, s float64, r float64, n int) []examples.O {
-	agents := make([]examples.O, 0, n)
+func R(w int, h int, s float64, r float64, n int) config.C {
+	agents := make([]agent.O, 0, n)
 	for i := 0; i < n; i++ {
 		p := vector.Add(
 			*vector.New(rn(-500, 500), rn(-500, 500)),
@@ -90,7 +77,7 @@ func R(w int, h int, s float64, r float64, n int) []examples.O {
 			*vector.New(rn(-100, 100), rn(-100, 100)),
 		)
 
-		agents = append(agents, examples.O{
+		agents = append(agents, agent.O{
 			P: p,
 			G: g,
 			S: rn(5, s),
@@ -98,5 +85,7 @@ func R(w int, h int, s float64, r float64, n int) []examples.O {
 		},
 		)
 	}
-	return agents
+	return config.C{
+		Agents: agents,
+	}
 }

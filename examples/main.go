@@ -26,7 +26,7 @@ import (
 	"github.com/downflux/go-kd/kd"
 	"github.com/downflux/go-kd/point"
 	"github.com/downflux/go-orca/agent"
-	"github.com/downflux/go-orca/examples/generator/generator"
+	"github.com/downflux/go-orca/examples/generator/config"
 	"github.com/downflux/go-orca/orca"
 
 	v2d "github.com/downflux/go-geometry/2d/vector"
@@ -95,10 +95,10 @@ func (p *P) P() vector.V { return vector.V((*examples.A)(p).P()) }
 func rn(min float64, max float64) float64 { return rand.Float64()*(max-min) + min }
 
 func generate(data []byte) []point.P {
-	opts := generator.Unmarshal(data)
-	points := make([]point.P, 0, len(opts))
+	opts := config.Unmarshal(data)
+	points := make([]point.P, 0, len(opts.Agents))
 
-	for _, o := range opts {
+	for _, o := range opts.Agents {
 		a := *examples.New(o)
 		p := P(a)
 		points = append(points, &p)

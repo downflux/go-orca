@@ -9,7 +9,7 @@ import (
 )
 
 type C struct {
-	Agents []agent.O
+	Agents   []agent.O
 	Segments []segment.O
 }
 

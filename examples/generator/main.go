@@ -13,9 +13,8 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/downflux/go-orca/examples/generator/config"
 	"github.com/downflux/go-orca/examples/generator/generator"
-
-	examples "github.com/downflux/go-orca/examples/agent"
 )
 
 const (
@@ -44,10 +43,10 @@ var (
 func main() {
 	flag.Parse()
 
-	fns := map[mode]func() []examples.O{
-		Random:    func() []examples.O { return generator.R(W, H, S, R, N) },
-		Collision: func() []examples.O { return generator.C(S, R) },
-		Grid:      func() []examples.O { return generator.G(X, Y, S, R) },
+	fns := map[mode]func() config.C{
+		Random:    func() config.C { return generator.R(W, H, S, R, N) },
+		Collision: func() config.C { return generator.C(S, R) },
+		Grid:      func() config.C { return generator.G(X, Y, S, R) },
 	}
 
 	f, ok := fns[mode(*m)]
@@ -55,5 +54,5 @@ func main() {
 		log.Fatalf("invalid mode type %v", *m)
 	}
 
-	fmt.Printf(string(generator.Marshal(f())))
+	fmt.Printf(string(config.Marshal(f())))
 }
