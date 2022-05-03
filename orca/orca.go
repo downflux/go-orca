@@ -9,7 +9,9 @@ import (
 	"github.com/downflux/go-geometry/nd/vector"
 	"github.com/downflux/go-orca/agent"
 	"github.com/downflux/go-orca/internal/solver"
+	"github.com/downflux/go-orca/internal/vo/line"
 	"github.com/downflux/go-orca/kd"
+	"github.com/downflux/go-orca/region"
 
 	v2d "github.com/downflux/go-geometry/2d/vector"
 	voagent "github.com/downflux/go-orca/internal/vo/agent"
@@ -50,6 +52,9 @@ type O struct {
 	// parallel. We want this to be on the order of magnitude of the number
 	// of cores on the system for fastest processing times.
 	PoolSize int
+
+	// R is a list of map regions.
+	R []region.R
 }
 
 type result struct {
@@ -58,7 +63,7 @@ type result struct {
 }
 
 // step calculates the ORCA velocity for a single agent.
-func step(a agent.A, t *kd.T, f func(a agent.A) bool, tau float64) (Mutation, error) {
+func step(a agent.A, t *kd.T, rs []region.R, f func(a agent.A) bool, tau float64) (Mutation, error) {
 	ps, err := kd.RadialFilter(
 		t,
 		*hypersphere.New(
@@ -90,6 +95,15 @@ func step(a agent.A, t *kd.T, f func(a agent.A) bool, tau float64) (Mutation, er
 	for _, p := range ps {
 		cs = append(cs, constraint.C(
 			voagent.New(a).ORCA(p.(kd.P).A(), tau),
+		))
+	}
+	for _, r := range rs {
+		// TODO(minkezhang): Support multi-segment region ORCA.
+		if len(r.R()) != 1 {
+			panic("UnimplementedError: cannot construct ORCA line for a region not of cardinality 1")
+		}
+		cs = append(cs, constraint.C(
+			line.New(r.R()[0], *v2d.New(0, 0)).ORCA(a, tau),
 		))
 	}
 
@@ -138,7 +152,7 @@ func Step(o O) ([]Mutation, error) {
 	for i := 0; i < n; i++ {
 		go func(jobs <-chan agent.A, results chan<- result) {
 			for a := range jobs {
-				mutation, err := step(a, o.T, o.F, o.Tau)
+				mutation, err := step(a, o.T, o.R, o.F, o.Tau)
 				results <- result{
 					m:   mutation,
 					err: err,
