@@ -85,6 +85,9 @@ var (
 var (
 	_ okd.P   = &P{}
 	_ point.P = &P{}
+
+	// margin is the minimum size of the rectangle drawn on screen.
+	margin = *v2d.New(50, 50)
 )
 
 type P examples.A
@@ -94,28 +97,33 @@ func (p *P) P() vector.V { return vector.V((*examples.A)(p).P()) }
 
 func rn(min float64, max float64) float64 { return rand.Float64()*(max-min) + min }
 
-func generate(data []byte) []point.P {
-	opts := config.Unmarshal(data)
-	points := make([]point.P, 0, len(opts.Agents))
+type Env struct {
+	ps []point.P
+}
 
-	for _, o := range opts.Agents {
+func New(data []byte) *Env {
+	c := config.Unmarshal(data)
+	points := make([]point.P, 0, len(c.Agents))
+
+	for _, o := range c.Agents {
 		a := *examples.New(o)
 		p := P(a)
 		points = append(points, &p)
 	}
-	return points
+
+	return &Env{
+		ps: points,
+	}
 }
 
-var (
-	margin = *v2d.New(50, 50)
-)
+func (e *Env) Points() []point.P { return e.ps }
 
 // bound calculates the bounding rectangle around all agents.
-func bound(points []point.P) hyperrectangle.R {
+func bound(e *Env) hyperrectangle.R {
 	min := *v2d.New(math.Inf(0), math.Inf(0))
 	max := *v2d.New(math.Inf(-1), math.Inf(-1))
 
-	for _, p := range points {
+	for _, p := range e.Points() {
 		p := v2d.V(p.P())
 		min = *v2d.New(
 			math.Min(min.X(), p.X()),
@@ -150,13 +158,13 @@ func main() {
 	if err != io.EOF {
 		log.Fatalf("could not read from file %v: %v", *in, err)
 	}
-	points := generate(data)
+	env := New(data)
 
 	// Construct a new K-D tree for neighbor queries. Note the scope of this
 	// variable -- in real applications, this tree is very useful for
 	// operations not strictly limited to ORCA, e.g. for calculating nearest
 	// neighbors for fog-of-war calculations.
-	tr, err := kd.New(points)
+	tr, err := kd.New(env.Points())
 	if err != nil {
 		log.Fatalf("cannot create K-D tree")
 	}
@@ -164,7 +172,7 @@ func main() {
 	var images []*image.Paletted
 	var delay []int
 
-	b := bound(points)
+	b := bound(env)
 
 	// trailbuf keeps the last N positions of agents in memory for
 	// visualization.
@@ -174,7 +182,7 @@ func main() {
 	for i := 0; i < *frames; i++ {
 		// Overwrite trail buffer
 		trailbuf[i%len(trailbuf)] = nil
-		for _, p := range points {
+		for _, p := range env.Points() {
 			trailbuf[i%len(trailbuf)] = append(trailbuf[i%len(trailbuf)], p.(*P).A().P())
 		}
 
@@ -205,7 +213,7 @@ func main() {
 		}
 
 		// Draw agents.
-		for _, p := range points {
+		for _, p := range env.Points() {
 			a := p.(*P).A().(*examples.A)
 
 			// Draw agent goal positions.
@@ -235,7 +243,7 @@ func main() {
 		}
 
 		// Run simulation for the current server tick.
-		for _, p := range points {
+		for _, p := range env.Points() {
 			a := p.(*P).A().(*examples.A)
 			a.SetP(
 				v2d.Add(
