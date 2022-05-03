@@ -28,10 +28,12 @@ import (
 	"github.com/downflux/go-orca/agent"
 	"github.com/downflux/go-orca/examples/config"
 	"github.com/downflux/go-orca/orca"
+	"github.com/downflux/go-orca/region"
 
 	v2d "github.com/downflux/go-geometry/2d/vector"
-	examples "github.com/downflux/go-orca/examples/agent"
+	exampleagent "github.com/downflux/go-orca/examples/agent"
 	examplesdraw "github.com/downflux/go-orca/examples/draw"
+	examplesegment "github.com/downflux/go-orca/examples/segment"
 	okd "github.com/downflux/go-orca/kd"
 )
 
@@ -68,21 +70,24 @@ var (
 )
 
 var (
+	// Color palette for drawing.
+
 	black = color.Black
 	white = color.White
 	red   = color.RGBA{255, 0, 0, 255}
 	green = color.RGBA{0, 255, 0, 255}
 	blue  = color.RGBA{0, 0, 255, 255}
 	gray  = color.RGBA{192, 192, 192, 255}
-)
 
-var (
+	// Various binary flags.
+
 	out    = flag.String("o", "/dev/stdout", "output file path, e.g. path/to/output.gif")
 	in     = flag.String("i", "/dev/stdin", "input file path, e.g. path/to/config.json")
 	frames = flag.Int("frames", 120, "number of frames to render")
-)
 
-var (
+	// Interface checks to demonstrate the functionality P is fulfilling in
+	// the demo.
+
 	_ okd.P   = &P{}
 	_ point.P = &P{}
 
@@ -90,33 +95,41 @@ var (
 	margin = *v2d.New(50, 50)
 )
 
-type P examples.A
+type P exampleagent.A
 
-func (p *P) A() agent.A  { return (*examples.A)(p) }
-func (p *P) P() vector.V { return vector.V((*examples.A)(p).P()) }
+func (p *P) A() agent.A  { return (*exampleagent.A)(p) }
+func (p *P) P() vector.V { return vector.V((*exampleagent.A)(p).P()) }
 
 func rn(min float64, max float64) float64 { return rand.Float64()*(max-min) + min }
 
 type Env struct {
 	ps []point.P
+	ss []region.R
 }
 
 func New(data []byte) *Env {
 	c := config.Unmarshal(data)
 	points := make([]point.P, 0, len(c.Agents))
+	segments := make([]region.R, 0, len(c.Segments))
 
 	for _, o := range c.Agents {
-		a := *examples.New(o)
+		a := *exampleagent.New(o)
 		p := P(a)
 		points = append(points, &p)
 	}
 
+	for _, o := range c.Segments {
+		segments = append(segments, *examplesegment.New(o))
+	}
+
 	return &Env{
 		ps: points,
+		ss: segments,
 	}
 }
 
-func (e *Env) Points() []point.P { return e.ps }
+func (e *Env) Points() []point.P    { return e.ps }
+func (e *Env) Segments() []region.R { return e.ss }
 
 // bound calculates the bounding rectangle around all agents.
 func bound(e *Env) hyperrectangle.R {
@@ -214,7 +227,7 @@ func main() {
 
 		// Draw agents.
 		for _, p := range env.Points() {
-			a := p.(*P).A().(*examples.A)
+			a := p.(*P).A().(*exampleagent.A)
 
 			// Draw agent goal positions.
 			examplesdraw.Circle(img, v2d.Add(margin, a.G()), 2, green)
@@ -227,6 +240,7 @@ func main() {
 		if i%ORCAInterval == 0 {
 			res, err := orca.Step(orca.O{
 				T:   okd.Lift(tr),
+				R:   env.Segments(),
 				Tau: Tau,
 				F:   func(a agent.A) bool { return true },
 				// We found this is the fastest configuration
@@ -237,14 +251,14 @@ func main() {
 				log.Fatalf("error while stepping through ORCA: %v", err)
 			}
 			for _, m := range res {
-				a := m.A.(*examples.A)
+				a := m.A.(*exampleagent.A)
 				a.SetV(m.V)
 			}
 		}
 
 		// Run simulation for the current server tick.
 		for _, p := range env.Points() {
-			a := p.(*P).A().(*examples.A)
+			a := p.(*P).A().(*exampleagent.A)
 			a.SetP(
 				v2d.Add(
 					a.P(),
