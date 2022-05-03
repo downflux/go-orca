@@ -7,6 +7,16 @@ import (
 
 var _ region.R = S{}
 
+type O struct {
+	S segment.S
+}
+
+func New(o O) *S {
+	return &S{
+		s: o.S,
+	}
+}
+
 type S struct {
 	s segment.S
 }
