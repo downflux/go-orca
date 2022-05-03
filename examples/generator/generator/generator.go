@@ -5,14 +5,13 @@ import (
 
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-orca/examples/agent"
-	// "github.com/downflux/go-orca/examples/region"
-	"github.com/downflux/go-orca/examples/generator/config"
+	"github.com/downflux/go-orca/examples/config"
 )
 
 func rn(min float64, max float64) float64 { return rand.Float64()*(max-min) + min }
 
 // G generates a grid of points.
-func G(x int, y int, s float64, r float64) config.C {
+func G(x int, y int, s float64, r float64) config.O {
 	var ps []vector.V
 	var gs []vector.V
 
@@ -34,19 +33,19 @@ func G(x int, y int, s float64, r float64) config.C {
 			S: s,
 		})
 	}
-	return config.C{
+	return config.O{
 		Agents: os,
 	}
 }
 
 // C generates colliding points.
-func C(s float64, r float64) config.C {
+func C(s float64, r float64) config.O {
 	ps := []vector.V{
 		*vector.New(-50, 0),
 		*vector.New(50, 0),
 	}
 
-	return config.C{
+	return config.O{
 		Agents: []agent.O{
 			agent.O{
 				P: ps[0],
@@ -65,7 +64,7 @@ func C(s float64, r float64) config.C {
 }
 
 // R generates n random agents.
-func R(w int, h int, s float64, r float64, n int) config.C {
+func R(w int, h int, s float64, r float64, n int) config.O {
 	agents := make([]agent.O, 0, n)
 	for i := 0; i < n; i++ {
 		p := vector.Add(
@@ -85,7 +84,7 @@ func R(w int, h int, s float64, r float64, n int) config.C {
 		},
 		)
 	}
-	return config.C{
+	return config.O{
 		Agents: agents,
 	}
 }

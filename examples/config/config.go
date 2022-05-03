@@ -8,23 +8,23 @@ import (
 	"github.com/downflux/go-orca/examples/segment"
 )
 
-type C struct {
+type O struct {
 	Agents   []agent.O
 	Segments []segment.O
 }
 
-func Marshal(c C) []byte {
-	b, err := json.MarshalIndent(c, "", " ")
+func Marshal(o O) []byte {
+	b, err := json.MarshalIndent(o, "", " ")
 	if err != nil {
 		log.Fatalf("cannot export config: %v", err)
 	}
 	return b
 }
 
-func Unmarshal(data []byte) C {
-	var c C
-	if err := json.Unmarshal(data, &c); err != nil {
+func Unmarshal(data []byte) O {
+	var o O
+	if err := json.Unmarshal(data, &o); err != nil {
 		log.Fatalf("cannot import config: %v", err)
 	}
-	return c
+	return o
 }

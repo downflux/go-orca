@@ -26,7 +26,7 @@ import (
 	"github.com/downflux/go-kd/kd"
 	"github.com/downflux/go-kd/point"
 	"github.com/downflux/go-orca/agent"
-	"github.com/downflux/go-orca/examples/generator/config"
+	"github.com/downflux/go-orca/examples/config"
 	"github.com/downflux/go-orca/orca"
 
 	v2d "github.com/downflux/go-geometry/2d/vector"
