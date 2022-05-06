@@ -21,6 +21,8 @@ import (
 	"os"
 	"runtime"
 
+	"github.com/downflux/go-geometry/2d/line"
+	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/nd/hyperrectangle"
 	"github.com/downflux/go-geometry/nd/vector"
 	"github.com/downflux/go-kd/kd"
@@ -234,6 +236,24 @@ func main() {
 
 			// Draw circle.
 			examplesdraw.Circle(img, v2d.Add(margin, a.P()), int(a.R()), black)
+		}
+
+		// Draw lines.
+		for _, r := range env.Segments() {
+			for _, s := range r.R() {
+				examplesdraw.Line(
+					img,
+					*segment.New(
+						*line.New(
+							v2d.Add(margin, s.L().P()),
+							s.L().D(),
+						),
+						s.TMin(),
+						s.TMax(),
+					),
+					black,
+				)
+			}
 		}
 
 		// ORCA may be run at a slower rate than the tick rate.
