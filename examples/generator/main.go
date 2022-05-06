@@ -34,6 +34,7 @@ const (
 	Random    mode = "random"
 	Collision mode = "collision"
 	Grid      mode = "grid"
+	Line      mode = "line"
 )
 
 var (
@@ -47,6 +48,7 @@ func main() {
 		Random:    func() config.O { return generator.R(W, H, S, R, N) },
 		Collision: func() config.O { return generator.C(S, R) },
 		Grid:      func() config.O { return generator.G(X, Y, S, R) },
+		Line:      func() config.O { return generator.L(X, Y, S, R) },
 	}
 
 	f, ok := fns[mode(*m)]

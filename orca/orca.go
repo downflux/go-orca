@@ -109,6 +109,14 @@ func step(a agent.A, t *kd.T, rs []region.R, f func(a agent.A) bool, tau float64
 
 	return Mutation{
 		A: a,
+		// Find a new velocity for an agent which minimizes the
+		// difference to the velocity a.T() which satisifies all
+		// constraints.
+		//
+		// This optimization velocity may be adjusted, per van de Berg
+		// et al. (2011), section 5.2; however, setting this velocity to
+		// a.V() does not seem very convincing -- agents tend to stop
+		// drifting towards the target in packed conditions.
 		V: solver.Solve(cs, a.T(), a.S()),
 	}, nil
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-orca/examples/agent"
 	"github.com/downflux/go-orca/examples/config"
+	"github.com/downflux/go-orca/examples/segment"
 )
 
 func rn(min float64, max float64) float64 { return rand.Float64()*(max-min) + min }
@@ -60,6 +61,31 @@ func C(s float64, r float64) config.O {
 				R: r,
 			},
 		},
+	}
+}
+
+// L generates some random agents with collision lines.
+func L(w int, h int, s float64, r float64) config.O {
+	segments := []segment.O{
+		{
+			P:    *vector.New(25, 25),
+			D:    *vector.New(0, 1),
+			TMin: 0,
+			TMax: float64(h) / 4 * 50,
+		},
+		{
+			P: vector.Add(
+				*vector.New(75, 25),
+				*vector.New(25, 0),
+			),
+			D:    *vector.New(1, 1),
+			TMin: 0,
+			TMax: float64(h) / 4 * 50,
+		},
+	}
+	return config.O{
+		Agents:   G(w, h, s, r).Agents,
+		Segments: segments,
 	}
 }
 

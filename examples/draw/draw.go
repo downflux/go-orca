@@ -11,11 +11,11 @@ import (
 	"github.com/downflux/go-geometry/2d/vector"
 )
 
-const n = 100
-
 func Line(img draw.Image, s segment.S, c color.Color) {
+	const n = 500
+
 	grain := (s.TMax() - s.TMin()) / n
-	for t := s.TMin(); t < s.TMax(); t += grain {
+	for t := s.TMin(); t <= s.TMax(); t += grain {
 		img.Set(int(s.L().L(t).X()), int(s.L().L(t).Y()), c)
 	}
 }
