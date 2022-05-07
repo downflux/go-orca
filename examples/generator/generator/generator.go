@@ -114,3 +114,30 @@ func R(w int, h int, s float64, r float64, n int) config.O {
 		Agents: agents,
 	}
 }
+
+func DebugWallAgentEdge() config.O {
+	return config.O{
+		Agents: []agent.O{
+			{
+				P: *vector.New(10, 10),
+				G: *vector.New(10, 500), // *vector.New(10, 1000) causes panic
+				S: 10,
+				R: 10,
+			},
+			{
+				P: *vector.New(10, 500),
+				G: *vector.New(100, 500),
+				S: 10,
+				R: 10,
+			},
+		},
+		Segments: []segment.O{
+			{
+				P:    *vector.New(10, 10),
+				D:    *vector.New(0, 1),
+				TMin: 0,
+				TMax: 30,
+			},
+		},
+	}
+}
