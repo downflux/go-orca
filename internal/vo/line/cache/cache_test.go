@@ -108,19 +108,25 @@ func TestORCA(t *testing.T) {
 						*vector.New(0, -1),
 					),
 				},
+				// In the case that an agent's center overlaps
+				// the actual line segment, we want to ensure
+				// the agent moves away in a reasonable
+				// direction.
+				{
+					name: "Collision/Left/Embedded",
+					c: cache(
+						s,
+						s.L().L(s.TMin()),
+						*vector.New(0, 0),
+					),
+					want: DEBUG_UNKNOWN,
+				},
 				/*
-					// In the case that an agent's center overlaps
-					// the actual line segment, we want to ensure
-					// the agent moves away in a reasonable
-					// direction.
 					{
-						name: "Collision/EmbeddedLeft",
+						name: "Collision/Right/Embedded",
 					},
 					{
-						name: "Collision/EmbeddedRight",
-					},
-					{
-						name: "Collision/EmbeddedLine",
+						name: "Collision/Line/Embedded",
 					},
 					{
 						// We want to make sure that agents
@@ -149,9 +155,7 @@ func TestORCA(t *testing.T) {
 						*mock.New(
 							mock.O{
 								P: *vector.New(10.097812491450057, 50.09999976074032),
-								V: *vector.New(1.3295744575659352e-05, 2.908566650220202e-09),
-								T: *vector.New(10, 500),
-								S: 10,
+								V: *vector.New(0, 0),
 								R: 10,
 							},
 						),
@@ -203,6 +207,15 @@ func TestDomain(t *testing.T) {
 					want: domain.CollisionLeft,
 				},
 				{
+					name: "Collision/Left/Embedded",
+					c: cache(
+						s,
+						*vector.New(-1, 1),
+						*vector.New(0, 0),
+					),
+					want: domain.CollisionLeft,
+				},
+				{
 					name: "Collision/Right",
 					c: cache(
 						s,
@@ -212,7 +225,16 @@ func TestDomain(t *testing.T) {
 					want: domain.CollisionRight,
 				},
 				{
-					name: "Collision/Top",
+					name: "Collision/Right/Embedded",
+					c: cache(
+						s,
+						*vector.New(1, 1),
+						*vector.New(0, 0),
+					),
+					want: domain.CollisionRight,
+				},
+				{
+					name: "Collision/Line/Top",
 					c: cache(
 						s,
 						*vector.New(0, 2),
@@ -221,10 +243,19 @@ func TestDomain(t *testing.T) {
 					want: domain.CollisionLine,
 				},
 				{
-					name: "Collision/Bottom",
+					name: "Collision/Line/Bottom",
 					c: cache(
 						s,
 						*vector.New(0, 0),
+						*vector.New(0, 0),
+					),
+					want: domain.CollisionLine,
+				},
+				{
+					name: "Collision/Line/Embedded",
+					c: cache(
+						s,
+						*vector.New(0, 1),
 						*vector.New(0, 0),
 					),
 					want: domain.CollisionLine,
