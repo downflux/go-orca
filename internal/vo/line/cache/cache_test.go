@@ -17,6 +17,13 @@ const (
 	epsilon = 1e-2
 )
 
+var (
+	DEBUG_UNKNOWN = *hyperplane.New(
+		*vector.New(0, 0),
+		*vector.New(0, 0),
+	)
+)
+
 func cache(s segment.S, p vector.V, v vector.V) C {
 	return *New(
 		s,
@@ -28,7 +35,7 @@ func cache(s segment.S, p vector.V, v vector.V) C {
 				V: v,
 			},
 		),
-		/* tau = */ 1.0,
+		/* tau = */ 1,
 	)
 }
 
@@ -50,7 +57,7 @@ func TestORCA(t *testing.T) {
 					*vector.New(1, 0),
 				),
 				0,
-				4,
+				500,
 			)
 			return []config{
 				{
@@ -100,6 +107,57 @@ func TestORCA(t *testing.T) {
 						*vector.New(0, -250),
 						*vector.New(0, -1),
 					),
+				},
+				/*
+					// In the case that an agent's center overlaps
+					// the actual line segment, we want to ensure
+					// the agent moves away in a reasonable
+					// direction.
+					{
+						name: "Collision/EmbeddedLeft",
+					},
+					{
+						name: "Collision/EmbeddedRight",
+					},
+					{
+						name: "Collision/EmbeddedLine",
+					},
+					{
+						// We want to make sure that agents
+						// approaching a wall can eventually get
+						// to the other side with a little
+						// sideways push towards one of the ends
+						// of the wall.
+						name: "Line/Spread",
+					},
+				*/
+				// Experimentally, this causes an unexpected
+				// segfault when attempting to construct the
+				// ORCA line.
+				{
+					name: "Segfault/EmbeddedLine",
+					c: *New(
+						*segment.New(
+							*line.New(
+								*vector.New(10.1, 10.1),
+								*vector.New(0, 1),
+							),
+							0,
+							30,
+						),
+						*vector.New(0, 0),
+						*mock.New(
+							mock.O{
+								P: *vector.New(10.097812491450057, 50.09999976074032),
+								V: *vector.New(1.3295744575659352e-05, 2.908566650220202e-09),
+								T: *vector.New(10, 500),
+								S: 10,
+								R: 10,
+							},
+						),
+						.9,
+					),
+					want: DEBUG_UNKNOWN,
 				},
 			}
 		}()...,
