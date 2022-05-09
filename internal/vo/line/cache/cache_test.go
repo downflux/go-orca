@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	epsilon = 1e-2
+	delta = 1e-2
 )
 
 var (
@@ -57,7 +57,7 @@ func TestORCA(t *testing.T) {
 					*vector.New(1, 0),
 				),
 				0,
-				500,
+				4,
 			)
 			return []config{
 				{
@@ -117,7 +117,7 @@ func TestORCA(t *testing.T) {
 					c: cache(
 						s,
 						s.L().L(s.TMin()),
-						*vector.New(0, 0),
+						*vector.New(-2, 2),
 					),
 					want: DEBUG_UNKNOWN,
 				},
@@ -138,10 +138,10 @@ func TestORCA(t *testing.T) {
 					},
 				*/
 				// Experimentally, this causes an unexpected
-				// segfault when attempting to construct the
-				// ORCA line.
+				// panic when attempting to construct the ORCA
+				// line.
 				{
-					name: "Segfault/EmbeddedLine",
+					name: "Collision/Line/Fuzzy",
 					c: *New(
 						*segment.New(
 							*line.New(
@@ -161,7 +161,10 @@ func TestORCA(t *testing.T) {
 						),
 						.9,
 					),
-					want: DEBUG_UNKNOWN,
+					want: *hyperplane.New(
+						*vector.New(-0.00012152825277459804, 0.5555555422633514),
+						*vector.New(0.00021875085499427623, -0.9999999760740313),
+					),
 				},
 			}
 		}()...,
@@ -359,7 +362,7 @@ func TestDomain(t *testing.T) {
 							// velocity a bit
 							// downwards to be
 							// firmly in region 3.
-							*vector.New(0, -epsilon),
+							*vector.New(0, -delta),
 							vector.Add(
 								s.L().L(s.TMax()),
 								// Ensure the
@@ -388,7 +391,7 @@ func TestDomain(t *testing.T) {
 							// velocity a bit
 							// upwards to be firmly
 							// in region 4.
-							*vector.New(0, epsilon),
+							*vector.New(0, delta),
 							vector.Add(
 								s.L().L(s.TMax()),
 								vector.Scale(1.5, rpp.D()),
@@ -403,7 +406,7 @@ func TestDomain(t *testing.T) {
 						s,
 						*vector.New(0, 0),
 						vector.Add(
-							*vector.New(0, -epsilon),
+							*vector.New(0, -delta),
 							vector.Add(
 								s.L().L(s.TMin()),
 								vector.Scale(1.5, lpp.D()),
@@ -418,7 +421,7 @@ func TestDomain(t *testing.T) {
 						s,
 						*vector.New(0, 0),
 						vector.Add(
-							*vector.New(0, epsilon),
+							*vector.New(0, delta),
 							vector.Add(
 								s.L().L(s.TMin()),
 								vector.Scale(1.5, lpp.D()),
@@ -451,7 +454,7 @@ func TestDomain(t *testing.T) {
 						s,
 						*vector.New(0, 0),
 						vector.Add(
-							*vector.New(-epsilon, 0),
+							*vector.New(-delta, 0),
 							*vector.New(-2, 0),
 						),
 					),
@@ -472,7 +475,7 @@ func TestDomain(t *testing.T) {
 						s,
 						*vector.New(0, 0),
 						vector.Add(
-							*vector.New(epsilon, 0),
+							*vector.New(delta, 0),
 							*vector.New(2, 0),
 						),
 					),
@@ -484,7 +487,7 @@ func TestDomain(t *testing.T) {
 						s,
 						*vector.New(0, 0),
 						vector.Add(
-							*vector.New(-epsilon, 0),
+							*vector.New(-delta, 0),
 							*vector.New(-2, 100),
 						),
 					),
@@ -496,7 +499,7 @@ func TestDomain(t *testing.T) {
 						s,
 						*vector.New(0, 0),
 						vector.Add(
-							*vector.New(-epsilon, 0),
+							*vector.New(-delta, 0),
 							*vector.New(2, 100),
 						),
 					),
@@ -508,7 +511,7 @@ func TestDomain(t *testing.T) {
 						s,
 						*vector.New(0, 0),
 						vector.Add(
-							*vector.New(epsilon, 0),
+							*vector.New(delta, 0),
 							*vector.New(2, 100),
 						),
 					),
@@ -519,7 +522,7 @@ func TestDomain(t *testing.T) {
 					c: cache(
 						s,
 						*vector.New(0, 0),
-						*vector.New(-epsilon, 100),
+						*vector.New(-delta, 100),
 					),
 					want: domain.Left,
 				},
@@ -528,7 +531,7 @@ func TestDomain(t *testing.T) {
 					c: cache(
 						s,
 						*vector.New(0, 0),
-						*vector.New(epsilon, 100),
+						*vector.New(delta, 100),
 					),
 					want: domain.Right,
 				},

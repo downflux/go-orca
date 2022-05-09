@@ -7,7 +7,7 @@ const (
 	// and the agent.
 
 	CollisionLeft  D = "COLLISION_LEFT"
-	CollisionRight   = "COLLISION_RIGT"
+	CollisionRight   = "COLLISION_RIGHT"
 	CollisionLine    = "COLLISION_LINE"
 
 	// Linear v-domains indicate the velocity vector w lies closest to the
