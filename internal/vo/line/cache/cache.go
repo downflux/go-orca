@@ -8,6 +8,7 @@ import (
 	"github.com/downflux/go-geometry/2d/line"
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
+	"github.com/downflux/go-geometry/epsilon"
 	"github.com/downflux/go-orca/agent"
 	"github.com/downflux/go-orca/internal/vo/line/cache/domain"
 
@@ -51,6 +52,7 @@ func New(s segment.S, v vector.V, a agent.A, tau float64) *C {
 // convention does not take into account the relative orientation of agent
 // itself.
 func (c C) domain() domain.D {
+
 	// t is the projected parametric value along the extended line. We need
 	// to detect the case where t extends beyond the segment itself, and
 	// seg.T() truncates at the segment endpoints.
@@ -58,17 +60,22 @@ func (c C) domain() domain.D {
 
 	// Agent physically collides with the semicircle on the left side of the
 	// line segment.
-	if t <= c.segment.TMin() && vector.Magnitude(
-		c.P(c.segment.TMin()),
-	) <= c.agent.R() {
+	//
+	// A physical collision means that the agent overlaps the segment --
+	// becasue of computational limits, we split the check for
+	//
+	//   || c.segment.L().L(s.TMin()) - c.agent.P() || <= c.agent.R()
+	//
+	// into a strict inequality check and a float equality check (i.e.
+	// epsilon.Within()). If we do not do this check, the VO segment
+	// constructor may raise an unexpected error.
+	if p := vector.Magnitude(c.P(c.segment.TMin())); t <= c.segment.TMin() && (p < c.agent.R() || epsilon.Within(p, c.agent.R())) {
 		return domain.CollisionLeft
 	}
 
 	// Agent physically collides with the semicircle on the right side of
 	// the line segment.
-	if t >= c.segment.TMax() && vector.Magnitude(
-		c.P(c.segment.TMax()),
-	) <= c.agent.R() {
+	if p := vector.Magnitude(c.P(c.segment.TMax())); t >= c.segment.TMax() && (p < c.agent.R() || epsilon.Within(p, c.agent.R())) {
 		return domain.CollisionRight
 	}
 
@@ -76,7 +83,7 @@ func (c C) domain() domain.D {
 	d := c.segment.L().Distance(c.agent.P())
 
 	// Agent physically collides wth the line segment itself.
-	if (c.segment.TMin() <= t && t <= c.segment.TMax()) && d <= c.agent.R() {
+	if (c.segment.TMin() <= t && t <= c.segment.TMax()) && (d < c.agent.R() || epsilon.Within(d, c.agent.R())) {
 		return domain.CollisionLine
 	}
 
@@ -110,7 +117,7 @@ func (c C) domain() domain.D {
 	// We are modifying the six regions above to a slightly altered version
 	// for ease of calculations
 	//
-	//    \1 |2 | 4|  /
+	//    \1 |2 | 4| 5/
 	//   L \ | /3\ | / R
 	//   1  \|/___\|/  5
 	//       |  S  |
@@ -271,7 +278,7 @@ func v(v vector.V, a agent.A) vector.V { return vector.Sub(a.V(), v) }
 func s(s segment.S, a agent.A, tau float64) segment.S {
 	return *segment.New(
 		*line.New(
-			vector.Scale(1/tau, vector.Sub(s.L().P(), a.P())),
+			vector.Scale(1/tau, p(s, a, s.TMin())),
 			vector.Scale(1/tau, s.L().D()),
 		),
 		s.TMin(),
