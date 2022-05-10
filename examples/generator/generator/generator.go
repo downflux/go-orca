@@ -115,29 +115,66 @@ func R(w int, h int, s float64, r float64, n int) config.O {
 	}
 }
 
-func DebugWallAgentEdge() config.O {
+func DebugCanvas() config.O {
+	configs := []config.O{
+		{
+			Agents: []agent.O{
+				// Generate embedded agent on left side of line
+				// segment.
+				{
+					P: *vector.New(10, 10),
+					G: *vector.New(10, 100),
+					S: 10,
+					R: 10,
+				},
+				// Generate embedded agent on the line segment
+				// itself.
+				{
+					P: *vector.New(10.1, 30.1),
+					G: *vector.New(10, -400),
+					S: 0,
+					R: 10, // setting to 1 panics
+				},
+			},
+			Segments: []segment.O{
+				{
+					P:    *vector.New(10.1, 10.1),
+					D:    *vector.New(0, 1),
+					TMin: 0,
+					TMax: 30,
+				},
+			},
+		},
+
+		// Ensure we have a non-vertical component here.
+		{
+			Agents: []agent.O{
+				{
+					P: *vector.New(100, 100),
+					G: *vector.New(100, 200),
+					S: 10,
+					R: 10,
+				},
+				{
+					P: *vector.New(100, 150),
+					G: *vector.New(100, 0),
+					S: 10,
+					R: 10,
+				},
+			},
+		},
+	}
+
+	var agents []agent.O
+	var segments []segment.O
+
+	for _, c := range configs {
+		agents = append(agents, c.Agents...)
+		segments = append(segments, c.Segments...)
+	}
+
 	return config.O{
-		Agents: []agent.O{
-			{
-				P: *vector.New(10, 10),
-				G: *vector.New(10, 500), // *vector.New(10, 1000) causes panic
-				S: 10,
-				R: 10,
-			},
-			{
-				P: *vector.New(10, 500),
-				G: *vector.New(100, 500),
-				S: 10,
-				R: 10,
-			},
-		},
-		Segments: []segment.O{
-			{
-				P:    *vector.New(10, 10),
-				D:    *vector.New(0, 1),
-				TMin: 0,
-				TMax: 30,
-			},
-		},
+		Agents:   agents,
+		Segments: segments,
 	}
 }

@@ -31,11 +31,11 @@ const (
 type mode string
 
 const (
-	Random             mode = "random"
-	Collision          mode = "collision"
-	Grid               mode = "grid"
-	Line               mode = "line"
-	DebugWallAgentEdge mode = "debug_wall_agent_edge"
+	Random      mode = "random"
+	Collision   mode = "collision"
+	Grid        mode = "grid"
+	Line        mode = "line"
+	DebugCanvas mode = "debug"
 )
 
 var (
@@ -46,11 +46,11 @@ func main() {
 	flag.Parse()
 
 	fns := map[mode]func() config.O{
-		Random:             func() config.O { return generator.R(W, H, S, R, N) },
-		Collision:          func() config.O { return generator.C(S, R) },
-		Grid:               func() config.O { return generator.G(X, Y, S, R) },
-		Line:               func() config.O { return generator.L(X, Y, S, R) },
-		DebugWallAgentEdge: func() config.O { return generator.DebugWallAgentEdge() },
+		Random:      func() config.O { return generator.R(W, H, S, R, N) },
+		Collision:   func() config.O { return generator.C(S, R) },
+		Grid:        func() config.O { return generator.G(X, Y, S, R) },
+		Line:        func() config.O { return generator.L(X, Y, S, R) },
+		DebugCanvas: func() config.O { return generator.DebugCanvas() },
 	}
 
 	f, ok := fns[mode(*m)]
