@@ -74,7 +74,7 @@ type VO struct {
 	vIsCached     bool
 	betaIsCached  bool
 	thetaIsCached bool
-	checkIsCached bool
+	domainIsCached bool
 	pCache        vector.V
 	wCache        vector.V
 	lCache        vector.V
@@ -82,7 +82,7 @@ type VO struct {
 	rCache        float64
 	betaCache     float64
 	thetaCache    float64
-	checkCache    domain.D
+	domainCache    domain.D
 }
 
 func New(a, b agent.A, tau float64) (*VO, error) {
@@ -135,7 +135,7 @@ func (vo *VO) n() (vector.V, error) {
 	}
 
 	orientation := 1.0
-	switch d := vo.check(); d {
+	switch d := vo.domain(); d {
 	case domain.Collision:
 		fallthrough
 	case domain.Circle:
@@ -175,7 +175,7 @@ func (vo *VO) n() (vector.V, error) {
 // u returns the calculated vector difference between the relative velocity v
 // and the closest part of the VO, pointing into the VO edge.
 func (vo *VO) u() (vector.V, error) {
-	switch d := vo.check(); d {
+	switch d := vo.domain(); d {
 	case domain.Collision:
 		fallthrough
 	case domain.Circle:
@@ -236,7 +236,7 @@ func (vo *VO) l() vector.V {
 		vo.lIsCached = true
 
 		l := vo.cone.L()
-		if vo.check() == domain.Right {
+		if vo.domain() == domain.Right {
 			l = vo.cone.R()
 		}
 		// ℓ is calculated based on the truncated circle; we are
@@ -350,12 +350,12 @@ func (vo *VO) theta() (float64, error) {
 	return vo.thetaCache, nil
 }
 
-// check returns the indicated edge of the truncated VO that is closest to w.
-func (vo *VO) check() domain.D {
-	if !vo.checkIsCached {
-		vo.checkIsCached = true
+// domain returns the indicated edge of the truncated VO that is closest to w.
+func (vo *VO) domain() domain.D {
+	if !vo.domainIsCached {
+		vo.domainIsCached = true
 
-		vo.checkCache = func() domain.D {
+		vo.domainCache = func() domain.D {
 			beta, err := vo.beta()
 			// Retain parity with RVO2 behavior.
 			if err != nil {
@@ -379,7 +379,7 @@ func (vo *VO) check() domain.D {
 			return domain.Right
 		}()
 	}
-	return vo.checkCache
+	return vo.domainCache
 }
 
 // v is a utility function calculating the relative velocities between two

@@ -234,7 +234,7 @@ func TestVOConformance(t *testing.T) {
 	}
 }
 
-// BenchmarkORCA compares the relative performance of VO.check() bewteen the
+// BenchmarkORCA compares the relative performance of VO.domain() bewteen the
 // official RVO2 spec vs. the custom implementation provided.
 func BenchmarkORCA(t *testing.B) {
 	testConfigs := []struct {
