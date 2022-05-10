@@ -145,19 +145,45 @@ func DebugCanvas() config.O {
 				},
 			},
 		},
-
-		// Ensure we have a non-vertical component here.
+		// Ensure we have a non-vertical component here for fast-moving
+		// agents.
 		{
 			Agents: []agent.O{
 				{
-					P: *vector.New(100, 100),
-					G: *vector.New(100, 200),
+					P: *vector.New(1000, 10),
+					G: *vector.New(1000, 100),
+					S: 50,
+					R: 10,
+				},
+				{
+					P: *vector.New(1000, 100),
+					G: *vector.New(1000, 10),
+					S: 50,
+					R: 10,
+				},
+			},
+		},
+		// One hangup for ORCA is dealing with relatively slow moving
+		// agents which are colliding -- here, setting our velocity to a
+		// small enough value will always ensure agents will not
+		// collide. However, this is not an efficient large-scale
+		// solution, as no meaningful progress will be made in actually
+		// reaching the agent goals.
+		//
+		// See github.com/downflux/go-orca/internal/solver for more
+		// information on editing the optimization function to avoid
+		// this issue.
+		{
+			Agents: []agent.O{
+				{
+					P: *vector.New(900, 10),
+					G: *vector.New(900, 100),
 					S: 10,
 					R: 10,
 				},
 				{
-					P: *vector.New(100, 120),
-					G: *vector.New(100, 0),
+					P: *vector.New(900, 100),
+					G: *vector.New(900, 10),
 					S: 10,
 					R: 10,
 				},

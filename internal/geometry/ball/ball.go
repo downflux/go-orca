@@ -67,21 +67,21 @@ type VO struct {
 	tau float64
 
 	// We cache some fields to make things zoom-zoom.
-	pIsCached     bool
-	wIsCached     bool
-	rIsCached     bool
-	lIsCached     bool
-	vIsCached     bool
-	betaIsCached  bool
-	thetaIsCached bool
+	pIsCached      bool
+	wIsCached      bool
+	rIsCached      bool
+	lIsCached      bool
+	vIsCached      bool
+	betaIsCached   bool
+	thetaIsCached  bool
 	domainIsCached bool
-	pCache        vector.V
-	wCache        vector.V
-	lCache        vector.V
-	vCache        vector.V
-	rCache        float64
-	betaCache     float64
-	thetaCache    float64
+	pCache         vector.V
+	wCache         vector.V
+	lCache         vector.V
+	vCache         vector.V
+	rCache         float64
+	betaCache      float64
+	thetaCache     float64
 	domainCache    domain.D
 }
 

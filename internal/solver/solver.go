@@ -15,6 +15,22 @@ import (
 //
 // Note that s.T(v) finds the projected parametric t-value of the underlying
 // line, bounded by the min / max values of the line segment.
+//
+// Adding a noise function here to the output will randomize the path of the
+// agent a bit, e.g.
+//
+// weight := 1e-3
+// dt := rand.Float64() * (s.TMax() - s.TMin()) * weight
+// v := s.L().L(s.T(v) + dt)
+//
+// This will help with the case where two slow-moving agents become stuck while
+// trying to move directly past each other (i.e. agent targets are directly
+// behind the opposing agent).
+//
+// This may be feasible, but other solutions to the problem exist, e.g. in a
+// tile-based map, set the actual target to some randomized value around the
+// input target, and re-adjust the target once an agent is inside the correct
+// tile.
 func project(s segment.S, v vector.V) vector.V {
 	return s.L().L(s.T(v))
 }
