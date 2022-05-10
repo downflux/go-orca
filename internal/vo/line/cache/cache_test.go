@@ -19,7 +19,7 @@ const (
 
 var (
 	DEBUG_UNKNOWN = *hyperplane.New(
-		*vector.New(0, 0),
+		*vector.New(0, 1),
 		*vector.New(0, 0),
 	)
 )
@@ -108,6 +108,19 @@ func TestORCA(t *testing.T) {
 						*vector.New(0, -1),
 					),
 				},
+				// In the case that an agent's center just
+				// touches the side of a line segment, we want
+				// to ensure the agent does not move towards the
+				// line segment.
+				{
+					name: "Collision/Left/Edge",
+					c: cache(
+						s,
+						*vector.New(-2, 3),
+						*vector.New(0, 0),
+					),
+					want: DEBUG_UNKNOWN,
+				},
 				// In the case that an agent's center overlaps
 				// the actual line segment, we want to ensure
 				// the agent moves away in a reasonable
@@ -116,8 +129,8 @@ func TestORCA(t *testing.T) {
 					name: "Collision/Left/Embedded",
 					c: cache(
 						s,
-						s.L().L(s.TMin()),
 						*vector.New(-2, 2),
+						*vector.New(0, 0),
 					),
 					want: DEBUG_UNKNOWN,
 				},
@@ -161,6 +174,7 @@ func TestORCA(t *testing.T) {
 						),
 						.9,
 					),
+					// ORCA plane was determined experimentally.
 					want: *hyperplane.New(
 						*vector.New(-0.00012152825277459804, 0.5555555422633514),
 						*vector.New(0.00021875085499427623, -0.9999999760740313),
