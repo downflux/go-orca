@@ -209,6 +209,12 @@ func DebugCanvas() config.O {
 					R: 10,
 				},
 				{
+					P: *vector.New(750, 0),
+					G: *vector.New(750, 150),
+					S: 10,
+					R: 10,
+				},
+				{
 					P: *vector.New(700, 50),
 					G: *vector.New(800, 50),
 					S: 10,
