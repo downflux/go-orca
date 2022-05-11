@@ -13,9 +13,14 @@ type VO interface {
 	// ORCA is a hyperplane in 2D ambient space of the form HP(p, n), i.e.
 	// the boundary of the plane passes through p, and faces "into" the
 	// planar normal n. We consider points (i.e. velocities) in the plane to
-	// be feasible values for the input agent.
+	// be feasible values for the VO struct.
 	//
 	// More concisely, if HP.In(v), then v is a permissible agent velocity
-	// fo the current simulation snapshot.
+	// for the current simulation snapshot.
+	//
+	// N.B.: The input agent here is considered the obstacle.
+	//
+	// TODO(minkezhang): Refactor VO to represent the obstacle instead (i.e.
+	// swap the role of the input agent).
 	ORCA(a agent.A, tau float64) hyperplane.HP
 }

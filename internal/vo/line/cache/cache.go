@@ -182,35 +182,39 @@ func (c C) domain() domain.D {
 func (c C) ORCA() hyperplane.HP {
 	switch d := c.domain(); d {
 	case domain.CollisionLeft:
-		return voagent.New(
+		return voagent.New(c.agent).ORCA(
 			*mock.New(
 				c.segment.L().L(c.segment.TMin()),
 				c.velocity,
 			),
-		).ORCA(c.agent, c.tau)
+			c.tau,
+		)
 	case domain.CollisionRight:
-		return voagent.New(
+		return voagent.New(c.agent).ORCA(
 			*mock.New(
 				c.segment.L().L(c.segment.TMax()),
 				c.velocity,
 			),
-		).ORCA(c.agent, c.tau)
+			c.tau,
+		)
 	case domain.Left:
 		s := *vosegment.New(c.segment, c.agent.R())
-		return voagent.New(
+		return voagent.New(c.agent).ORCA(
 			mock.New(
 				s.CL().C().P(),
 				c.velocity,
 			),
-		).ORCA(c.agent, c.tau)
+			c.tau,
+		)
 	case domain.Right:
 		s := *vosegment.New(c.segment, c.agent.R())
-		return voagent.New(
+		return voagent.New(c.agent).ORCA(
 			mock.New(
 				s.CR().C().P(),
 				c.velocity,
 			),
-		).ORCA(c.agent, c.tau)
+			c.tau,
+		)
 	case domain.CollisionLine:
 		fallthrough
 	case domain.Line:

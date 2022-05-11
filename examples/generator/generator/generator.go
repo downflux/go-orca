@@ -124,16 +124,16 @@ func DebugCanvas() config.O {
 				{
 					P: *vector.New(10, 10),
 					G: *vector.New(10, 100),
-					S: 10,
+					S: 20,
 					R: 10,
 				},
 				// Generate embedded agent on the line segment
 				// itself.
 				{
 					P: *vector.New(10.1, 30.1),
-					G: *vector.New(10, -400),
-					S: 0,
-					R: 10, // setting to 1 panics
+					G: *vector.New(10, 0),
+					S: 50,
+					R: 5,
 				},
 			},
 			Segments: []segment.O{

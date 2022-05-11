@@ -109,8 +109,8 @@ func New(a, b agent.A, tau float64) (*VO, error) {
 	}, nil
 }
 
-// ORCA returns the half-plane of permissable velocities for an agent, given the
-// an agent constraint.
+// ORCA returns the half-plane of permissable velocities for an agent a, given
+// the an agent b constraint.
 func (vo *VO) ORCA() (hyperplane.HP, error) {
 	u, err := vo.u()
 	if err != nil {
