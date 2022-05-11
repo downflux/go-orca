@@ -192,8 +192,8 @@ func DebugCanvas() config.O {
 			},
 		},
 
-		// Ensure agents travelling directly into a respect the ends of
-		// the line segment.
+		// Ensure agents travelling directly into the line segment will
+		// veer away.
 		{
 			Agents: []agent.O{
 				{
@@ -205,6 +205,12 @@ func DebugCanvas() config.O {
 				{
 					P: *vector.New(750, 150),
 					G: *vector.New(750, 0),
+					S: 10,
+					R: 10,
+				},
+				{
+					P: *vector.New(700, 50),
+					G: *vector.New(800, 50),
 					S: 10,
 					R: 10,
 				},
