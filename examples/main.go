@@ -150,6 +150,43 @@ func bound(e *Env) hyperrectangle.R {
 		)
 	}
 
+	for _, r := range e.Segments() {
+		for _, s := range r.R() {
+			min = *v2d.New(
+				math.Min(
+					min.X(),
+					math.Min(
+						s.L().L(s.TMin()).X(),
+						s.L().L(s.TMax()).X(),
+					),
+				),
+				math.Min(
+					min.Y(),
+					math.Min(
+						s.L().L(s.TMin()).Y(),
+						s.L().L(s.TMax()).Y(),
+					),
+				),
+			)
+			max = *v2d.New(
+				math.Max(
+					max.X(),
+					math.Max(
+						s.L().L(s.TMin()).X(),
+						s.L().L(s.TMax()).X(),
+					),
+				),
+				math.Max(
+					max.Y(),
+					math.Max(
+						s.L().L(s.TMin()).Y(),
+						s.L().L(s.TMax()).Y(),
+					),
+				),
+			)
+		}
+	}
+
 	return *hyperrectangle.New(
 		*vector.New(0, 0),
 		vector.V(
