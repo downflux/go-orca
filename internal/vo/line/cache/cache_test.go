@@ -11,6 +11,7 @@ import (
 	"github.com/downflux/go-orca/internal/vo/line/cache/domain"
 
 	mock "github.com/downflux/go-orca/internal/agent/testdata/mock"
+	voagent "github.com/downflux/go-orca/internal/vo/agent"
 )
 
 const (
@@ -116,10 +117,13 @@ func TestORCA(t *testing.T) {
 					name: "Collision/Left/Edge",
 					c: cache(
 						s,
-						*vector.New(-2, 3),
+						*vector.New(-2, 3.1),
 						*vector.New(0, 0),
 					),
-					want: DEBUG_UNKNOWN,
+					want: *hyperplane.New(
+						*vector.New(0, -0.05),
+						*vector.New(0, 1),
+					),
 				},
 				// In the case that an agent's center overlaps
 				// the actual line segment, we want to ensure
@@ -132,7 +136,22 @@ func TestORCA(t *testing.T) {
 						*vector.New(-2, 2),
 						*vector.New(0, 0),
 					),
-					want: DEBUG_UNKNOWN,
+					want: *hyperplane.New(
+						*vector.New(0, 0),
+						*vector.New(0.3067196445380152, 0.9517999052608028),
+					),
+				},
+				{
+					name: "Collision/Right/Embedded",
+					c: cache(
+						s,
+						*vector.New(2, 2.1),
+						*vector.New(0, 0),
+					),
+					want: *hyperplane.New(
+						*vector.New(0, 0),
+						*vector.New(0.3067196445380152, 0.9517999052608028),
+					),
 				},
 				/*
 					{
@@ -181,6 +200,74 @@ func TestORCA(t *testing.T) {
 					),
 				},
 			}
+		}()...,
+	)
+
+	testConfigs = append(
+		testConfigs,
+		func() []config {
+			// s is a horizontal line segment spanning (-2, 2) to
+			// (2, 2).
+			s := *segment.New(
+				*line.New(
+					*vector.New(-2, 2),
+					*vector.New(1, 0),
+				),
+				0,
+				4,
+			)
+
+			c := map[string]struct {
+				p vector.V
+				v vector.V
+			}{
+				"Collision/Conformance/Adjacent/Top": {
+					p: *vector.New(0, 2.5),
+					v: *vector.New(0, -1),
+				},
+				"Collision/Conformance/Adjacent/Bottom": {
+					p: *vector.New(0, 1.5),
+					v: *vector.New(0, 1),
+				},
+				"Collision/Conformance/Embedded/Top": {
+					p: *vector.New(0, 2.4),
+					v: *vector.New(0, -1),
+				},
+				"Collision/Conformance/Embedded/Bottom": {
+					p: *vector.New(0, 1.6),
+					v: *vector.New(0, 1),
+				},
+				"Collision/Conformance/Embedded": {
+					p: *vector.New(0, 2),
+					v: *vector.New(0, 1),
+				},
+			}
+			var configs []config
+			for k, v := range c {
+				configs = append(configs, config{
+					name: k,
+					c:    cache(s, v.p, v.v),
+					want: voagent.New(
+						mock.New(
+							mock.O{
+								P: v.p,
+								V: v.v,
+								R: 1,
+							},
+						),
+					).ORCA(
+						mock.New(
+							mock.O{
+								P: *vector.New(0, 2),
+								V: *vector.New(0, 0),
+								R: 0,
+							},
+						),
+						1,
+					)},
+				)
+			}
+			return configs
 		}()...,
 	)
 

@@ -145,7 +145,6 @@ func DebugCanvas() config.O {
 				},
 			},
 		},
-
 		// Ensure we have a non-vertical component here for fast-moving
 		// agents.
 		{
@@ -164,7 +163,6 @@ func DebugCanvas() config.O {
 				},
 			},
 		},
-
 		// One hangup for ORCA is dealing with relatively slow moving
 		// agents which are colliding -- here, setting our velocity to a
 		// small enough value will always ensure agents will not
@@ -227,6 +225,38 @@ func DebugCanvas() config.O {
 					D:    *vector.New(0, 1),
 					TMin: 0,
 					TMax: 100,
+				},
+			},
+		},
+		// Demonstrate buggy behavior when attempting to solve ORCA for
+		// multiple wall segments results in a forced collision.
+		{
+			Agents: []agent.O{
+				{
+					P: *vector.New(350, 210),
+					G: *vector.New(250, 210),
+					S: 50,
+					R: 10,
+				},
+				{
+					P: *vector.New(350, 240),
+					G: *vector.New(450, 240),
+					S: 50,
+					R: 10,
+				},
+			},
+			Segments: []segment.O{
+				{
+					P:    *vector.New(300, 200),
+					D:    *vector.New(0, 1),
+					TMin: 0,
+					TMax: 50,
+				},
+				{
+					P:    *vector.New(400, 200),
+					D:    *vector.New(0, 1),
+					TMin: 0,
+					TMax: 50,
 				},
 			},
 		},
