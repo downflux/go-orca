@@ -26,6 +26,9 @@ type C struct {
 	segment segment.S
 
 	// velocity is the absolute obstacle velocity.
+	//
+	// TODO(minkezhang): Remove this property and assume obstacles are
+	// static.
 	velocity vector.V
 
 	agent agent.A
@@ -216,32 +219,25 @@ func (c C) ORCA() hyperplane.HP {
 			c.tau,
 		)
 	case domain.CollisionLine:
-		fallthrough
+		n := vector.Unit(
+			vector.Sub(
+				c.agent.P(),
+				c.segment.L().L(c.segment.T(c.agent.P())),
+			),
+		)
+		return *hyperplane.New(c.velocity, n)
 	case domain.Line:
-		tau := c.tau
-		// n calculates the normal of the hyperlane pointing into the
-		// feasible region. Note that u points away from the VO segment,
-		// so for non-collision cases, we need to flip the orientation
-		// of the normal.
-		orientation := -1.0
-
-		if d == domain.CollisionLine {
-			tau = minTau
-			orientation = 1.
-		}
-
-		// tau could be minTau; we cannot assume c.S() is valid here.
-		s := s(c.segment, c.agent, tau)
+		s := c.S()
 		w := vector.Sub(
 			c.agent.V(),
 			s.L().L(s.T(c.agent.V())),
 		)
-		r := c.agent.R() / tau
+		r := c.agent.R() / c.tau
 		u := vector.Scale(
 			r/vector.Magnitude(w)-1,
 			w,
 		)
-		n := vector.Scale(orientation, vector.Unit(u))
+		n := vector.Scale(-1, vector.Unit(u))
 
 		return *hyperplane.New(
 			vector.Add(c.agent.V(), vector.Scale(0.5, u)),
