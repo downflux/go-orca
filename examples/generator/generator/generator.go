@@ -233,13 +233,13 @@ func DebugCanvas() config.O {
 		{
 			Agents: []agent.O{
 				{
-					P: *vector.New(350, 210),
+					P: *vector.New(390, 210),
 					G: *vector.New(250, 210),
 					S: 50,
 					R: 10,
 				},
 				{
-					P: *vector.New(350, 240),
+					P: *vector.New(390, 240),
 					G: *vector.New(450, 240),
 					S: 50,
 					R: 10,
