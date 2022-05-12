@@ -134,41 +134,25 @@ func TestORCA(t *testing.T) {
 					c: cache(
 						s,
 						*vector.New(-2, 2),
-						*vector.New(0, 0),
+						*vector.New(0, 1),
 					),
 					want: *hyperplane.New(
-						*vector.New(0, 0),
-						*vector.New(0.3067196445380152, 0.9517999052608028),
+						*vector.New(-0.17846851382646453, 0.5748821536424888),
+						*vector.New(-0.30701184392685327, -0.9517056938406082),
 					),
 				},
 				{
 					name: "Collision/Right/Embedded",
 					c: cache(
 						s,
-						*vector.New(2, 2.1),
-						*vector.New(0, 0),
+						*vector.New(2, 2),
+						*vector.New(0, 1),
 					),
 					want: *hyperplane.New(
-						*vector.New(0, 0),
-						*vector.New(0.3067196445380152, 0.9517999052608028),
+						*vector.New(-0.14564312787896694, 0.9532799791322656),
+						*vector.New(-0.4910498337434971, -0.8711314830612449),
 					),
 				},
-				/*
-					{
-						name: "Collision/Right/Embedded",
-					},
-					{
-						name: "Collision/Line/Embedded",
-					},
-					{
-						// We want to make sure that agents
-						// approaching a wall can eventually get
-						// to the other side with a little
-						// sideways push towards one of the ends
-						// of the wall.
-						name: "Line/Spread",
-					},
-				*/
 				// Experimentally, this causes an unexpected
 				// panic when attempting to construct the ORCA
 				// line.
@@ -195,8 +179,8 @@ func TestORCA(t *testing.T) {
 					),
 					// ORCA plane was determined experimentally.
 					want: *hyperplane.New(
-						*vector.New(-0.00012152825277459804, 0.5555555422633514),
-						*vector.New(0.00021875085499427623, -0.9999999760740313),
+						*vector.New(0.00012152825277459804, -0.5555555422633514),
+						*vector.New(-0.00021875085499427623, 0.9999999760740313),
 					),
 				},
 			}
@@ -235,10 +219,6 @@ func TestORCA(t *testing.T) {
 				},
 				"Collision/Conformance/Embedded/Bottom": {
 					p: *vector.New(0, 1.6),
-					v: *vector.New(0, 1),
-				},
-				"Collision/Conformance/Embedded": {
-					p: *vector.New(0, 2),
 					v: *vector.New(0, 1),
 				},
 			}
