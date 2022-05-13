@@ -11,20 +11,20 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	v2d "github.com/downflux/go-geometry/2d/vector"
-	mock "github.com/downflux/go-orca/internal/agent/testdata/mock"
+	agentimpl "github.com/downflux/go-orca/internal/agent"
 )
 
 var (
-	_ agent.A = &mock.A{}
+	_ agent.A = &agentimpl.A{}
 	_ point.P = &p{}
 	_ P       = &p{}
 )
 
-type p mock.A
+type p agentimpl.A
 
-func (p *p) P() vector.V { return vector.V(mock.A(*p).P()) }
+func (p *p) P() vector.V { return vector.V(agentimpl.A(*p).P()) }
 func (p *p) A() agent.A {
-	a := mock.A(*p)
+	a := agentimpl.A(*p)
 	return &a
 }
 
@@ -38,7 +38,7 @@ func TestKNN(t *testing.T) {
 	}
 	testConfigs := []config{
 		func() config {
-			q := p(*mock.New(mock.O{
+			q := p(*agentimpl.New(agentimpl.O{
 				P: *v2d.New(1, 2),
 			}))
 			return config{

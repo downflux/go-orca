@@ -15,7 +15,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	v2d "github.com/downflux/go-geometry/2d/vector"
-	mock "github.com/downflux/go-orca/internal/agent/testdata/mock"
+	agentimpl "github.com/downflux/go-orca/internal/agent"
 	okd "github.com/downflux/go-orca/kd"
 )
 
@@ -30,9 +30,9 @@ func (p p) P() vector.V { return vector.V(p.a.P()) }
 
 func rn() float64 { return rand.Float64()*200 - 100 }
 func rv() v2d.V   { return *v2d.New(rn(), rn()) }
-func ra() mock.A {
-	return *mock.New(
-		mock.O{
+func ra() agentimpl.A {
+	return *agentimpl.New(
+		agentimpl.O{
 			P: rv(),
 			V: v2d.Scale(rand.Float64()*.5, v2d.Unit(rv())),
 			R: rand.Float64(),
@@ -70,8 +70,8 @@ func TestStep(t *testing.T) {
 
 	testConfigs := []config{
 		func() config {
-			a := mock.New(
-				mock.O{
+			a := agentimpl.New(
+				agentimpl.O{
 					P: *v2d.New(1, 2),
 					V: *v2d.New(2, 3),
 					T: *v2d.New(3, 4),
@@ -124,7 +124,7 @@ func TestStep(t *testing.T) {
 				c.want,
 				got,
 				cmp.AllowUnexported(
-					mock.A{},
+					agentimpl.A{},
 					hypersphere.C{},
 				),
 			); diff != "" {

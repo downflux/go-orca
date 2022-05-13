@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	mock "github.com/downflux/go-orca/internal/agent/testdata/mock"
+	agentimpl "github.com/downflux/go-orca/internal/agent"
 )
 
 const (
@@ -21,12 +21,12 @@ const (
 // Reference implements the official RVO2 spec. See
 // https://gamma.cs.unc.edu/RVO2/ for more information.
 type Reference struct {
-	a   mock.A
-	b   mock.A
+	a   agentimpl.A
+	b   agentimpl.A
 	tau float64
 }
 
-func New(a mock.A, b mock.A, tau float64) *Reference {
+func New(a agentimpl.A, b agentimpl.A, tau float64) *Reference {
 	return &Reference{
 		a:   a,
 		b:   b,

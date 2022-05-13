@@ -3,11 +3,6 @@ package agent
 import (
 	"github.com/downflux/go-geometry/2d/hypersphere"
 	"github.com/downflux/go-geometry/2d/vector"
-	"github.com/downflux/go-orca/agent"
-)
-
-var (
-	_ agent.A = A{}
 )
 
 type O struct {

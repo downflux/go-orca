@@ -12,9 +12,9 @@ import (
 	"github.com/downflux/go-orca/agent"
 	"github.com/downflux/go-orca/internal/vo/line/cache/domain"
 
+	agentimpl "github.com/downflux/go-orca/internal/agent"
 	vosegment "github.com/downflux/go-orca/internal/geometry/segment"
 	voagent "github.com/downflux/go-orca/internal/vo/agent"
-	mock "github.com/downflux/go-orca/internal/vo/line/agent"
 )
 
 const (
@@ -185,36 +185,60 @@ func (c C) domain() domain.D {
 func (c C) ORCA() hyperplane.HP {
 	switch d := c.domain(); d {
 	case domain.CollisionLeft:
-		return voagent.New(c.agent).ORCA(
-			*mock.New(
-				c.segment.L().L(c.segment.TMin()),
-				c.velocity,
+		return voagent.New(
+			agentimpl.New(
+				agentimpl.O{
+					P: c.agent.P(),
+					V: *vector.New(0, 0),
+					R: c.agent.R(),
+				},
+			),
+		).ORCA(
+			agentimpl.New(
+				agentimpl.O{
+					P: c.segment.L().L(c.segment.TMin()),
+					V: c.velocity,
+				},
 			),
 			c.tau,
 		)
 	case domain.CollisionRight:
-		return voagent.New(c.agent).ORCA(
-			*mock.New(
-				c.segment.L().L(c.segment.TMax()),
-				c.velocity,
+		return voagent.New(
+			agentimpl.New(
+				agentimpl.O{
+					P: c.agent.P(),
+					V: *vector.New(0, 0),
+					R: c.agent.R(),
+				},
+			),
+		).ORCA(
+			agentimpl.New(
+				agentimpl.O{
+					P: c.segment.L().L(c.segment.TMax()),
+					V: c.velocity,
+				},
 			),
 			c.tau,
 		)
 	case domain.Left:
 		s := *vosegment.New(c.segment, c.agent.R())
 		return voagent.New(c.agent).ORCA(
-			mock.New(
-				s.CL().C().P(),
-				c.velocity,
+			agentimpl.New(
+				agentimpl.O{
+					P: s.CL().C().P(),
+					V: c.velocity,
+				},
 			),
 			c.tau,
 		)
 	case domain.Right:
 		s := *vosegment.New(c.segment, c.agent.R())
 		return voagent.New(c.agent).ORCA(
-			mock.New(
-				s.CR().C().P(),
-				c.velocity,
+			agentimpl.New(
+				agentimpl.O{
+					P: s.CR().C().P(),
+					V: c.velocity,
+				},
 			),
 			c.tau,
 		)

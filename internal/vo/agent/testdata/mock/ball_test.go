@@ -10,8 +10,7 @@ import (
 	"github.com/downflux/go-geometry/epsilon"
 	"github.com/downflux/go-orca/internal/geometry/ball/domain"
 	"github.com/downflux/go-orca/internal/vo/agent/testdata"
-
-	mock "github.com/downflux/go-orca/internal/agent/testdata/mock"
+	"github.com/downflux/go-orca/internal/agent"
 )
 
 var (
@@ -22,9 +21,9 @@ var (
 func rn() float64 { return rand.Float64()*200 - 100 }
 
 // ra returns an agent with randomized dimensions.
-func ra() mock.A {
-	return *mock.New(
-		mock.O{
+func ra() agent.A {
+	return *agent.New(
+		agent.O{
 			P: *vector.New(rn(), rn()),
 			V: *vector.New(rn(), rn()),
 			R: math.Abs(rn()),
@@ -33,8 +32,8 @@ func ra() mock.A {
 }
 
 func TestOrientation(t *testing.T) {
-	a := *mock.New(mock.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1})
-	b := *mock.New(mock.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2})
+	a := *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1})
+	b := *agent.New(agent.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2})
 
 	t.Run("P", func(t *testing.T) {
 		want := *vector.New(0, 5)
@@ -77,16 +76,16 @@ func TestOrientation(t *testing.T) {
 // TestVOReference asserts a simple RVO2 agent-agent setup will return correct
 // values from hand calculations.
 func TestVOReference(t *testing.T) {
-	a := *mock.New(mock.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1})
-	b := *mock.New(mock.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2})
+	a := *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1})
+	b := *agent.New(agent.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2})
 
 	testConfigs := []struct {
 		name   string
 		tau    float64
 		domain domain.D
 		u      vector.V
-		a      mock.A
-		b      mock.A
+		a      agent.A
+		b      agent.A
 		orca   hyperplane.HP
 	}{
 		{
@@ -176,13 +175,13 @@ func TestVOReference(t *testing.T) {
 }
 
 func TestP(t *testing.T) {
-	o := mock.O{
+	o := agent.O{
 		P: *vector.New(0, 1),
 		V: *vector.New(1, 2),
 		R: 10,
 	}
-	a := *mock.New(o)
-	b := *mock.New(o)
+	a := *agent.New(o)
+	b := *agent.New(o)
 
 	got := p(a, b)
 	if epsilon.Within(vector.Magnitude(got), 0) {

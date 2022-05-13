@@ -20,11 +20,11 @@ package ball
 
 import (
 	"math"
-	"math/rand"
 
 	"github.com/downflux/go-geometry/2d/hyperplane"
 	"github.com/downflux/go-geometry/2d/hypersphere"
 	"github.com/downflux/go-geometry/2d/vector"
+	"github.com/downflux/go-geometry/epsilon"
 	"github.com/downflux/go-orca/agent"
 	"github.com/downflux/go-orca/internal/geometry/ball/domain"
 	"github.com/downflux/go-orca/internal/geometry/cone"
@@ -287,7 +287,7 @@ func (vo *VO) beta() (float64, error) {
 	if !vo.betaIsCached {
 		// Check for collisions between agents -- i.e. the combined radii
 		// should be greater than the distance between the agents.
-		if vo.r()*vo.r() >= vector.SquaredMagnitude(vo.p()) {
+		if p := vector.Magnitude(vo.p()); vo.r() > p || epsilon.Within(p, vo.r()) {
 			return 0, status.Errorf(codes.OutOfRange, "cannot find the tangent VO angle of colliding agents")
 		}
 
@@ -396,19 +396,7 @@ func r(a agent.A, b agent.A) float64 { return a.R() + b.R() }
 // truncation factor.
 //
 // Note the relative position is directed from a.P to b.P.
-func p(a agent.A, b agent.A) vector.V {
-	// Check for the degenerate case -- if two agents are too close, return
-	// some sensical non-zero answer.
-	if vector.Within(a.P(), b.P()) {
-		return vector.Unit(
-			*vector.New(
-				rand.Float64(),
-				rand.Float64(),
-			),
-		)
-	}
-	return vector.Sub(b.P(), a.P())
-}
+func p(a agent.A, b agent.A) vector.V { return vector.Sub(b.P(), a.P()) }
 
 // w is a utility function calculating the relative velocity between a and b,
 // centered on the truncation circle.

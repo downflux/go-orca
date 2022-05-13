@@ -9,9 +9,9 @@ import (
 	"github.com/downflux/go-geometry/2d/hyperplane"
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-geometry/epsilon"
+	"github.com/downflux/go-orca/internal/agent"
 	"github.com/downflux/go-orca/internal/geometry/ball/domain"
 
-	mock "github.com/downflux/go-orca/internal/agent/testdata/mock"
 	testdata "github.com/downflux/go-orca/internal/vo/agent/testdata"
 	reference "github.com/downflux/go-orca/internal/vo/agent/testdata/mock"
 )
@@ -24,9 +24,9 @@ var (
 func rn() float64 { return rand.Float64()*200 - 100 }
 
 // ra returns an agent with randomized dimensions.
-func ra() mock.A {
-	return *mock.New(
-		mock.O{
+func ra() agent.A {
+	return *agent.New(
+		agent.O{
 			P: *vector.New(rn(), rn()),
 			V: *vector.New(rn(), rn()),
 			R: math.Abs(rn()),
@@ -35,8 +35,8 @@ func ra() mock.A {
 }
 
 func TestOrientation(t *testing.T) {
-	a := *mock.New(mock.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1})
-	b := *mock.New(mock.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2})
+	a := *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1})
+	b := *agent.New(agent.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2})
 
 	t.Run("P", func(t *testing.T) {
 		want := *vector.New(0, 5)
@@ -79,16 +79,16 @@ func TestOrientation(t *testing.T) {
 // TestVOReference asserts a simple RVO2 agent-agent setup will return correct
 // values from hand calculations.
 func TestVOReference(t *testing.T) {
-	a := *mock.New(mock.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1})
-	b := *mock.New(mock.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2})
+	a := *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1})
+	b := *agent.New(agent.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2})
 
 	testConfigs := []struct {
 		name   string
 		tau    float64
 		domain domain.D
 		u      vector.V
-		a      mock.A
-		b      mock.A
+		a      agent.A
+		b      agent.A
 		orca   hyperplane.HP
 	}{
 		{
@@ -170,28 +170,28 @@ func TestVOConformance(t *testing.T) {
 
 	type config struct {
 		name string
-		a    mock.A
-		b    mock.A
+		a    agent.A
+		b    agent.A
 		tau  float64
 	}
 
 	testConfigs := []config{
 		{
 			name: "SimpleCase",
-			a:    *mock.New(mock.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
-			b:    *mock.New(mock.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
+			a:    *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
+			b:    *agent.New(agent.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
 			tau:  1,
 		},
 		{
 			name: "SimpleCaseLargeTimeStep",
-			a:    *mock.New(mock.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
-			b:    *mock.New(mock.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
+			a:    *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
+			b:    *agent.New(agent.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
 			tau:  3,
 		},
 		{
 			name: "Collision",
-			a:    *mock.New(mock.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
-			b:    *mock.New(mock.O{P: *vector.New(0, 3), V: *vector.New(1, -1), R: 2}),
+			a:    *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
+			b:    *agent.New(agent.O{P: *vector.New(0, 3), V: *vector.New(1, -1), R: 2}),
 			tau:  1,
 		},
 	}
@@ -239,15 +239,15 @@ func TestVOConformance(t *testing.T) {
 func BenchmarkORCA(t *testing.B) {
 	testConfigs := []struct {
 		name        string
-		constructor func(a, b mock.A) testdata.VO
+		constructor func(a, b agent.A) testdata.VO
 	}{
 		{
 			name:        "VOReference",
-			constructor: func(a, b mock.A) testdata.VO { return reference.New(a, b, 1) },
+			constructor: func(a, b agent.A) testdata.VO { return reference.New(a, b, 1) },
 		},
 		{
 			name: "VO",
-			constructor: func(a, b mock.A) testdata.VO {
+			constructor: func(a, b agent.A) testdata.VO {
 				v, _ := New(a, b, 1)
 				return v
 			},
@@ -262,20 +262,5 @@ func BenchmarkORCA(t *testing.B) {
 				v.ORCA()
 			}
 		})
-	}
-}
-
-func TestP(t *testing.T) {
-	o := mock.O{
-		P: *vector.New(0, 1),
-		V: *vector.New(1, 2),
-		R: 10,
-	}
-	a := *mock.New(o)
-	b := *mock.New(o)
-
-	got := p(a, b)
-	if epsilon.Within(vector.Magnitude(got), 0) {
-		t.Errorf("p() = %v, want a non-zero result", got)
 	}
 }

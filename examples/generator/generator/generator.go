@@ -190,6 +190,25 @@ func DebugCanvas() config.O {
 			},
 		},
 
+		// For very close agents, ORCA will not force agents apart. This
+		// is a very rare bug, and should not matter in everyday use.
+		{
+			Agents: []agent.O{
+				{
+					P: *vector.New(200+1e-6, 100),
+					G: *vector.New(300, 100),
+					S: 50,
+					R: 10,
+				},
+				{
+					P: *vector.New(200, 100),
+					G: *vector.New(300, 100),
+					S: 50,
+					R: 10,
+				},
+			},
+		},
+
 		// Ensure agents travelling directly into the line segment will
 		// veer away.
 		{

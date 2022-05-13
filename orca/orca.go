@@ -102,6 +102,8 @@ func step(a agent.A, t *kd.T, rs []region.R, f func(a agent.A) bool, tau float64
 		if len(r.R()) != 1 {
 			panic("UnimplementedError: cannot construct ORCA line for a region not of cardinality 1")
 		}
+		// TODO(minkezhang): Add to immutable constraints instead, as
+		// lines are immovable.
 		cs = append(cs, constraint.C(
 			line.New(r.R()[0], *v2d.New(0, 0)).ORCA(a, tau),
 		))
