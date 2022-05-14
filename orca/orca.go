@@ -94,7 +94,7 @@ func step(a agent.A, t *kd.T, rs []region.R, f func(a agent.A) bool, tau float64
 	cs := make([]constraint.C, 0, len(ps))
 	for _, p := range ps {
 		cs = append(cs, constraint.C(
-			voagent.New(a).ORCA(p.(kd.P).A(), tau),
+			voagent.New(p.(kd.P).A()).ORCA(a, tau),
 		))
 	}
 	for _, r := range rs {

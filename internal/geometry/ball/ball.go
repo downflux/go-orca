@@ -109,8 +109,8 @@ func New(agent agent.A, obstacle agent.A, tau float64) (*VO, error) {
 	}, nil
 }
 
-// ORCA returns the half-plane of permissable velocities for an agent a, given
-// the an agent b constraint.
+// ORCA returns the half-plane of permissable velocities for an agent, given the
+// an agent constraint.
 func (vo *VO) ORCA() (hyperplane.HP, error) {
 	u, err := vo.u()
 	if err != nil {
@@ -266,7 +266,8 @@ func (vo *VO) v() vector.V {
 	return vo.vCache
 }
 
-// w calculates the relative velocity between a and b, centered on the truncation circle.
+// w calculates the relative velocity between the agent and obstacle, centered
+// on the truncation circle.
 func (vo *VO) w() vector.V {
 	if !vo.wIsCached {
 		vo.wIsCached = true
@@ -330,11 +331,13 @@ func (vo *VO) theta() (float64, error) {
 		// ||w|| ||p||
 		wp := vector.Magnitude(vo.w()) * vector.Magnitude(p)
 
-		// cos(𝜃) = cos(-𝜃) -- we don't know if 𝜃 lies to the "left" or "right" of 0.
+		// cos(𝜃) = cos(-𝜃) -- we don't know if 𝜃 lies to the "left" or
+		// "right" of 0.
 		//
-		// Occasionally due to rounding errors, domain here is slightly larger
-		// than 1; other bounding issues are prevented with the check on |w| and
-		// |p| above, and we are safe to cap the domain here.
+		// Occasionally due to rounding errors, domain here is slightly
+		// larger than 1; other bounding issues are prevented with the
+		// check on |w| and |p| above, and we are safe to cap the domain
+		// here.
 		theta := math.Acos(math.Min(1, dotWP/wp))
 
 		// Use sin(𝜃) = -sin(-𝜃) to check the orientation of 𝜃.

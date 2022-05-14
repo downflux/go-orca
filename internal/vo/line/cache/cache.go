@@ -188,16 +188,16 @@ func (c C) ORCA() hyperplane.HP {
 		return voagent.New(
 			agentimpl.New(
 				agentimpl.O{
-					P: c.agent.P(),
-					V: *vector.New(0, 0),
-					R: c.agent.R(),
+					P: c.segment.L().L(c.segment.TMin()),
+					V: c.velocity,
 				},
 			),
 		).ORCA(
 			agentimpl.New(
 				agentimpl.O{
-					P: c.segment.L().L(c.segment.TMin()),
-					V: c.velocity,
+					P: c.agent.P(),
+					V: *vector.New(0, 0),
+					R: c.agent.R(),
 				},
 			),
 			c.tau,
@@ -206,42 +206,40 @@ func (c C) ORCA() hyperplane.HP {
 		return voagent.New(
 			agentimpl.New(
 				agentimpl.O{
-					P: c.agent.P(),
-					V: *vector.New(0, 0),
-					R: c.agent.R(),
+					P: c.segment.L().L(c.segment.TMax()),
+					V: c.velocity,
 				},
 			),
 		).ORCA(
 			agentimpl.New(
 				agentimpl.O{
-					P: c.segment.L().L(c.segment.TMax()),
-					V: c.velocity,
+					P: c.agent.P(),
+					V: *vector.New(0, 0),
+					R: c.agent.R(),
 				},
 			),
 			c.tau,
 		)
 	case domain.Left:
 		s := *vosegment.New(c.segment, c.agent.R())
-		return voagent.New(c.agent).ORCA(
+		return voagent.New(
 			agentimpl.New(
 				agentimpl.O{
 					P: s.CL().C().P(),
 					V: c.velocity,
 				},
 			),
-			c.tau,
-		)
+		).ORCA(c.agent, c.tau)
 	case domain.Right:
 		s := *vosegment.New(c.segment, c.agent.R())
-		return voagent.New(c.agent).ORCA(
+		return voagent.New(
 			agentimpl.New(
 				agentimpl.O{
 					P: s.CR().C().P(),
 					V: c.velocity,
 				},
 			),
-			c.tau,
-		)
+		).ORCA(c.agent, c.tau)
 	case domain.CollisionLine:
 		n := vector.Unit(
 			vector.Sub(

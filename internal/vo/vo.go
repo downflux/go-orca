@@ -17,10 +17,5 @@ type VO interface {
 	//
 	// More concisely, if HP.In(v), then v is a permissible agent velocity
 	// for the current simulation snapshot.
-	//
-	// N.B.: The input agent here is considered the obstacle.
-	//
-	// TODO(minkezhang): Refactor VO to represent the obstacle instead (i.e.
-	// swap the role of the input agent).
-	ORCA(a agent.A, tau float64) hyperplane.HP
+	ORCA(agent agent.A, tau float64) hyperplane.HP
 }

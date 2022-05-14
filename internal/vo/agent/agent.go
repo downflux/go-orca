@@ -13,17 +13,16 @@ import (
 	"github.com/downflux/go-orca/internal/geometry/ball"
 )
 
-// TODO(minkezhang): Migrate to a generic point VO instead.
 type VO struct {
-	a agent.A
+	obstacle agent.A
 }
 
-func New(a agent.A) *VO {
-	return &VO{a: a}
+func New(obstacle agent.A) *VO {
+	return &VO{obstacle: obstacle}
 }
 
-func (vo VO) ORCA(a agent.A, tau float64) hyperplane.HP {
-	b, err := ball.New(vo.a, a, tau)
+func (vo VO) ORCA(agent agent.A, tau float64) hyperplane.HP {
+	b, err := ball.New(agent, vo.obstacle, tau)
 	if err != nil {
 		panic(fmt.Sprintf("cannot construct VO object: %v", err))
 	}
