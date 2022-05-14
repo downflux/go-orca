@@ -36,10 +36,20 @@ type C struct {
 }
 
 func New(s segment.S, v vector.V, a agent.A, tau float64) *C {
+	// V is the optimal velocity for the agent in the VO. Per van den Berg
+	// et al. (2011), we are setting this value to (0, 0) to ensure that the
+	// agent can always just stop moving to avoid colliding with all walls.
+	agent := agentimpl.New(
+		agentimpl.O{
+			V: *vector.New(0, 0),
+			P: a.P(),
+			R: a.R(),
+		},
+	)
 	return &C{
 		segment:  s,
 		velocity: v,
-		agent:    a,
+		agent:    agent,
 		tau:      tau,
 	}
 }
@@ -192,16 +202,7 @@ func (c C) ORCA() hyperplane.HP {
 					V: c.velocity,
 				},
 			),
-		).ORCA(
-			agentimpl.New(
-				agentimpl.O{
-					P: c.agent.P(),
-					V: *vector.New(0, 0),
-					R: c.agent.R(),
-				},
-			),
-			c.tau,
-		)
+		).ORCA(c.agent, c.tau)
 	case domain.CollisionRight:
 		return voagent.New(
 			agentimpl.New(
@@ -210,16 +211,7 @@ func (c C) ORCA() hyperplane.HP {
 					V: c.velocity,
 				},
 			),
-		).ORCA(
-			agentimpl.New(
-				agentimpl.O{
-					P: c.agent.P(),
-					V: *vector.New(0, 0),
-					R: c.agent.R(),
-				},
-			),
-			c.tau,
-		)
+		).ORCA(c.agent, c.tau)
 	case domain.Left:
 		s := *vosegment.New(c.segment, c.agent.R())
 		return voagent.New(
