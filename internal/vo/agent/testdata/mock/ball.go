@@ -26,7 +26,7 @@ type Reference struct {
 	tau      float64
 }
 
-func New(agent agentimpl.A, obstacle agentimpl.A, tau float64) *Reference {
+func New(obstacle agentimpl.A, agent agentimpl.A, tau float64) *Reference {
 	return &Reference{
 		agent:    agent,
 		obstacle: obstacle,

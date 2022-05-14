@@ -85,7 +85,7 @@ type VO struct {
 	domainCache    domain.D
 }
 
-func New(agent agent.A, obstacle agent.A, tau float64) (*VO, error) {
+func New(obstacle agent.A, agent agent.A, tau float64) (*VO, error) {
 	if tau <= 0 {
 		return nil, status.Errorf(codes.OutOfRange, "invalid minimum lookahead timestep")
 	}

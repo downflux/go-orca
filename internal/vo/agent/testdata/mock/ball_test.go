@@ -146,7 +146,7 @@ func TestVOReference(t *testing.T) {
 	}
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
-			r := Reference{agent: c.agent, obstacle: c.obstacle, tau: c.tau}
+			r := New(c.obstacle, c.agent, c.tau)
 			t.Run("domain.D", func(t *testing.T) {
 				if got := r.check(); got != c.domain {
 					t.Errorf("check() = %v, want = %v", got, c.domain)

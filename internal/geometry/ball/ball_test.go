@@ -150,7 +150,7 @@ func TestVOReference(t *testing.T) {
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
 			t.Run("ORCA", func(t *testing.T) {
-				got, err := reference.New(c.agent, c.obstacle, c.tau).ORCA()
+				got, err := reference.New(c.obstacle, c.agent, c.tau).ORCA()
 				if err != nil {
 					t.Fatalf("ORCA() returned error: %v", err)
 				}
@@ -211,13 +211,13 @@ func TestVOConformance(t *testing.T) {
 
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
-			v, err := New(c.agent, c.obstacle, c.tau)
+			v, err := New(c.obstacle, c.agent, c.tau)
 			if err != nil {
 				t.Fatalf("New() returned a non-nil error: %v", err)
 			}
 
 			t.Run("ORCA", func(t *testing.T) {
-				want, err := reference.New(c.agent, c.obstacle, float64(c.tau)).ORCA()
+				want, err := reference.New(c.obstacle, c.agent, float64(c.tau)).ORCA()
 				if err != nil {
 					t.Fatalf("ORCA() returned error: %v", err)
 				}
