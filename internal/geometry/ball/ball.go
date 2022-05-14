@@ -37,8 +37,8 @@ const (
 )
 
 type VO struct {
-	a agent.A
-	b agent.A
+	agent    agent.A
+	obstacle agent.A
 
 	// base is the scaled, characteristic circle of the truncated velocity
 	// object.
@@ -85,13 +85,13 @@ type VO struct {
 	domainCache    domain.D
 }
 
-func New(a, b agent.A, tau float64) (*VO, error) {
+func New(agent agent.A, obstacle agent.A, tau float64) (*VO, error) {
 	if tau <= 0 {
 		return nil, status.Errorf(codes.OutOfRange, "invalid minimum lookahead timestep")
 	}
 
 	// c defines the truncation circle.
-	c := *hypersphere.New(vector.Scale(1/tau, p(a, b)), r(a, b)/tau)
+	c := *hypersphere.New(vector.Scale(1/tau, p(agent, obstacle)), r(agent, obstacle)/tau)
 
 	// We cannot construct a valid cone if the two agents are overlapping,
 	// i.e. in the collision domain.
@@ -101,11 +101,11 @@ func New(a, b agent.A, tau float64) (*VO, error) {
 	}
 
 	return &VO{
-		a:    a,
-		b:    b,
-		base: c,
-		cone: *d,
-		tau:  tau,
+		agent:    agent,
+		obstacle: obstacle,
+		base:     c,
+		cone:     *d,
+		tau:      tau,
 	}, nil
 }
 
@@ -121,7 +121,7 @@ func (vo *VO) ORCA() (hyperplane.HP, error) {
 		return hyperplane.HP{}, err
 	}
 	return *hyperplane.New(
-		vector.Add(vo.a.V(), vector.Scale(0.5, u)),
+		vector.Add(vo.agent.V(), vector.Scale(0.5, u)),
 		n,
 	), nil
 }
@@ -143,8 +143,8 @@ func (vo *VO) n() (vector.V, error) {
 		tw := vo.w()
 
 		if d == domain.Collision {
-			tr = r(vo.a, vo.b) / minTau
-			tw = w(vo.a, vo.b, minTau)
+			tr = r(vo.agent, vo.obstacle) / minTau
+			tw = w(vo.agent, vo.obstacle, minTau)
 		}
 
 		if vector.SquaredMagnitude(tw) > tr*tr {
@@ -183,8 +183,8 @@ func (vo *VO) u() (vector.V, error) {
 		tw := vo.w()
 
 		if d == domain.Collision {
-			tr = r(vo.a, vo.b) / minTau
-			tw = w(vo.a, vo.b, minTau)
+			tr = r(vo.agent, vo.obstacle) / minTau
+			tw = w(vo.agent, vo.obstacle, minTau)
 		}
 
 		return vector.Scale(tr/vector.Magnitude(tw)-1, tw), nil
@@ -221,7 +221,7 @@ func (vo *VO) u() (vector.V, error) {
 func (vo *VO) r() float64 {
 	if !vo.rIsCached {
 		vo.rIsCached = true
-		vo.rCache = r(vo.a, vo.b)
+		vo.rCache = r(vo.agent, vo.obstacle)
 	}
 	return vo.rCache
 }
@@ -252,7 +252,7 @@ func (vo *VO) l() vector.V {
 func (vo *VO) p() vector.V {
 	if !vo.pIsCached {
 		vo.pIsCached = true
-		vo.pCache = p(vo.a, vo.b)
+		vo.pCache = p(vo.agent, vo.obstacle)
 	}
 	return vo.pCache
 }
@@ -261,7 +261,7 @@ func (vo *VO) p() vector.V {
 func (vo *VO) v() vector.V {
 	if !vo.vIsCached {
 		vo.vIsCached = true
-		vo.vCache = v(vo.a, vo.b)
+		vo.vCache = v(vo.agent, vo.obstacle)
 	}
 	return vo.vCache
 }
@@ -270,7 +270,7 @@ func (vo *VO) v() vector.V {
 func (vo *VO) w() vector.V {
 	if !vo.wIsCached {
 		vo.wIsCached = true
-		vo.wCache = w(vo.a, vo.b, vo.tau)
+		vo.wCache = w(vo.agent, vo.obstacle, vo.tau)
 	}
 	return vo.wCache
 }
@@ -305,7 +305,7 @@ func (vo *VO) beta() (float64, error) {
 //   1.   w • p   = ||w|| ||p|| cos(𝜃), and
 //   2. ||w x p|| = ||w|| ||p|| sin(𝜃)
 //
-// vo.p() is defined as vo.b.P() - vo.a.P(); however, we want 𝜃 = 0 when w is
+// vo.p() is defined as vo.obstacle.P() - vo.agent.P(); however, we want 𝜃 = 0 when w is
 // pointing towards the origin -- that is, opposite the direction of p.
 // Therefore, we flip p in our calculations here.
 //

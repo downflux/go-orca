@@ -83,20 +83,20 @@ func TestVOReference(t *testing.T) {
 	b := *agent.New(agent.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2})
 
 	testConfigs := []struct {
-		name   string
-		tau    float64
-		domain domain.D
-		u      vector.V
-		a      agent.A
-		b      agent.A
-		orca   hyperplane.HP
+		name     string
+		tau      float64
+		domain   domain.D
+		u        vector.V
+		agent    agent.A
+		obstacle agent.A
+		orca     hyperplane.HP
 	}{
 		{
-			name:   "Simple",
-			a:      a,
-			b:      b,
-			tau:    1,
-			domain: domain.Circle,
+			name:     "Simple",
+			agent:    a,
+			obstacle: b,
+			tau:      1,
+			domain:   domain.Circle,
 			// These values were determined experimentally.
 			u: *vector.New(0.2723931248910011, 1.0895724995640044),
 			orca: *hyperplane.New(
@@ -105,11 +105,11 @@ func TestVOReference(t *testing.T) {
 			),
 		},
 		{
-			name:   "LargeTau",
-			a:      a,
-			b:      b,
-			tau:    3,
-			domain: domain.Left,
+			name:     "LargeTau",
+			agent:    a,
+			obstacle: b,
+			tau:      3,
+			domain:   domain.Left,
 			// These values were determined experimentally.
 			u: *vector.New(0.16000000000000003, 0.11999999999999988),
 			orca: *hyperplane.New(
@@ -118,11 +118,11 @@ func TestVOReference(t *testing.T) {
 			),
 		},
 		{
-			name:   "InverseSimple",
-			a:      b,
-			b:      a,
-			tau:    1,
-			domain: domain.Circle,
+			name:     "InverseSimple",
+			agent:    b,
+			obstacle: a,
+			tau:      1,
+			domain:   domain.Circle,
 			// These values were determined experimentally.
 			u: vector.Scale(
 				-1,
@@ -134,11 +134,11 @@ func TestVOReference(t *testing.T) {
 			),
 		},
 		{
-			name:   "InverseLargeTau",
-			a:      a,
-			b:      b,
-			tau:    3,
-			domain: domain.Left,
+			name:     "InverseLargeTau",
+			agent:    a,
+			obstacle: b,
+			tau:      3,
+			domain:   domain.Left,
 			// These values were determined experimentally.
 			u: *vector.New(0.16000000000000003, 0.11999999999999988),
 			orca: *hyperplane.New(
@@ -150,7 +150,7 @@ func TestVOReference(t *testing.T) {
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
 			t.Run("ORCA", func(t *testing.T) {
-				got, err := reference.New(c.a, c.b, c.tau).ORCA()
+				got, err := reference.New(c.agent, c.obstacle, c.tau).ORCA()
 				if err != nil {
 					t.Fatalf("ORCA() returned error: %v", err)
 				}
@@ -169,38 +169,38 @@ func TestVOConformance(t *testing.T) {
 	const delta = 1e-10
 
 	type config struct {
-		name string
-		a    agent.A
-		b    agent.A
-		tau  float64
+		name     string
+		agent    agent.A
+		obstacle agent.A
+		tau      float64
 	}
 
 	testConfigs := []config{
 		{
-			name: "SimpleCase",
-			a:    *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
-			b:    *agent.New(agent.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
-			tau:  1,
+			name:     "SimpleCase",
+			agent:    *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
+			obstacle: *agent.New(agent.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
+			tau:      1,
 		},
 		{
-			name: "SimpleCaseLargeTimeStep",
-			a:    *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
-			b:    *agent.New(agent.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
-			tau:  3,
+			name:     "SimpleCaseLargeTimeStep",
+			agent:    *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
+			obstacle: *agent.New(agent.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
+			tau:      3,
 		},
 		{
-			name: "Collision",
-			a:    *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
-			b:    *agent.New(agent.O{P: *vector.New(0, 3), V: *vector.New(1, -1), R: 2}),
-			tau:  1,
+			name:     "Collision",
+			agent:    *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
+			obstacle: *agent.New(agent.O{P: *vector.New(0, 3), V: *vector.New(1, -1), R: 2}),
+			tau:      1,
 		},
 	}
 
 	for i := 0; i < nTests; i++ {
 		testConfigs = append(testConfigs, config{
-			name: fmt.Sprintf("Random-%v", i),
-			a:    ra(),
-			b:    ra(),
+			name:     fmt.Sprintf("Random-%v", i),
+			agent:    ra(),
+			obstacle: ra(),
 			// A simulation timestep scalar of 0 indicates the
 			// simulation will never advance to the next snapshot,
 			// which is a meaningless case (and will produce
@@ -211,13 +211,13 @@ func TestVOConformance(t *testing.T) {
 
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
-			v, err := New(c.a, c.b, c.tau)
+			v, err := New(c.agent, c.obstacle, c.tau)
 			if err != nil {
 				t.Fatalf("New() returned a non-nil error: %v", err)
 			}
 
 			t.Run("ORCA", func(t *testing.T) {
-				want, err := reference.New(c.a, c.b, float64(c.tau)).ORCA()
+				want, err := reference.New(c.agent, c.obstacle, float64(c.tau)).ORCA()
 				if err != nil {
 					t.Fatalf("ORCA() returned error: %v", err)
 				}
@@ -239,16 +239,16 @@ func TestVOConformance(t *testing.T) {
 func BenchmarkORCA(t *testing.B) {
 	testConfigs := []struct {
 		name        string
-		constructor func(a, b agent.A) testdata.VO
+		constructor func(agent, obstacle agent.A) testdata.VO
 	}{
 		{
 			name:        "VOReference",
-			constructor: func(a, b agent.A) testdata.VO { return reference.New(a, b, 1) },
+			constructor: func(agent, obstacle agent.A) testdata.VO { return reference.New(agent, obstacle, 1) },
 		},
 		{
 			name: "VO",
-			constructor: func(a, b agent.A) testdata.VO {
-				v, _ := New(a, b, 1)
+			constructor: func(agent, obstacle agent.A) testdata.VO {
+				v, _ := New(agent, obstacle, 1)
 				return v
 			},
 		},

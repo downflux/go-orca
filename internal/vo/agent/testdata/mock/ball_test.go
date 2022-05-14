@@ -8,9 +8,9 @@ import (
 	"github.com/downflux/go-geometry/2d/hyperplane"
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-geometry/epsilon"
+	"github.com/downflux/go-orca/internal/agent"
 	"github.com/downflux/go-orca/internal/geometry/ball/domain"
 	"github.com/downflux/go-orca/internal/vo/agent/testdata"
-	"github.com/downflux/go-orca/internal/agent"
 )
 
 var (
@@ -80,20 +80,20 @@ func TestVOReference(t *testing.T) {
 	b := *agent.New(agent.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2})
 
 	testConfigs := []struct {
-		name   string
-		tau    float64
-		domain domain.D
-		u      vector.V
-		a      agent.A
-		b      agent.A
-		orca   hyperplane.HP
+		name     string
+		tau      float64
+		domain   domain.D
+		u        vector.V
+		agent    agent.A
+		obstacle agent.A
+		orca     hyperplane.HP
 	}{
 		{
-			name:   "Simple",
-			a:      a,
-			b:      b,
-			tau:    1,
-			domain: domain.Circle,
+			name:     "Simple",
+			agent:    a,
+			obstacle: b,
+			tau:      1,
+			domain:   domain.Circle,
 			// These values were determined experimentally.
 			u: *vector.New(0.2723931248910011, 1.0895724995640044),
 			orca: *hyperplane.New(
@@ -102,11 +102,11 @@ func TestVOReference(t *testing.T) {
 			),
 		},
 		{
-			name:   "LargeTau",
-			a:      a,
-			b:      b,
-			tau:    3,
-			domain: domain.Left,
+			name:     "LargeTau",
+			agent:    a,
+			obstacle: b,
+			tau:      3,
+			domain:   domain.Left,
 			// These values were determined experimentally.
 			u: *vector.New(0.16000000000000003, 0.11999999999999988),
 			orca: *hyperplane.New(
@@ -115,11 +115,11 @@ func TestVOReference(t *testing.T) {
 			),
 		},
 		{
-			name:   "InverseSimple",
-			a:      b,
-			b:      a,
-			tau:    1,
-			domain: domain.Circle,
+			name:     "InverseSimple",
+			agent:    b,
+			obstacle: a,
+			tau:      1,
+			domain:   domain.Circle,
 			// These values were determined experimentally.
 			u: vector.Scale(
 				-1,
@@ -131,11 +131,11 @@ func TestVOReference(t *testing.T) {
 			),
 		},
 		{
-			name:   "InverseLargeTau",
-			a:      a,
-			b:      b,
-			tau:    3,
-			domain: domain.Left,
+			name:     "InverseLargeTau",
+			agent:    a,
+			obstacle: b,
+			tau:      3,
+			domain:   domain.Left,
 			// These values were determined experimentally.
 			u: *vector.New(0.16000000000000003, 0.11999999999999988),
 			orca: *hyperplane.New(
@@ -146,7 +146,7 @@ func TestVOReference(t *testing.T) {
 	}
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
-			r := Reference{a: c.a, b: c.b, tau: c.tau}
+			r := Reference{agent: c.agent, obstacle: c.obstacle, tau: c.tau}
 			t.Run("domain.D", func(t *testing.T) {
 				if got := r.check(); got != c.domain {
 					t.Errorf("check() = %v, want = %v", got, c.domain)

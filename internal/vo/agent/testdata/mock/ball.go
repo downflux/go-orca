@@ -21,16 +21,16 @@ const (
 // Reference implements the official RVO2 spec. See
 // https://gamma.cs.unc.edu/RVO2/ for more information.
 type Reference struct {
-	a   agentimpl.A
-	b   agentimpl.A
-	tau float64
+	agent    agentimpl.A
+	obstacle agentimpl.A
+	tau      float64
 }
 
-func New(a agentimpl.A, b agentimpl.A, tau float64) *Reference {
+func New(agent agentimpl.A, obstacle agentimpl.A, tau float64) *Reference {
 	return &Reference{
-		a:   a,
-		b:   b,
-		tau: tau,
+		agent:    agent,
+		obstacle: obstacle,
+		tau:      tau,
 	}
 }
 
@@ -48,7 +48,7 @@ func (vo Reference) ORCA() (hyperplane.HP, error) {
 	case domain.Circle:
 		tw := vo.w()
 		if d == domain.Collision {
-			tw = w(vo.a, vo.b, minTau)
+			tw = w(vo.agent, vo.obstacle, minTau)
 		}
 		n = vector.Unit(tw)
 	case domain.Right:
@@ -62,7 +62,7 @@ func (vo Reference) ORCA() (hyperplane.HP, error) {
 		return hyperplane.HP{}, status.Errorf(codes.Internal, "invalid domain %v", d)
 	}
 	return *hyperplane.New(
-		vector.Add(vo.a.V(), vector.Scale(0.5, u)),
+		vector.Add(vo.agent.V(), vector.Scale(0.5, u)),
 		n,
 	), nil
 }
@@ -84,8 +84,8 @@ func (vo Reference) u() (vector.V, error) {
 		tw := vo.w()
 
 		if d == domain.Collision {
-			tr = r(vo.a, vo.b) / minTau
-			tw = w(vo.a, vo.b, minTau)
+			tr = r(vo.agent, vo.obstacle) / minTau
+			tw = w(vo.agent, vo.obstacle, minTau)
 		}
 
 		return vector.Scale(tr-vector.Magnitude(tw), vector.Unit(tw)), nil
@@ -98,18 +98,18 @@ func (vo Reference) u() (vector.V, error) {
 		return vector.V{}, status.Errorf(codes.Internal, "invalid domain %v", d)
 	}
 }
-func (vo Reference) r() float64  { return r(vo.a, vo.b) }
-func (vo Reference) p() vector.V { return p(vo.a, vo.b) }
-func (vo Reference) w() vector.V { return w(vo.a, vo.b, vo.tau) }
-func (vo Reference) v() vector.V { return v(vo.a, vo.b) }
+func (vo Reference) r() float64  { return r(vo.agent, vo.obstacle) }
+func (vo Reference) p() vector.V { return p(vo.agent, vo.obstacle) }
+func (vo Reference) w() vector.V { return w(vo.agent, vo.obstacle, vo.tau) }
+func (vo Reference) v() vector.V { return v(vo.agent, vo.obstacle) }
 
 // t calculates the unnormalized vector of the tangent line from the base of p
 // to the edge of the truncation circle. This corresponds to line.direction in
 // the RVO2 implementation. Returns the left or right vector based on the
 // projected side of u onto the VO.
 func (vo Reference) t() vector.V {
-	tp := p(vo.a, vo.b)
-	tr := r(vo.a, vo.b)
+	tp := p(vo.agent, vo.obstacle)
+	tr := r(vo.agent, vo.obstacle)
 	l := math.Sqrt(vector.SquaredMagnitude(tp) - math.Pow(tr, 2))
 	return vector.Scale(1/vector.SquaredMagnitude(tp), *vector.New(
 		tp.X()*l-tp.Y()*tr,
@@ -121,8 +121,8 @@ func (vo Reference) t() vector.V {
 func (vo Reference) l() vector.V {
 	t := vo.t()
 	if vo.check() == domain.Right {
-		tp := p(vo.a, vo.b)
-		tr := r(vo.a, vo.b)
+		tp := p(vo.agent, vo.obstacle)
+		tr := r(vo.agent, vo.obstacle)
 		l := math.Sqrt(vector.SquaredMagnitude(tp) - math.Pow(tr, 2))
 		t = vector.Scale(-1/vector.SquaredMagnitude(tp), *vector.New(
 			tp.X()*l+tp.Y()*tr,
