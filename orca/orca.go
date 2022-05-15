@@ -10,6 +10,7 @@ import (
 	"github.com/downflux/go-orca/agent"
 	"github.com/downflux/go-orca/internal/solver"
 	"github.com/downflux/go-orca/internal/vo/line"
+	"github.com/downflux/go-orca/internal/vo/opt"
 	"github.com/downflux/go-orca/kd"
 	"github.com/downflux/go-orca/region"
 
@@ -94,7 +95,7 @@ func step(a agent.A, t *kd.T, rs []region.R, f func(a agent.A) bool, tau float64
 	cs := make([]constraint.C, 0, len(ps))
 	for _, p := range ps {
 		cs = append(cs, constraint.C(
-			voagent.New(p.(kd.P).A()).ORCA(a, tau),
+			voagent.New(p.(kd.P).A()).ORCA(opt.O{Agent: a, Tau: tau}),
 		))
 	}
 	for _, r := range rs {
@@ -105,7 +106,7 @@ func step(a agent.A, t *kd.T, rs []region.R, f func(a agent.A) bool, tau float64
 		// TODO(minkezhang): Add to immutable constraints instead, as
 		// lines are immovable.
 		cs = append(cs, constraint.C(
-			line.New(r.R()[0], *v2d.New(0, 0)).ORCA(a, tau),
+			line.New(r.R()[0], *v2d.New(0, 0)).ORCA(opt.O{Agent: a, Tau: tau}),
 		))
 	}
 
