@@ -177,21 +177,11 @@ func (c C) domain() domain.D {
 }
 
 func (c C) ORCA() hyperplane.HP {
-	// V is the optimal velocity for the agent in the VO. Per van den Berg
-	// et al. (2011), we are setting this value to (0, 0) to ensure that the
-	// agent can always just stop moving to avoid colliding with all walls.
-	//
-	// This is actually buggy -- we want to ensure V() returns agent.V(),
-	// but the actual ORCA plane generates a plane with V set to (0, 0).
-	//
-	// TODO(minkezhang): Address this discrepancy.
-	agent := agentimpl.New(
-		agentimpl.O{
-			V: *vector.New(0, 0),
-			P: c.agent.P(),
-			R: c.agent.R(),
-		},
-	)
+	o := opt.O{
+		Weight: opt.WeightAll,
+		VOpt:   opt.VOptZero,
+	}
+
 	switch d := c.domain(); d {
 	case domain.CollisionLeft:
 		return voagent.New(
@@ -201,11 +191,8 @@ func (c C) ORCA() hyperplane.HP {
 					V: *vector.New(0, 0),
 				},
 			),
-			opt.O{
-				Weight: opt.WeightAll,
-				VOpt:   opt.VOptZero,
-			},
-		).ORCA(agent, c.tau)
+			o,
+		).ORCA(c.agent, c.tau)
 	case domain.CollisionRight:
 		return voagent.New(
 			agentimpl.New(
@@ -214,11 +201,8 @@ func (c C) ORCA() hyperplane.HP {
 					V: *vector.New(0, 0),
 				},
 			),
-			opt.O{
-				Weight: opt.WeightAll,
-				VOpt:   opt.VOptZero,
-			},
-		).ORCA(agent, c.tau)
+			o,
+		).ORCA(c.agent, c.tau)
 	case domain.Left:
 		s := *vosegment.New(c.segment, c.agent.R())
 		return voagent.New(
@@ -228,10 +212,7 @@ func (c C) ORCA() hyperplane.HP {
 					V: *vector.New(0, 0),
 				},
 			),
-			opt.O{
-				Weight: opt.WeightAll,
-				VOpt:   opt.VOptZero,
-			},
+			o,
 		).ORCA(c.agent, c.tau)
 	case domain.Right:
 		s := *vosegment.New(c.segment, c.agent.R())
@@ -242,11 +223,8 @@ func (c C) ORCA() hyperplane.HP {
 					V: *vector.New(0, 0),
 				},
 			),
-			opt.O{
-				Weight: opt.WeightAll,
-				VOpt:   opt.VOptZero,
-			},
-		).ORCA(agent, c.tau)
+			o,
+		).ORCA(c.agent, c.tau)
 	case domain.CollisionLine:
 		n := vector.Unit(
 			vector.Sub(
@@ -254,12 +232,12 @@ func (c C) ORCA() hyperplane.HP {
 				c.segment.L().L(c.segment.T(c.agent.P())),
 			),
 		)
-		return *hyperplane.New(*vector.New(0, 0), n)
+		return *hyperplane.New(opt.VOptZero(c.agent), n)
 	case domain.Line:
 		s := c.S()
 		w := vector.Sub(
-			agent.V(),
-			s.L().L(s.T(agent.V())),
+			c.agent.V(),
+			s.L().L(s.T(c.agent.V())),
 		)
 		r := c.agent.R() / c.tau
 		u := vector.Scale(
@@ -269,7 +247,7 @@ func (c C) ORCA() hyperplane.HP {
 		n := vector.Scale(-1, vector.Unit(u))
 
 		return *hyperplane.New(
-			vector.Add(opt.VOptZero(agent), vector.Scale(float64(opt.WeightAll), u)),
+			vector.Add(opt.VOptZero(c.agent), vector.Scale(float64(opt.WeightAll), u)),
 			n,
 		)
 	default:
