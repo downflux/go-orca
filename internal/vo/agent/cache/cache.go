@@ -97,11 +97,6 @@ type VO struct {
 	domainCache    domain.D
 }
 
-// TODO(minkezhang): Refactor to use option constructor.
-// TODO(minkezhang): Add weight float64 for how much of the ORCA velocity change
-// the input agent sould take up.
-// TODO(minkezhang): Add func VOpt to allow callers to differentiate between
-// ball-ball interactions and ball-wall interactions (where VOpt is (0, 0)).
 func New(o O) (*VO, error) {
 	if o.Tau < minTau {
 		return nil, status.Errorf(codes.OutOfRange, "invalid minimum lookahead timestep")
