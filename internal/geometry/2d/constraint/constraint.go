@@ -2,6 +2,7 @@ package constraint
 
 import (
 	"github.com/downflux/go-geometry/2d/constraint"
+	"github.com/downflux/go-geometry/2d/vector"
 )
 
 type C struct {
@@ -16,5 +17,7 @@ func New(c constraint.C, mutable bool) *C {
 	}
 }
 
-func (c C) C() constraint.C { return c.c }
-func (c C) Mutable() bool   { return c.mutable }
+func (c C) A() []float64       { return c.c.A() }
+func (c C) B() float64         { return c.c.B() }
+func (c C) In(v vector.V) bool { return c.c.In(v) }
+func (c C) Mutable() bool      { return c.mutable }
