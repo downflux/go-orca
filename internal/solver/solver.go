@@ -1,9 +1,9 @@
 package solver
 
 import (
-	"github.com/downflux/go-geometry/2d/constraint"
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
+	"github.com/downflux/go-orca/internal/geometry/2d/constraint"
 	"github.com/downflux/go-orca/internal/solver/bounds/circular"
 
 	s2d "github.com/downflux/go-orca/internal/solver/2d"

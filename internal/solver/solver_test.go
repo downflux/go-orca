@@ -4,10 +4,11 @@ import (
 	"math"
 	"testing"
 
-	"github.com/downflux/go-geometry/2d/constraint"
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
+	"github.com/downflux/go-orca/internal/geometry/2d/constraint"
 
+	c2d "github.com/downflux/go-geometry/2d/constraint"
 	v2d "github.com/downflux/go-geometry/2d/vector"
 	s2d "github.com/downflux/go-orca/internal/solver/2d"
 )
@@ -55,8 +56,11 @@ func TestSolve(t *testing.T) {
 			name: "2D/SingleConstraint/WithinConstraint",
 			cs: []constraint.C{
 				*constraint.New(
-					*vector.New(0, 1),
-					*vector.New(0, 1),
+					*c2d.New(
+						*vector.New(0, 1),
+						*vector.New(0, 1),
+					),
+					true,
 				),
 			},
 			v:    *v2d.New(0, 2),
@@ -70,10 +74,12 @@ func TestSolve(t *testing.T) {
 			name: "2D/SingleConstraint/OutsideConstraint",
 			cs: []constraint.C{
 				*constraint.New(
-					*vector.New(0, 1),
-					*vector.New(0, 1),
-				),
-			},
+					*c2d.New(
+						*vector.New(0, 1),
+						*vector.New(0, 1),
+					),
+					false,
+				)},
 			v:    *v2d.New(0, -1),
 			r:    math.Inf(0),
 			want: *v2d.New(0, 1),
@@ -83,12 +89,12 @@ func TestSolve(t *testing.T) {
 	testConfigs = append(
 		testConfigs,
 		func() []config {
-			c := *constraint.New(
+			c := *c2d.New(
 				*vector.New(0, 1),
 				*vector.New(0, 1),
 			)
 
-			d := *constraint.New(
+			d := *c2d.New(
 				*vector.New(0, 2),
 				*vector.New(0, 1),
 			)
@@ -96,7 +102,7 @@ func TestSolve(t *testing.T) {
 			return []config{
 				{
 					name: "2D/ParalleConstraints/SuccessivelyConstrain",
-					cs:   []constraint.C{c, d},
+					cs:   []constraint.C{*constraint.New(c, true), *constraint.New(d, true)},
 					v:    *v2d.New(0, -1),
 					r:    math.Inf(0),
 					want: *v2d.New(0, 2),
@@ -107,7 +113,7 @@ func TestSolve(t *testing.T) {
 				// infeasibility error.
 				{
 					name: "2D/ParalleConstraints/RelaxConstraintStillFeasible",
-					cs:   []constraint.C{d, c},
+					cs:   []constraint.C{*constraint.New(d, true), *constraint.New(c, true)},
 					v:    *v2d.New(0, -1),
 					r:    math.Inf(0),
 					want: *v2d.New(0, 2),
@@ -121,12 +127,18 @@ func TestSolve(t *testing.T) {
 		func() []config {
 			cs := []constraint.C{
 				*constraint.New(
-					*v2d.New(0, 1),
-					*v2d.New(0, 1),
+					*c2d.New(
+						*v2d.New(0, 1),
+						*v2d.New(0, 1),
+					),
+					false,
 				),
 				*constraint.New(
-					*v2d.New(0, -1),
-					*v2d.New(0, -1),
+					*c2d.New(
+						*v2d.New(0, -1),
+						*v2d.New(0, -1),
+					),
+					false,
 				),
 			}
 

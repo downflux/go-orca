@@ -4,10 +4,12 @@ package solver
 import (
 	"math"
 
-	"github.com/downflux/go-geometry/2d/constraint"
 	"github.com/downflux/go-geometry/2d/hyperplane"
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
+	"github.com/downflux/go-orca/internal/geometry/2d/constraint"
+
+	c2d "github.com/downflux/go-geometry/2d/constraint"
 )
 
 // O specifies an optimization function for the 2D lineaer problem. This
@@ -40,7 +42,7 @@ type M interface {
 	//
 	// Bound must return false if the input constraint lies outside the
 	// bounds of M.
-	Bound(c constraint.C) (segment.S, bool)
+	Bound(c c2d.C) (segment.S, bool)
 
 	// Within checks if the given vector satisifies the initial bounds of M.
 	Within(v vector.V) bool
@@ -50,7 +52,7 @@ type M interface {
 type Unbounded struct {
 }
 
-func (Unbounded) Bound(c constraint.C) (segment.S, bool) {
+func (Unbounded) Bound(c c2d.C) (segment.S, bool) {
 	l := hyperplane.Line(hyperplane.HP(c))
 	return *segment.New(l, math.Inf(-1), math.Inf(0)), true
 }
@@ -104,16 +106,16 @@ func (r *region) intersect(c constraint.C) (segment.S, bool) {
 		return segment.S{}, r.Feasible()
 	}
 
-	s, ok := r.m.Bound(c)
+	s, ok := r.m.Bound(c.C())
 	if !ok {
 		r.infeasible = true
 		return segment.S{}, r.Feasible()
 	}
 
-	l := hyperplane.Line(hyperplane.HP(c))
+	l := hyperplane.Line(hyperplane.HP(c.C()))
 	for _, d := range r.constraints {
 		i, ok := l.Intersect(
-			hyperplane.Line(hyperplane.HP(d)),
+			hyperplane.Line(hyperplane.HP(d.C())),
 		)
 
 		// Check for disjoint planes.
@@ -127,9 +129,9 @@ func (r *region) intersect(c constraint.C) (segment.S, bool) {
 		// lines -- the previous feasibility check should avoid the
 		// call.
 		if hyperplane.Disjoint(
-			hyperplane.HP(c),
-			hyperplane.HP(d),
-		) || (!ok && !d.In(hyperplane.HP(c).P())) {
+			hyperplane.HP(c.C()),
+			hyperplane.HP(d.C()),
+		) || (!ok && !d.In(hyperplane.HP(c.C()).P())) {
 			r.infeasible = true
 			return segment.S{}, r.Feasible()
 		}

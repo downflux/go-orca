@@ -78,11 +78,13 @@
 package solver
 
 import (
-	"github.com/downflux/go-geometry/2d/constraint"
 	"github.com/downflux/go-geometry/2d/hyperplane"
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
+	"github.com/downflux/go-orca/internal/geometry/2d/constraint"
 	"github.com/downflux/go-orca/internal/solver/2d"
+
+	c2d "github.com/downflux/go-geometry/2d/constraint"
 )
 
 type M interface {
@@ -128,13 +130,13 @@ func (r *region) Solve(c constraint.C) (vector.V, bool) {
 	// incremental constraint, as fast as the bounding constraints will
 	// allow us -- that is, ensure that the normal vector is projected into
 	// the edge of the bounding constraints.
-	v := r.m.V(hyperplane.HP(c).N())
+	v := r.m.V(hyperplane.HP(c.C()).N())
 
 	return solver.Solve(r.m, cs, func(s segment.S) vector.V {
 		// As in hyperplane.Line, we are defining the normal of a line
 		// to be pointing into the feasible region of hyperplane, which
 		// is defined as a vector rotated anti-clockwise to the line direction.
-		c := *constraint.New(s.L().P(), s.L().N())
+		c := *constraint.New(*c2d.New(s.L().P(), s.L().N()), false)
 
 		// Find a t-value in the projected constraints which will
 		// minimizes the distance along the Z-axis to the target vector.
@@ -172,8 +174,8 @@ func (r *region) project(c constraint.C) ([]constraint.C, bool) {
 		// this.
 		var pc constraint.C
 
-		l := hyperplane.Line(hyperplane.HP(c))
-		m := hyperplane.Line(hyperplane.HP(d))
+		l := hyperplane.Line(hyperplane.HP(c.C()))
+		m := hyperplane.Line(hyperplane.HP(d.C()))
 
 		i, ok := l.Intersect(m)
 
@@ -183,7 +185,7 @@ func (r *region) project(c constraint.C) ([]constraint.C, bool) {
 		// constraint.  We need to check for this condition in the
 		// caller and ensure we do not call Solve() in this case.
 		if !ok && l.Parallel(m) {
-			if !d.In(hyperplane.HP(c).P()) {
+			if !d.In(hyperplane.HP(c.C()).P()) {
 				r.infeasible = true
 				return nil, r.Feasible()
 			}
@@ -199,30 +201,36 @@ func (r *region) project(c constraint.C) ([]constraint.C, bool) {
 			// constraints for inflexible walls, we will need to
 			// offset this new plane accordingly.
 			pc = *constraint.New(
-				vector.Scale(0.5, vector.Add(l.P(), m.P())),
-				hyperplane.HP(c).N(),
+				*c2d.New(
+					vector.Scale(0.5, vector.Add(l.P(), m.P())),
+					hyperplane.HP(c.C()).N(),
+				),
+				false,
 			)
 		} else {
 			// Just as in the 2D case, we do not consider there to be a
 			// The two constraints intersect.
 			pc = *constraint.New(
-				i,
-				// We want the line of intersection to bisect
-				// the constraints, so we need to ensure the two
-				// input vectors have equal "weight".
-				//
-				// The ratio of angles between this new
-				// constraint and the constraints C and D can be
-				// is the assumption all agents act
-				// symmetrically. When calculating constraints
-				// for inflexible walls, we will need to offset
-				// this new plane accordingly.
-				vector.Unit(
-					vector.Sub(
-						vector.Unit(hyperplane.HP(d).N()),
-						vector.Unit(hyperplane.HP(c).N()),
+				*c2d.New(
+					i,
+					// We want the line of intersection to bisect
+					// the constraints, so we need to ensure the two
+					// input vectors have equal "weight".
+					//
+					// The ratio of angles between this new
+					// constraint and the constraints C and D can be
+					// is the assumption all agents act
+					// symmetrically. When calculating constraints
+					// for inflexible walls, we will need to offset
+					// this new plane accordingly.
+					vector.Unit(
+						vector.Sub(
+							vector.Unit(hyperplane.HP(d.C()).N()),
+							vector.Unit(hyperplane.HP(c.C()).N()),
+						),
 					),
 				),
+				false,
 			)
 		}
 
@@ -253,7 +261,7 @@ func Solve(m M, cs []constraint.C, v vector.V) vector.V {
 		constraints: make([]constraint.C, 0, len(cs)),
 	}
 	for _, c := range cs {
-		l := hyperplane.Line(hyperplane.HP(c))
+		l := hyperplane.Line(hyperplane.HP(c.C()))
 		// The base 2D linear programming problem may be infeasible. In
 		// order to "solve" this problem, we are systematically relaxing
 		// the 2D constraint requirements with a slack variable
