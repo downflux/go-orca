@@ -14,7 +14,7 @@ import (
 	"github.com/downflux/go-orca/internal/vo/wall/cache/domain"
 
 	agentimpl "github.com/downflux/go-orca/internal/agent"
-	vosegment "github.com/downflux/go-orca/internal/geometry/segment"
+	vosegment "github.com/downflux/go-orca/internal/geometry/2d/segment"
 	voagent "github.com/downflux/go-orca/internal/vo/agent"
 )
 

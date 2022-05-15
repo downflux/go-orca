@@ -26,7 +26,7 @@ import (
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-geometry/epsilon"
 	"github.com/downflux/go-orca/agent"
-	"github.com/downflux/go-orca/internal/geometry/cone"
+	"github.com/downflux/go-orca/internal/geometry/2d/cone"
 	"github.com/downflux/go-orca/internal/vo/agent/cache/domain"
 	"github.com/downflux/go-orca/internal/vo/agent/opt"
 	"google.golang.org/grpc/codes"
