@@ -10,7 +10,7 @@ import (
 	"github.com/downflux/go-orca/agent"
 	"github.com/downflux/go-orca/internal/solver"
 	"github.com/downflux/go-orca/internal/vo/agent/opt"
-	"github.com/downflux/go-orca/internal/vo/line"
+	"github.com/downflux/go-orca/internal/vo/wall"
 	"github.com/downflux/go-orca/kd"
 	"github.com/downflux/go-orca/region"
 
@@ -112,7 +112,7 @@ func step(a agent.A, t *kd.T, rs []region.R, f func(a agent.A) bool, tau float64
 		// TODO(minkezhang): Add to immutable constraints instead, as
 		// lines are immovable.
 		cs = append(cs, constraint.C(
-			line.New(r.R()[0]).ORCA(a, tau),
+			wall.New(r.R()[0]).ORCA(a, tau),
 		))
 	}
 

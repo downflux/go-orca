@@ -8,7 +8,7 @@ import (
 	"github.com/downflux/go-geometry/2d/line"
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
-	"github.com/downflux/go-orca/internal/vo/line/cache/domain"
+	"github.com/downflux/go-orca/internal/vo/wall/cache/domain"
 
 	agentimpl "github.com/downflux/go-orca/internal/agent"
 )

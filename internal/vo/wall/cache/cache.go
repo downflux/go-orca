@@ -11,7 +11,7 @@ import (
 	"github.com/downflux/go-geometry/epsilon"
 	"github.com/downflux/go-orca/agent"
 	"github.com/downflux/go-orca/internal/vo/agent/opt"
-	"github.com/downflux/go-orca/internal/vo/line/cache/domain"
+	"github.com/downflux/go-orca/internal/vo/wall/cache/domain"
 
 	agentimpl "github.com/downflux/go-orca/internal/agent"
 	vosegment "github.com/downflux/go-orca/internal/geometry/segment"

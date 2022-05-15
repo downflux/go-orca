@@ -1,8 +1,8 @@
-// Package line defines a velocity obstacle object which is constructed from a
+// Package wall defines a velocity obstacle object which is constructed from a
 // line segment.
 //
 // The line segment obstacle is impermeable from either side.
-package line
+package wall
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 	"github.com/downflux/go-geometry/2d/hyperplane"
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-orca/agent"
-	"github.com/downflux/go-orca/internal/vo/line/cache"
+	"github.com/downflux/go-orca/internal/vo/wall/cache"
 )
 
 type VO struct {

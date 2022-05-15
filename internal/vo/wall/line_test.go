@@ -1,4 +1,4 @@
-package line
+package wall
 
 import (
 	"github.com/downflux/go-orca/internal/vo"
