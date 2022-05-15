@@ -244,11 +244,9 @@ func (r *region) project(c constraint.C) ([]constraint.C, bool) {
 //
 // N.B: This is not a general-purpose 3D linear programming solver. Both the
 // bounding constraints M and input constraints are 2D-specific.
-//
-// TODO(minkezhang): Return feasibility bool as well.
-func Solve(m M, cs []constraint.C, v vector.V) vector.V {
+func Solve(m M, cs []constraint.C, v vector.V) (vector.V, bool) {
 	if !m.Within(v) {
-		return vector.V{}
+		return vector.V{}, false
 	}
 
 	// dist is the current penetration distance into the infeasible region
@@ -285,5 +283,5 @@ func Solve(m M, cs []constraint.C, v vector.V) vector.V {
 		r.Append(c)
 		dist = l.Distance(v)
 	}
-	return v
+	return v, true
 }

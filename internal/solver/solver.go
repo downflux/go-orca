@@ -54,9 +54,11 @@ func Solve(cs []constraint.C, v vector.V, r float64) vector.V {
 		},
 		v,
 	)
-
 	if !ok {
-		res = s3d.Solve(m, cs, v)
+		res, ok = s3d.Solve(m, cs, v)
+	}
+	if !ok {
+		panic("cannot solve linear programming problem for the given set of ORCA lines")
 	}
 
 	return res
