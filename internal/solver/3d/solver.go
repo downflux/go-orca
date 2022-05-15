@@ -81,6 +81,7 @@ import (
 	"github.com/downflux/go-geometry/2d/hyperplane"
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
+	"github.com/downflux/go-geometry/epsilon"
 	"github.com/downflux/go-orca/internal/geometry/2d/constraint"
 	"github.com/downflux/go-orca/internal/solver/2d"
 
@@ -97,9 +98,7 @@ type M interface {
 	V(v vector.V) vector.V
 }
 
-type Unbounded struct {
-	solver.Unbounded
-}
+type Unbounded solver.Unbounded
 
 func (Unbounded) V(v vector.V) vector.V { return v }
 
@@ -275,7 +274,7 @@ func Solve(m M, cs []constraint.C, v vector.V) vector.V {
 		// to find a new minimum. Note that this new value of the slack
 		// will exceed the old distance as well -- but it may be smaller
 		// than the current solution we have found.
-		if !c.In(v) && l.Distance(v) > dist {
+		if d := l.Distance(v); !c.In(v) && (d > dist || epsilon.Within(d, dist)) {
 			// In the case r.Solve() returns infeasible due to a
 			// rounding error, we ignore the result and continue.
 			if u, ok := r.Solve(c); ok {
