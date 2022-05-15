@@ -22,7 +22,13 @@ func New(obstacle agent.A) *VO {
 }
 
 func (vo VO) ORCA(agent agent.A, tau float64) hyperplane.HP {
-	b, err := ball.New(vo.obstacle, agent, tau)
+	b, err := ball.New(
+		ball.O{
+			Obstacle: vo.obstacle,
+			Agent:    agent,
+			Tau:      tau,
+		},
+	)
 	if err != nil {
 		panic(fmt.Sprintf("cannot construct VO object: %v", err))
 	}

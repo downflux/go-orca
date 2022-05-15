@@ -36,6 +36,12 @@ const (
 	minTau = 1e-3
 )
 
+type O struct {
+	Obstacle agent.A
+	Agent    agent.A
+	Tau      float64
+}
+
 type VO struct {
 	agent    agent.A
 	obstacle agent.A
@@ -90,13 +96,13 @@ type VO struct {
 // the input agent sould take up.
 // TODO(minkezhang): Add func VOpt to allow callers to differentiate between
 // ball-ball interactions and ball-wall interactions (where VOpt is (0, 0)).
-func New(obstacle agent.A, agent agent.A, tau float64) (*VO, error) {
-	if tau <= 0 {
+func New(o O) (*VO, error) {
+	if o.Tau < minTau {
 		return nil, status.Errorf(codes.OutOfRange, "invalid minimum lookahead timestep")
 	}
 
 	// c defines the truncation circle.
-	c := *hypersphere.New(vector.Scale(1/tau, p(agent, obstacle)), r(agent, obstacle)/tau)
+	c := *hypersphere.New(vector.Scale(1/o.Tau, p(o.Agent, o.Obstacle)), r(o.Agent, o.Obstacle)/o.Tau)
 
 	// We cannot construct a valid cone if the two agents are overlapping,
 	// i.e. in the collision domain.
@@ -106,11 +112,11 @@ func New(obstacle agent.A, agent agent.A, tau float64) (*VO, error) {
 	}
 
 	return &VO{
-		agent:    agent,
-		obstacle: obstacle,
+		agent:    o.Agent,
+		obstacle: o.Obstacle,
 		base:     c,
 		cone:     *d,
-		tau:      tau,
+		tau:      o.Tau,
 	}, nil
 }
 

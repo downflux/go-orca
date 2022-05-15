@@ -211,7 +211,13 @@ func TestVOConformance(t *testing.T) {
 
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
-			v, err := New(c.obstacle, c.agent, c.tau)
+			v, err := New(
+				O{
+					Obstacle: c.obstacle,
+					Agent:    c.agent,
+					Tau:      c.tau,
+				},
+			)
 			if err != nil {
 				t.Fatalf("New() returned a non-nil error: %v", err)
 			}
@@ -248,7 +254,13 @@ func BenchmarkORCA(t *testing.B) {
 		{
 			name: "VO",
 			constructor: func(agent, obstacle agent.A) testdata.VO {
-				v, _ := New(agent, obstacle, 1)
+				v, _ := New(
+					O{
+						Agent:    agent,
+						Obstacle: obstacle,
+						Tau:      1,
+					},
+				)
 				return v
 			},
 		},
