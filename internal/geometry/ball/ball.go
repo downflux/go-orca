@@ -85,6 +85,11 @@ type VO struct {
 	domainCache    domain.D
 }
 
+// TODO(minkezhang): Refactor to use option constructor.
+// TODO(minkezhang): Add weight float64 for how much of the ORCA velocity change
+// the input agent sould take up.
+// TODO(minkezhang): Add func VOpt to allow callers to differentiate between
+// ball-ball interactions and ball-wall interactions (where VOpt is (0, 0)).
 func New(obstacle agent.A, agent agent.A, tau float64) (*VO, error) {
 	if tau <= 0 {
 		return nil, status.Errorf(codes.OutOfRange, "invalid minimum lookahead timestep")
@@ -111,6 +116,8 @@ func New(obstacle agent.A, agent agent.A, tau float64) (*VO, error) {
 
 // ORCA returns the half-plane of permissable velocities for an agent, given the
 // an agent constraint.
+//
+// TODO(minkezhang): Refactor to conform to take as input agent instead.
 func (vo *VO) ORCA() (hyperplane.HP, error) {
 	u, err := vo.u()
 	if err != nil {
