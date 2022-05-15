@@ -11,7 +11,6 @@ import (
 	"github.com/downflux/go-geometry/epsilon"
 	"github.com/downflux/go-orca/agent"
 	"github.com/downflux/go-orca/internal/vo/line/cache/domain"
-	"github.com/downflux/go-orca/internal/vo/opt"
 
 	agentimpl "github.com/downflux/go-orca/internal/agent"
 	vosegment "github.com/downflux/go-orca/internal/geometry/segment"
@@ -208,12 +207,7 @@ func (c C) ORCA() hyperplane.HP {
 					V: c.velocity,
 				},
 			),
-		).ORCA(
-			opt.O{
-				Agent: agent,
-				Tau:   c.tau,
-			},
-		)
+		).ORCA(agent, c.tau)
 	case domain.CollisionRight:
 		return voagent.New(
 			agentimpl.New(
@@ -222,12 +216,7 @@ func (c C) ORCA() hyperplane.HP {
 					V: c.velocity,
 				},
 			),
-		).ORCA(
-			opt.O{
-				Agent: agent,
-				Tau:   c.tau,
-			},
-		)
+		).ORCA(agent, c.tau)
 	case domain.Left:
 		s := *vosegment.New(c.segment, c.agent.R())
 		return voagent.New(
@@ -237,12 +226,7 @@ func (c C) ORCA() hyperplane.HP {
 					V: c.velocity,
 				},
 			),
-		).ORCA(
-			opt.O{
-				Agent: agent,
-				Tau:   c.tau,
-			},
-		)
+		).ORCA(c.agent, c.tau)
 	case domain.Right:
 		s := *vosegment.New(c.segment, c.agent.R())
 		return voagent.New(
@@ -252,12 +236,7 @@ func (c C) ORCA() hyperplane.HP {
 					V: c.velocity,
 				},
 			),
-		).ORCA(
-			opt.O{
-				Agent: agent,
-				Tau:   c.tau,
-			},
-		)
+		).ORCA(agent, c.tau)
 	case domain.CollisionLine:
 		n := vector.Unit(
 			vector.Sub(

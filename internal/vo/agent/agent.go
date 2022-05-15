@@ -11,7 +11,6 @@ import (
 	"github.com/downflux/go-geometry/2d/hyperplane"
 	"github.com/downflux/go-orca/agent"
 	"github.com/downflux/go-orca/internal/geometry/ball"
-	"github.com/downflux/go-orca/internal/vo/opt"
 )
 
 type VO struct {
@@ -22,12 +21,12 @@ func New(obstacle agent.A) *VO {
 	return &VO{obstacle: obstacle}
 }
 
-func (vo VO) ORCA(o opt.O) hyperplane.HP {
+func (vo VO) ORCA(agent agent.A, tau float64) hyperplane.HP {
 	b, err := ball.New(
 		ball.O{
 			Obstacle: vo.obstacle,
-			Agent:    o.Agent,
-			Tau:      o.Tau,
+			Agent:    agent,
+			Tau:      tau,
 		},
 	)
 	if err != nil {

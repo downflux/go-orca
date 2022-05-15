@@ -6,7 +6,7 @@ package vo
 
 import (
 	"github.com/downflux/go-geometry/2d/hyperplane"
-	"github.com/downflux/go-orca/internal/vo/opt"
+	"github.com/downflux/go-orca/agent"
 )
 
 type VO interface {
@@ -17,5 +17,5 @@ type VO interface {
 	//
 	// More concisely, if HP.In(v), then v is a permissible agent velocity
 	// for the current simulation snapshot.
-	ORCA(o opt.O) hyperplane.HP
+	ORCA(agent agent.A, tau float64) hyperplane.HP
 }
