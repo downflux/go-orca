@@ -135,7 +135,7 @@ func (r *region) Solve(c constraint.C) (vector.V, bool) {
 		// As in hyperplane.Line, we are defining the normal of a line
 		// to be pointing into the feasible region of hyperplane, which
 		// is defined as a vector rotated anti-clockwise to the line direction.
-		c := *constraint.New(*c2d.New(s.L().P(), s.L().N()), false)
+		c := *constraint.New(*c2d.New(s.L().P(), s.L().N()), true)
 
 		// Find a t-value in the projected constraints which will
 		// minimizes the distance along the Z-axis to the target vector.
@@ -204,7 +204,7 @@ func (r *region) project(c constraint.C) ([]constraint.C, bool) {
 					vector.Scale(0.5, vector.Add(l.P(), m.P())),
 					hyperplane.HP(c.C()).N(),
 				),
-				false,
+				true,
 			)
 		} else {
 			// Just as in the 2D case, we do not consider there to be a
