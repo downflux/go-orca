@@ -1,4 +1,4 @@
-// package ball specifies the truncaged velocity obstacle of A induced by B;
+// package cache specifies the truncaged velocity obstacle of A induced by B;
 // that is, an object which tests for what velocies are permissible by A to
 // choose that will not hit B.
 //
@@ -16,7 +16,7 @@
 // human behavior and may veer off-course too early.
 //
 // TODO(minkezhang): Add design doc link.
-package ball
+package cache
 
 import (
 	"math"
@@ -26,8 +26,8 @@ import (
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-geometry/epsilon"
 	"github.com/downflux/go-orca/agent"
-	"github.com/downflux/go-orca/internal/geometry/ball/domain"
 	"github.com/downflux/go-orca/internal/geometry/cone"
+	"github.com/downflux/go-orca/internal/vo/agent/cache/domain"
 	"github.com/downflux/go-orca/internal/vo/agent/opt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

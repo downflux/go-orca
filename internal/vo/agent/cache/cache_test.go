@@ -1,4 +1,4 @@
-package ball
+package cache
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-geometry/epsilon"
 	"github.com/downflux/go-orca/internal/agent"
-	"github.com/downflux/go-orca/internal/geometry/ball/domain"
+	"github.com/downflux/go-orca/internal/vo/agent/cache/domain"
 	"github.com/downflux/go-orca/internal/vo/agent/opt"
 
 	testdata "github.com/downflux/go-orca/internal/vo/agent/testdata"

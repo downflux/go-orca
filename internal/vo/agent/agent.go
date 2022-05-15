@@ -1,8 +1,5 @@
 // Package agent defines a velocity obstacle object which is constructed from
 // two agents.
-//
-// This package is a wrapper around the deprecated ball package, which uses an
-// older VO interface definition.
 package agent
 
 import (
@@ -10,7 +7,7 @@ import (
 
 	"github.com/downflux/go-geometry/2d/hyperplane"
 	"github.com/downflux/go-orca/agent"
-	"github.com/downflux/go-orca/internal/geometry/ball"
+	"github.com/downflux/go-orca/internal/vo/agent/cache"
 	"github.com/downflux/go-orca/internal/vo/agent/opt"
 )
 
@@ -34,8 +31,8 @@ func New(obstacle agent.A, o opt.O) *VO {
 }
 
 func (vo VO) ORCA(agent agent.A, tau float64) hyperplane.HP {
-	b, err := ball.New(
-		ball.O{
+	b, err := cache.New(
+		cache.O{
 			Obstacle: vo.obstacle,
 			Agent:    agent,
 			Tau:      tau,
