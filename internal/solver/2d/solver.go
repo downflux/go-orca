@@ -212,7 +212,7 @@ func (r *region) intersect(c constraint.C) (segment.S, bool) {
 // Berg.
 func Solve(m M, cs []constraint.C, o O, v vector.V) (vector.V, bool) {
 	if !m.Within(v) {
-		return vector.V{}, false
+		return *vector.New(0, 0), false // vector.V{}, false
 	}
 
 	r := &region{
@@ -221,11 +221,11 @@ func Solve(m M, cs []constraint.C, o O, v vector.V) (vector.V, bool) {
 		constraints: make([]constraint.C, 0, len(cs)),
 	}
 	for _, c := range cs {
-		var ok bool
-
 		if !c.In(v) {
-			if v, ok = r.Solve(c); !ok {
-				return vector.V{}, false
+			if tmp, ok := r.Solve(c); !ok {
+				return v, false
+			} else {
+				v = tmp
 			}
 		}
 

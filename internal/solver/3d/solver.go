@@ -159,6 +159,10 @@ func (r *region) Solve(c constraint.C) (vector.V, bool) {
 // project reduces the current 3D constraint problem into a projected 2D
 // constraint problem.
 func (r *region) project(c constraint.C) ([]constraint.C, bool) {
+	if !c.Mutable() {
+		return nil, true
+	}
+
 	if !r.Feasible() {
 		return nil, r.Feasible()
 	}
@@ -166,6 +170,10 @@ func (r *region) project(c constraint.C) ([]constraint.C, bool) {
 	pcs := make([]constraint.C, 0, len(r.constraints))
 
 	for _, d := range r.constraints {
+		if !d.Mutable() {
+			pcs = append(pcs, d)
+			continue
+		}
 		// project takes as input two 2D linear constraints and returns
 		// a new constraint which represents the line of intersection of
 		// the two input constraints in 3D space. See package

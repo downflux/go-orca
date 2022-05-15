@@ -19,9 +19,9 @@ import (
 // Adding a noise function here to the output will randomize the path of the
 // agent a bit, e.g.
 //
-// weight := 1e-3
-// dt := rand.Float64() * (s.TMax() - s.TMin()) * weight
-// v := s.L().L(s.T(v) + dt)
+//   weight := 1e-3
+//   dt := rand.Float64() * (s.TMax() - s.TMin()) * weight
+//   v := s.L().L(s.T(v) + dt)
 //
 // This will help with the case where two slow-moving agents become stuck while
 // trying to move directly past each other (i.e. agent targets are directly
@@ -46,16 +46,11 @@ func Solve(cs []constraint.C, v vector.V, r float64) vector.V {
 		v = m.V(v)
 	}
 
-	res, ok := s2d.Solve(
-		m,
-		cs,
-		func(s segment.S) vector.V {
-			return project(s, v)
-		},
-		v,
-	)
+	res, ok := s2d.Solve(m, cs, func(s segment.S) vector.V {
+		return project(s, v)
+	}, v)
 	if !ok {
-		res, ok = s3d.Solve(m, cs, v)
+		res, ok = s3d.Solve(m, cs, res)
 	}
 	if !ok {
 		panic("cannot solve linear programming problem for the given set of ORCA lines")
