@@ -9,32 +9,27 @@ import (
 
 	"github.com/downflux/go-geometry/2d/hyperplane"
 	"github.com/downflux/go-geometry/2d/segment"
-	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-orca/agent"
 	"github.com/downflux/go-orca/internal/vo/line/cache"
 )
 
 type VO struct {
-	s segment.S
-	v vector.V
+	obstacle segment.S
 }
 
-func New(s segment.S, v vector.V) *VO {
-	if !s.Feasible() {
+func New(obstacle segment.S) *VO {
+	if !obstacle.Feasible() {
 		panic(
 			fmt.Sprintf(
 				"cannot construct VO object, line segment %v is infeasible",
-				s,
+				obstacle,
 			),
 		)
 	}
 
-	return &VO{
-		s: s,
-		v: v,
-	}
+	return &VO{obstacle: obstacle}
 }
 
 func (vo VO) ORCA(a agent.A, tau float64) hyperplane.HP {
-	return cache.New(vo.s, vo.v, a, tau).ORCA()
+	return cache.New(vo.obstacle, a, tau).ORCA()
 }

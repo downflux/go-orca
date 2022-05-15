@@ -11,6 +11,7 @@ import (
 	"github.com/downflux/go-geometry/epsilon"
 	"github.com/downflux/go-orca/internal/agent"
 	"github.com/downflux/go-orca/internal/geometry/ball/domain"
+	"github.com/downflux/go-orca/internal/vo/agent/opt"
 
 	testdata "github.com/downflux/go-orca/internal/vo/agent/testdata"
 	reference "github.com/downflux/go-orca/internal/vo/agent/testdata/mock"
@@ -216,6 +217,8 @@ func TestVOConformance(t *testing.T) {
 					Obstacle: c.obstacle,
 					Agent:    c.agent,
 					Tau:      c.tau,
+					Weight:   opt.WeightEqual,
+					VOpt:     opt.VOptV,
 				},
 			)
 			if err != nil {
@@ -259,6 +262,8 @@ func BenchmarkORCA(t *testing.B) {
 						Agent:    agent,
 						Obstacle: obstacle,
 						Tau:      1,
+						Weight:   opt.WeightEqual,
+						VOpt:     opt.VOptV,
 					},
 				)
 				return v

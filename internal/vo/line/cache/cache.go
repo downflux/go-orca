@@ -10,6 +10,7 @@ import (
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-geometry/epsilon"
 	"github.com/downflux/go-orca/agent"
+	"github.com/downflux/go-orca/internal/vo/agent/opt"
 	"github.com/downflux/go-orca/internal/vo/line/cache/domain"
 
 	agentimpl "github.com/downflux/go-orca/internal/agent"
@@ -25,22 +26,15 @@ type C struct {
 	// segment represents the physical line segment of the obstacle.
 	segment segment.S
 
-	// velocity is the absolute obstacle velocity.
-	//
-	// TODO(minkezhang): Remove this property and assume obstacles are
-	// static.
-	velocity vector.V
-
 	agent agent.A
 	tau   float64
 }
 
-func New(s segment.S, v vector.V, a agent.A, tau float64) *C {
+func New(s segment.S, a agent.A, tau float64) *C {
 	return &C{
-		segment:  s,
-		velocity: v,
-		agent:    a,
-		tau:      tau,
+		segment: s,
+		agent:   a,
+		tau:     tau,
 	}
 }
 
@@ -204,18 +198,26 @@ func (c C) ORCA() hyperplane.HP {
 			agentimpl.New(
 				agentimpl.O{
 					P: c.segment.L().L(c.segment.TMin()),
-					V: c.velocity,
+					V: *vector.New(0, 0),
 				},
 			),
+			opt.O{
+				Weight: opt.WeightAll,
+				VOpt:   opt.VOptZero,
+			},
 		).ORCA(agent, c.tau)
 	case domain.CollisionRight:
 		return voagent.New(
 			agentimpl.New(
 				agentimpl.O{
 					P: c.segment.L().L(c.segment.TMax()),
-					V: c.velocity,
+					V: *vector.New(0, 0),
 				},
 			),
+			opt.O{
+				Weight: opt.WeightAll,
+				VOpt:   opt.VOptZero,
+			},
 		).ORCA(agent, c.tau)
 	case domain.Left:
 		s := *vosegment.New(c.segment, c.agent.R())
@@ -223,9 +225,13 @@ func (c C) ORCA() hyperplane.HP {
 			agentimpl.New(
 				agentimpl.O{
 					P: s.CL().C().P(),
-					V: c.velocity,
+					V: *vector.New(0, 0),
 				},
 			),
+			opt.O{
+				Weight: opt.WeightAll,
+				VOpt:   opt.VOptZero,
+			},
 		).ORCA(c.agent, c.tau)
 	case domain.Right:
 		s := *vosegment.New(c.segment, c.agent.R())
@@ -233,9 +239,13 @@ func (c C) ORCA() hyperplane.HP {
 			agentimpl.New(
 				agentimpl.O{
 					P: s.CR().C().P(),
-					V: c.velocity,
+					V: *vector.New(0, 0),
 				},
 			),
+			opt.O{
+				Weight: opt.WeightAll,
+				VOpt:   opt.VOptZero,
+			},
 		).ORCA(agent, c.tau)
 	case domain.CollisionLine:
 		n := vector.Unit(
@@ -244,7 +254,7 @@ func (c C) ORCA() hyperplane.HP {
 				c.segment.L().L(c.segment.T(c.agent.P())),
 			),
 		)
-		return *hyperplane.New(c.velocity, n)
+		return *hyperplane.New(*vector.New(0, 0), n)
 	case domain.Line:
 		s := c.S()
 		w := vector.Sub(
@@ -259,7 +269,7 @@ func (c C) ORCA() hyperplane.HP {
 		n := vector.Scale(-1, vector.Unit(u))
 
 		return *hyperplane.New(
-			vector.Add(agent.V(), vector.Scale(0.5, u)),
+			vector.Add(opt.VOptZero(agent), vector.Scale(float64(opt.WeightAll), u)),
 			n,
 		)
 	default:
@@ -271,7 +281,7 @@ func (c C) ORCA() hyperplane.HP {
 // taking into account the time scalar 𝜏.
 func (c C) S() segment.S { return s(c.segment, c.agent, c.tau) }
 
-func (c C) V() vector.V { return v(c.velocity, c.agent) }
+func (c C) V() vector.V { return v(*vector.New(0, 0), c.agent) }
 
 // P returns the position vector in p-space from the agent to a specific point
 // along the velocity obstacle line. Note that the distance here is independent

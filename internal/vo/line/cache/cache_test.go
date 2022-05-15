@@ -20,7 +20,6 @@ const (
 func cache(s segment.S, p vector.V, v vector.V) C {
 	return *New(
 		s,
-		/* v = */ *vector.New(0, 0),
 		*agentimpl.New(
 			agentimpl.O{
 				P: p,
@@ -61,7 +60,7 @@ func TestORCA(t *testing.T) {
 						/* v = */ *vector.New(0, 0),
 					),
 					want: *hyperplane.New(
-						*vector.New(0, -0.5),
+						*vector.New(0, -1),
 						*vector.New(0, 1),
 					),
 				},
@@ -73,7 +72,7 @@ func TestORCA(t *testing.T) {
 						*vector.New(0, 0),
 					),
 					want: *hyperplane.New(
-						*vector.New(0, 0.5),
+						*vector.New(0, 1),
 						*vector.New(0, -1),
 					),
 				},
@@ -113,7 +112,7 @@ func TestORCA(t *testing.T) {
 						*vector.New(0, 0),
 					),
 					want: *hyperplane.New(
-						*vector.New(0, -0.05),
+						*vector.New(0, -0.1),
 						*vector.New(0, 1),
 					),
 				},
@@ -129,7 +128,7 @@ func TestORCA(t *testing.T) {
 						*vector.New(0, 1),
 					),
 					want: *hyperplane.New(
-						*vector.New(-450, 0),
+						*vector.New(-900, 0),
 						*vector.New(-1, 0),
 					),
 				},
@@ -141,7 +140,7 @@ func TestORCA(t *testing.T) {
 						*vector.New(0, 1),
 					),
 					want: *hyperplane.New(
-						*vector.New(450, 0),
+						*vector.New(900, 0),
 						*vector.New(1, 0),
 					),
 				},

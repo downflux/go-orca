@@ -28,6 +28,7 @@ import (
 	"github.com/downflux/go-orca/agent"
 	"github.com/downflux/go-orca/internal/geometry/ball/domain"
 	"github.com/downflux/go-orca/internal/geometry/cone"
+	"github.com/downflux/go-orca/internal/vo/agent/opt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -40,11 +41,16 @@ type O struct {
 	Obstacle agent.A
 	Agent    agent.A
 	Tau      float64
+	Weight   opt.Weight
+	VOpt     opt.VOpt
 }
 
 type VO struct {
 	agent    agent.A
 	obstacle agent.A
+
+	weight opt.Weight
+	vopt   opt.VOpt
 
 	// base is the scaled, characteristic circle of the truncated velocity
 	// object.
@@ -117,6 +123,8 @@ func New(o O) (*VO, error) {
 		base:     c,
 		cone:     *d,
 		tau:      o.Tau,
+		weight:   o.Weight,
+		vopt:     o.VOpt,
 	}, nil
 }
 
@@ -134,7 +142,7 @@ func (vo *VO) ORCA() (hyperplane.HP, error) {
 		return hyperplane.HP{}, err
 	}
 	return *hyperplane.New(
-		vector.Add(vo.agent.V(), vector.Scale(0.5, u)),
+		vector.Add(vo.vopt(vo.agent), vector.Scale(float64(vo.weight), u)),
 		n,
 	), nil
 }
