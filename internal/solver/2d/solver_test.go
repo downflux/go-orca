@@ -298,7 +298,7 @@ func TestSolve(t *testing.T) {
 
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
-			if got, ok := Solve(c.m, c.cs, c.o, c.v); ok != c.success || !vector.Within(got, c.want) {
+			if got, ok := Solve(c.m, c.cs, c.o, c.v); ok != c.success || (ok && !vector.Within(got, c.want)) {
 				t.Errorf("Solve() = %v, %v, want = %v, %v", got, ok, c.want, c.success)
 			}
 		})
