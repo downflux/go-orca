@@ -11,6 +11,7 @@ import (
 	"github.com/downflux/go-geometry/nd/line"
 	"github.com/downflux/go-orca/internal/geometry/2d/constraint"
 	"github.com/downflux/go-orca/internal/solver/bounds/unbounded"
+	"github.com/downflux/go-orca/internal/solver/feasibility"
 	"github.com/google/go-cmp/cmp"
 
 	c2d "github.com/downflux/go-geometry/2d/constraint"
@@ -194,13 +195,13 @@ func TestSolve(t *testing.T) {
 		cs      []constraint.C
 		o       O
 		v       vector.V
-		success bool
+		success feasibility.F
 		want    vector.V
 	}
 
 	testConfigs := []config{
 		{
-			name: "Infeasible",
+			name: "Partial",
 			m:    unbounded.M{},
 			cs: []constraint.C{
 				*constraint.New(
@@ -220,7 +221,7 @@ func TestSolve(t *testing.T) {
 			},
 			o:       func(segment.S) vector.V { return vector.V{} },
 			v:       *vector.New(0, 1),
-			success: false,
+			success: feasibility.Partial,
 		},
 	}
 
@@ -287,7 +288,7 @@ func TestSolve(t *testing.T) {
 					cs:      cs,
 					o:       o,
 					v:       v,
-					success: true,
+					success: feasibility.Feasible,
 					// This is the given solution and is a
 					// constant.
 					want: *vector.New(5, 2.75),
@@ -298,8 +299,8 @@ func TestSolve(t *testing.T) {
 
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
-			if got, ok := Solve(c.m, c.cs, c.o, c.v); ok != c.success || (ok && !vector.Within(got, c.want)) {
-				t.Errorf("Solve() = %v, %v, want = %v, %v", got, ok, c.want, c.success)
+			if got, f := Solve(c.m, c.cs, c.o, c.v); f != c.success || got != nil && c.want != nil && !vector.Within(got, c.want) {
+				t.Errorf("Solve() = %v, %v, want = %v, %v", got, f, c.want, c.success)
 			}
 		})
 	}

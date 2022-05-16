@@ -8,6 +8,7 @@ import (
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-orca/internal/geometry/2d/constraint"
+	"github.com/downflux/go-orca/internal/solver/feasibility"
 
 	c2d "github.com/downflux/go-geometry/2d/constraint"
 )
@@ -200,9 +201,9 @@ func (r *region) intersect(c constraint.C) (segment.S, bool) {
 // optimal solution which satisfies the bounding constraints. For linear
 // optimization functions, this is the v0 defined in Algorithm 2DBoundedLP of de
 // Berg.
-func Solve(m M, cs []constraint.C, o O, v vector.V) (vector.V, bool) {
+func Solve(m M, cs []constraint.C, o O, v vector.V) (vector.V, feasibility.F) {
 	if !m.Within(v) {
-		return vector.V{}, false
+		return vector.V{}, feasibility.Infeasible
 	}
 
 	r := &region{
@@ -215,11 +216,11 @@ func Solve(m M, cs []constraint.C, o O, v vector.V) (vector.V, bool) {
 			if u, ok := r.Solve(c); ok {
 				v = u
 			} else {
-				return v, false
+				return v, feasibility.Partial
 			}
 		}
 
 		r.Append(c)
 	}
-	return v, true
+	return v, feasibility.Feasible
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-orca/internal/geometry/2d/constraint"
 	"github.com/downflux/go-orca/internal/solver/bounds/circular"
+	"github.com/downflux/go-orca/internal/solver/feasibility"
 
 	s2d "github.com/downflux/go-orca/internal/solver/2d"
 	s3d "github.com/downflux/go-orca/internal/solver/3d"
@@ -46,15 +47,15 @@ func Solve(cs []constraint.C, v vector.V, r float64) vector.V {
 		v = m.V(v)
 	}
 
-	res, ok := s2d.Solve(m, cs, func(s segment.S) vector.V {
+	u, f := s2d.Solve(m, cs, func(s segment.S) vector.V {
 		return project(s, v)
 	}, v)
-	if !ok {
-		res, ok = s3d.Solve(m, cs, res)
+	if f == feasibility.Partial {
+		u, f = s3d.Solve(m, cs, u)
 	}
-	if !ok {
+	if f != feasibility.Feasible {
 		panic("cannot solve linear programming problem for the given set of ORCA lines")
 	}
 
-	return res
+	return u
 }

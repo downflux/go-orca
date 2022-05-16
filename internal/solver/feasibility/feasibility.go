@@ -1,9 +1,9 @@
 package feasibility
 
-type F int // string
+type F int
 
 const (
-	Feasible   F = 0 // "FEASIBLE"
-	Infeasible       // = "INFEASIBLE"
-	Partial          // = "PARTIAL"
+	Feasible F = iota
+	Infeasible
+	Partial
 )

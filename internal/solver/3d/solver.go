@@ -84,6 +84,7 @@ import (
 	"github.com/downflux/go-geometry/epsilon"
 	"github.com/downflux/go-orca/internal/geometry/2d/constraint"
 	"github.com/downflux/go-orca/internal/solver/2d"
+	"github.com/downflux/go-orca/internal/solver/feasibility"
 
 	c2d "github.com/downflux/go-geometry/2d/constraint"
 )
@@ -127,7 +128,7 @@ func (r *region) Solve(c constraint.C) (vector.V, bool) {
 	// the edge of the bounding constraints.
 	v := r.m.V(hyperplane.HP(c.C()).N())
 
-	return solver.Solve(r.m, cs, func(s segment.S) vector.V {
+	u, f := solver.Solve(r.m, cs, func(s segment.S) vector.V {
 		// As in hyperplane.Line, we are defining the normal of a line
 		// to be pointing into the feasible region of hyperplane, which
 		// is defined as a vector rotated anti-clockwise to the line direction.
@@ -150,6 +151,7 @@ func (r *region) Solve(c constraint.C) (vector.V, bool) {
 		}
 		return s.L().L(s.TMax())
 	}, v)
+	return u, (f == feasibility.Feasible)
 }
 
 // project reduces the current 3D constraint problem into a projected 2D
@@ -248,9 +250,9 @@ func (r *region) project(c constraint.C) ([]constraint.C, bool) {
 //
 // N.B: This is not a general-purpose 3D linear programming solver. Both the
 // bounding constraints M and input constraints are 2D-specific.
-func Solve(m M, cs []constraint.C, v vector.V) (vector.V, bool) {
+func Solve(m M, cs []constraint.C, v vector.V) (vector.V, feasibility.F) {
 	if !m.Within(v) {
-		return vector.V{}, false
+		return vector.V{}, feasibility.Infeasible
 	}
 
 	// dist is the current penetration distance into the infeasible region
@@ -292,5 +294,5 @@ func Solve(m M, cs []constraint.C, v vector.V) (vector.V, bool) {
 		r.Append(c)
 		dist = l.Distance(v)
 	}
-	return v, true
+	return v, feasibility.Feasible
 }
