@@ -48,16 +48,6 @@ type M interface {
 	Within(v vector.V) bool
 }
 
-// Unbounded is the null constraint and satisifies the M interface.
-type Unbounded struct {
-}
-
-func (Unbounded) Bound(c c2d.C) (segment.S, bool) {
-	l := hyperplane.Line(hyperplane.HP(c))
-	return *segment.New(l, math.Inf(-1), math.Inf(0)), true
-}
-func (Unbounded) Within(v vector.V) bool { return true }
-
 // region describes an incremental 2D subspace embedded in 2D ambient space.
 type region struct {
 	m           M

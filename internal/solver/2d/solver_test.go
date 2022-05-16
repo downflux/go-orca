@@ -10,13 +10,12 @@ import (
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-geometry/nd/line"
 	"github.com/downflux/go-orca/internal/geometry/2d/constraint"
+	"github.com/downflux/go-orca/internal/solver/bounds/unbounded"
 	"github.com/google/go-cmp/cmp"
 
 	c2d "github.com/downflux/go-geometry/2d/constraint"
 	l2d "github.com/downflux/go-geometry/2d/line"
 )
-
-var _ M = Unbounded{}
 
 func TestIntersect(t *testing.T) {
 	type config struct {
@@ -167,7 +166,7 @@ func TestIntersect(t *testing.T) {
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
 			r := &region{
-				m:           Unbounded{},
+				m:           unbounded.M{},
 				constraints: c.cs,
 			}
 			got, ok := r.intersect(c.c)
@@ -202,7 +201,7 @@ func TestSolve(t *testing.T) {
 	testConfigs := []config{
 		{
 			name: "Infeasible",
-			m:    Unbounded{},
+			m:    unbounded.M{},
 			cs: []constraint.C{
 				*constraint.New(
 					*c2d.New(
@@ -284,7 +283,7 @@ func TestSolve(t *testing.T) {
 			for _, v := range vs {
 				testConfigs = append(testConfigs, config{
 					name:    fmt.Sprintf("Simple/v0=%v", v),
-					m:       Unbounded{},
+					m:       unbounded.M{},
 					cs:      cs,
 					o:       o,
 					v:       v,
