@@ -98,10 +98,6 @@ type M interface {
 	V(v vector.V) vector.V
 }
 
-type Unbounded solver.Unbounded
-
-func (Unbounded) V(v vector.V) vector.V { return v }
-
 type region struct {
 	m M
 

@@ -8,13 +8,17 @@ import (
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-geometry/nd/line"
-	"github.com/downflux/go-orca/internal/solver/3d"
 	"github.com/google/go-cmp/cmp"
 
 	l2d "github.com/downflux/go-geometry/2d/line"
+	s2d "github.com/downflux/go-orca/internal/solver/2d"
+	s3d "github.com/downflux/go-orca/internal/solver/3d"
 )
 
-var _ solver.M = M{}
+var (
+	_ s2d.M = M{}
+	_ s3d.M = M{}
+)
 
 func TestBound(t *testing.T) {
 	testConfigs := []struct {

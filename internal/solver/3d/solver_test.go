@@ -4,16 +4,14 @@ import (
 	"math"
 	"testing"
 
-	"github.com/downflux/go-orca/internal/geometry/2d/constraint"
-
-	c2d "github.com/downflux/go-geometry/2d/constraint"
-
 	"github.com/downflux/go-geometry/2d/hyperplane"
 	"github.com/downflux/go-geometry/2d/vector"
+	"github.com/downflux/go-orca/internal/geometry/2d/constraint"
+	"github.com/downflux/go-orca/internal/solver/bounds/unbounded"
 	"github.com/google/go-cmp/cmp"
-)
 
-var _ M = Unbounded{}
+	c2d "github.com/downflux/go-geometry/2d/constraint"
+)
 
 func mutable(cs []c2d.C) []constraint.C {
 	var ms []constraint.C
@@ -277,7 +275,7 @@ func TestSolve(t *testing.T) {
 		// single constraint.
 		{
 			name: "Trivial",
-			m:    Unbounded{},
+			m:    unbounded.M{},
 			cs:   nil,
 			c: *constraint.New(
 				*c2d.New(
@@ -294,7 +292,7 @@ func TestSolve(t *testing.T) {
 		// intersecting constraints.
 		{
 			name: "AntiParallel/Intersect",
-			m:    Unbounded{},
+			m:    unbounded.M{},
 			cs: mutable(
 				[]c2d.C{
 					*c2d.New(
@@ -326,7 +324,7 @@ func TestSolve(t *testing.T) {
 		// constraints.
 		{
 			name: "AntiParallel/Disjoint",
-			m:    Unbounded{},
+			m:    unbounded.M{},
 			cs: mutable(
 				[]c2d.C{
 					*c2d.New(
@@ -385,7 +383,7 @@ func TestSolve(t *testing.T) {
 		return []config{
 			{
 				name:    "2DInfeasible",
-				m:       Unbounded{},
+				m:       unbounded.M{},
 				cs:      mutable([]c2d.C{a, b}),
 				c:       *constraint.New(c, true),
 				success: true,
@@ -396,7 +394,7 @@ func TestSolve(t *testing.T) {
 			// does not matter.
 			{
 				name:    "2DInfeasible/OrderInvariance",
-				m:       Unbounded{},
+				m:       unbounded.M{},
 				cs:      mutable([]c2d.C{b, a}),
 				c:       *constraint.New(c, true),
 				success: true,
