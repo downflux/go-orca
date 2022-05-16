@@ -283,6 +283,11 @@ func Solve(m M, cs []constraint.C, v vector.V) (vector.V, bool) {
 		if d := l.Distance(v); !c.In(v) && (d > dist || epsilon.Within(d, dist)) {
 			// In the case r.Solve() returns infeasible due to a
 			// rounding error, we ignore the result and continue.
+			//
+			// N.B.: RVO2 indicates that in the case the 2D program
+			// returns infeasible, the error is due to a rounding
+			// error, e.g. v ~ u. Experimentally, this is not the
+			// case.
 			if u, ok := r.Solve(c); ok {
 				v = u
 			}
