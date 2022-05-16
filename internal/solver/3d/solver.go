@@ -78,11 +78,15 @@
 package solver
 
 import (
-	"github.com/downflux/go-geometry/2d/constraint"
 	"github.com/downflux/go-geometry/2d/hyperplane"
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
+	"github.com/downflux/go-geometry/epsilon"
+	"github.com/downflux/go-orca/internal/geometry/2d/constraint"
 	"github.com/downflux/go-orca/internal/solver/2d"
+	"github.com/downflux/go-orca/internal/solver/feasibility"
+
+	c2d "github.com/downflux/go-geometry/2d/constraint"
 )
 
 type M interface {
@@ -94,12 +98,6 @@ type M interface {
 	// lies on the corner of the bounding constraint.
 	V(v vector.V) vector.V
 }
-
-type Unbounded struct {
-	solver.Unbounded
-}
-
-func (Unbounded) V(v vector.V) vector.V { return v }
 
 type region struct {
 	m M
@@ -128,13 +126,13 @@ func (r *region) Solve(c constraint.C) (vector.V, bool) {
 	// incremental constraint, as fast as the bounding constraints will
 	// allow us -- that is, ensure that the normal vector is projected into
 	// the edge of the bounding constraints.
-	v := r.m.V(hyperplane.HP(c).N())
+	v := r.m.V(hyperplane.HP(c.C()).N())
 
-	return solver.Solve(r.m, cs, func(s segment.S) vector.V {
+	u, f := solver.Solve(r.m, cs, func(s segment.S) vector.V {
 		// As in hyperplane.Line, we are defining the normal of a line
 		// to be pointing into the feasible region of hyperplane, which
 		// is defined as a vector rotated anti-clockwise to the line direction.
-		c := *constraint.New(s.L().P(), s.L().N())
+		c := *constraint.New(*c2d.New(s.L().P(), s.L().N()), true)
 
 		// Find a t-value in the projected constraints which will
 		// minimizes the distance along the Z-axis to the target vector.
@@ -153,11 +151,16 @@ func (r *region) Solve(c constraint.C) (vector.V, bool) {
 		}
 		return s.L().L(s.TMax())
 	}, v)
+	return u, (f == feasibility.Feasible)
 }
 
 // project reduces the current 3D constraint problem into a projected 2D
 // constraint problem.
 func (r *region) project(c constraint.C) ([]constraint.C, bool) {
+	if !c.Mutable() {
+		return nil, true
+	}
+
 	if !r.Feasible() {
 		return nil, r.Feasible()
 	}
@@ -165,6 +168,10 @@ func (r *region) project(c constraint.C) ([]constraint.C, bool) {
 	pcs := make([]constraint.C, 0, len(r.constraints))
 
 	for _, d := range r.constraints {
+		if !d.Mutable() {
+			pcs = append(pcs, d)
+			continue
+		}
 		// project takes as input two 2D linear constraints and returns
 		// a new constraint which represents the line of intersection of
 		// the two input constraints in 3D space. See package
@@ -172,8 +179,8 @@ func (r *region) project(c constraint.C) ([]constraint.C, bool) {
 		// this.
 		var pc constraint.C
 
-		l := hyperplane.Line(hyperplane.HP(c))
-		m := hyperplane.Line(hyperplane.HP(d))
+		l := hyperplane.Line(hyperplane.HP(c.C()))
+		m := hyperplane.Line(hyperplane.HP(d.C()))
 
 		i, ok := l.Intersect(m)
 
@@ -183,7 +190,7 @@ func (r *region) project(c constraint.C) ([]constraint.C, bool) {
 		// constraint.  We need to check for this condition in the
 		// caller and ensure we do not call Solve() in this case.
 		if !ok && l.Parallel(m) {
-			if !d.In(hyperplane.HP(c).P()) {
+			if !d.In(hyperplane.HP(c.C()).P()) {
 				r.infeasible = true
 				return nil, r.Feasible()
 			}
@@ -199,30 +206,36 @@ func (r *region) project(c constraint.C) ([]constraint.C, bool) {
 			// constraints for inflexible walls, we will need to
 			// offset this new plane accordingly.
 			pc = *constraint.New(
-				vector.Scale(0.5, vector.Add(l.P(), m.P())),
-				hyperplane.HP(c).N(),
+				*c2d.New(
+					vector.Scale(0.5, vector.Add(l.P(), m.P())),
+					hyperplane.HP(c.C()).N(),
+				),
+				true,
 			)
 		} else {
 			// Just as in the 2D case, we do not consider there to be a
 			// The two constraints intersect.
 			pc = *constraint.New(
-				i,
-				// We want the line of intersection to bisect
-				// the constraints, so we need to ensure the two
-				// input vectors have equal "weight".
-				//
-				// The ratio of angles between this new
-				// constraint and the constraints C and D can be
-				// is the assumption all agents act
-				// symmetrically. When calculating constraints
-				// for inflexible walls, we will need to offset
-				// this new plane accordingly.
-				vector.Unit(
-					vector.Sub(
-						vector.Unit(hyperplane.HP(d).N()),
-						vector.Unit(hyperplane.HP(c).N()),
+				*c2d.New(
+					i,
+					// We want the line of intersection to bisect
+					// the constraints, so we need to ensure the two
+					// input vectors have equal "weight".
+					//
+					// The ratio of angles between this new
+					// constraint and the constraints C and D can be
+					// is the assumption all agents act
+					// symmetrically. When calculating constraints
+					// for inflexible walls, we will need to offset
+					// this new plane accordingly.
+					vector.Unit(
+						vector.Sub(
+							vector.Unit(hyperplane.HP(d.C()).N()),
+							vector.Unit(hyperplane.HP(c.C()).N()),
+						),
 					),
 				),
+				false,
 			)
 		}
 
@@ -237,11 +250,9 @@ func (r *region) project(c constraint.C) ([]constraint.C, bool) {
 //
 // N.B: This is not a general-purpose 3D linear programming solver. Both the
 // bounding constraints M and input constraints are 2D-specific.
-//
-// TODO(minkezhang): Return feasibility bool as well.
-func Solve(m M, cs []constraint.C, v vector.V) vector.V {
+func Solve(m M, cs []constraint.C, v vector.V) (vector.V, feasibility.F) {
 	if !m.Within(v) {
-		return vector.V{}
+		return vector.V{}, feasibility.Infeasible
 	}
 
 	// dist is the current penetration distance into the infeasible region
@@ -253,7 +264,7 @@ func Solve(m M, cs []constraint.C, v vector.V) vector.V {
 		constraints: make([]constraint.C, 0, len(cs)),
 	}
 	for _, c := range cs {
-		l := hyperplane.Line(hyperplane.HP(c))
+		l := hyperplane.Line(hyperplane.HP(c.C()))
 		// The base 2D linear programming problem may be infeasible. In
 		// order to "solve" this problem, we are systematically relaxing
 		// the 2D constraint requirements with a slack variable
@@ -267,9 +278,14 @@ func Solve(m M, cs []constraint.C, v vector.V) vector.V {
 		// to find a new minimum. Note that this new value of the slack
 		// will exceed the old distance as well -- but it may be smaller
 		// than the current solution we have found.
-		if !c.In(v) && l.Distance(v) > dist {
+		if d := l.Distance(v); !c.In(v) && (d > dist || epsilon.Within(d, dist)) {
 			// In the case r.Solve() returns infeasible due to a
 			// rounding error, we ignore the result and continue.
+			//
+			// N.B.: RVO2 indicates that in the case the 2D program
+			// returns infeasible, the error is due to a rounding
+			// error, e.g. v ~ u. Experimentally, this is not the
+			// case.
 			if u, ok := r.Solve(c); ok {
 				v = u
 			}
@@ -278,5 +294,5 @@ func Solve(m M, cs []constraint.C, v vector.V) vector.V {
 		r.Append(c)
 		dist = l.Distance(v)
 	}
-	return v
+	return v, feasibility.Feasible
 }

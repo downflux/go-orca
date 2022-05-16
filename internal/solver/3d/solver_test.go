@@ -4,13 +4,22 @@ import (
 	"math"
 	"testing"
 
-	"github.com/downflux/go-geometry/2d/constraint"
 	"github.com/downflux/go-geometry/2d/hyperplane"
 	"github.com/downflux/go-geometry/2d/vector"
+	"github.com/downflux/go-orca/internal/geometry/2d/constraint"
+	"github.com/downflux/go-orca/internal/solver/bounds/unbounded"
 	"github.com/google/go-cmp/cmp"
+
+	c2d "github.com/downflux/go-geometry/2d/constraint"
 )
 
-var _ M = Unbounded{}
+func mutable(cs []c2d.C) []constraint.C {
+	var ms []constraint.C
+	for _, c := range cs {
+		ms = append(ms, *constraint.New(c, true))
+	}
+	return ms
+}
 
 func TestProject(t *testing.T) {
 	type config struct {
@@ -25,38 +34,50 @@ func TestProject(t *testing.T) {
 	testConfigs := []config{
 		{
 			name: "Parallel/Override",
-			cs: []constraint.C{
-				*constraint.New(
-					*vector.New(0, 0),
+			cs: mutable(
+				[]c2d.C{
+					*c2d.New(
+						*vector.New(0, 0),
+						*vector.New(0, 1),
+					),
+				},
+			),
+			c: *constraint.New(
+				*c2d.New(
+					*vector.New(0, 1),
 					*vector.New(0, 1),
 				),
-			},
-			c: *constraint.New(
-				*vector.New(0, 1),
-				*vector.New(0, 1),
+				true,
 			),
 			success: true,
-			want: []constraint.C{
-				*constraint.New(
-					*vector.New(0, 1),
-					*vector.New(0, 1),
-				),
-			},
+			want: mutable(
+				[]c2d.C{
+					*c2d.New(
+						*vector.New(0, 1),
+						*vector.New(0, 1),
+					),
+				},
+			),
 		},
 		// A parallel constraint which relaxes a previous constraint
 		// is not allowed when calling project(). The caller must make
 		// sure this does not happen.
 		{
 			name: "Parallel/Infeasible",
-			cs: []constraint.C{
-				*constraint.New(
-					*vector.New(0, 1),
+			cs: mutable(
+				[]c2d.C{
+					*c2d.New(
+						*vector.New(0, 1),
+						*vector.New(0, 1),
+					),
+				},
+			),
+			c: *constraint.New(
+				*c2d.New(
+					*vector.New(0, 0),
 					*vector.New(0, 1),
 				),
-			},
-			c: *constraint.New(
-				*vector.New(0, 0),
-				*vector.New(0, 1),
+				true,
 			),
 			success: false,
 			want:    nil,
@@ -66,45 +87,59 @@ func TestProject(t *testing.T) {
 		// region.
 		{
 			name: "AntiParallel",
-			cs: []constraint.C{
-				*constraint.New(
-					*vector.New(0, 0),
-					*vector.New(0, 1),
-				),
-			},
-			c: *constraint.New(
-				*vector.New(0, 1),
-				*vector.New(0, -1),
+			cs: mutable(
+				[]c2d.C{
+					*c2d.New(
+						*vector.New(0, 0),
+						*vector.New(0, 1),
+					),
+				},
 			),
-			success: true,
-			want: []constraint.C{
-				*constraint.New(
-					*vector.New(0, 0.5),
+			c: *constraint.New(
+				*c2d.New(
+					*vector.New(0, 1),
 					*vector.New(0, -1),
 				),
-			},
+				true,
+			),
+			success: true,
+			want: mutable(
+				[]c2d.C{
+					*c2d.New(
+						*vector.New(0, 0.5),
+						*vector.New(0, -1),
+					),
+				},
+			),
 		},
 		// Test that a plane-plane intersection may be constructed for
 		// two constraints even if the intersection is disjoint.
 		{
 			name: "AntiParallel/Disjoint",
-			cs: []constraint.C{
-				*constraint.New(
-					*vector.New(0, 1),
-					*vector.New(0, 1),
-				),
-			},
-			c: *constraint.New(
-				*vector.New(0, 0),
-				*vector.New(0, -1),
+			cs: mutable(
+				[]c2d.C{
+					*c2d.New(
+						*vector.New(0, 1),
+						*vector.New(0, 1),
+					),
+				},
 			),
-			success: true,
-			want: []constraint.C{
-				*constraint.New(
-					*vector.New(0, 0.5),
+			c: *constraint.New(
+				*c2d.New(
+					*vector.New(0, 0),
 					*vector.New(0, -1),
 				),
-			},
+				true,
+			),
+			success: true,
+			want: mutable(
+				[]c2d.C{
+					*c2d.New(
+						*vector.New(0, 0.5),
+						*vector.New(0, -1),
+					),
+				},
+			),
 		},
 
 		{
@@ -119,23 +154,30 @@ func TestProject(t *testing.T) {
 			//
 			//   x <= 0
 			name: "Bisect",
-			cs: []constraint.C{
-				*constraint.New(
-					*vector.New(0, 1),
-					*vector.New(-1, 1),
-				),
-			},
+			cs: mutable(
+				[]c2d.C{
+					*c2d.New(
+						*vector.New(0, 1),
+						*vector.New(-1, 1),
+					),
+				},
+			),
 			c: *constraint.New(
-				*vector.New(0, 1),
-				*vector.New(1, 1),
+				*c2d.New(
+					*vector.New(0, 1),
+					*vector.New(1, 1),
+				),
+				true,
 			),
 			success: true,
-			want: []constraint.C{
-				*constraint.New(
-					*vector.New(0, 1),
-					*vector.New(-1, 0),
-				),
-			},
+			want: mutable(
+				[]c2d.C{
+					*c2d.New(
+						*vector.New(0, 1),
+						*vector.New(-1, 0),
+					),
+				},
+			),
 		},
 
 		func() config {
@@ -144,44 +186,46 @@ func TestProject(t *testing.T) {
 			//   (a)  2x - y <= -6
 			//   (b) -3x - y <= -6
 			//   (c)       y <= 1
-			a := *constraint.New(
+			a := *c2d.New(
 				*vector.New(0, 6),
 				*vector.New(-2, 1),
 			)
-			b := *constraint.New(
+			b := *c2d.New(
 				*vector.New(0, 6),
 				*vector.New(3, 1),
 			)
-			c := *constraint.New(
+			c := *c2d.New(
 				*vector.New(0, 1),
 				*vector.New(0, -1),
 			)
 
 			return config{
 				name:    "Bisect/Multiple",
-				cs:      []constraint.C{a, b},
-				c:       c,
+				cs:      mutable([]c2d.C{a, b}),
+				c:       *constraint.New(c, true),
 				success: true,
-				want: []constraint.C{
-					*constraint.New(
-						*vector.New(-2.5, 1),
-						vector.Unit(
-							vector.Sub(
-								vector.Unit(hyperplane.HP(a).N()),
-								vector.Unit(hyperplane.HP(c).N()),
+				want: mutable(
+					[]c2d.C{
+						*c2d.New(
+							*vector.New(-2.5, 1),
+							vector.Unit(
+								vector.Sub(
+									vector.Unit(hyperplane.HP(a).N()),
+									vector.Unit(hyperplane.HP(c).N()),
+								),
 							),
 						),
-					),
-					*constraint.New(
-						*vector.New(5./3, 1),
-						vector.Unit(
-							vector.Sub(
-								vector.Unit(hyperplane.HP(b).N()),
-								vector.Unit(hyperplane.HP(c).N()),
+						*c2d.New(
+							*vector.New(5./3, 1),
+							vector.Unit(
+								vector.Sub(
+									vector.Unit(hyperplane.HP(b).N()),
+									vector.Unit(hyperplane.HP(c).N()),
+								),
 							),
 						),
-					),
-				},
+					},
+				),
 			}
 		}(),
 	}
@@ -203,8 +247,8 @@ func TestProject(t *testing.T) {
 				cmp.Comparer(
 					func(a, b constraint.C) bool {
 						return hyperplane.Within(
-							hyperplane.HP(a),
-							hyperplane.HP(b),
+							hyperplane.HP(a.C()),
+							hyperplane.HP(b.C()),
 						)
 					},
 				),
@@ -231,11 +275,14 @@ func TestSolve(t *testing.T) {
 		// single constraint.
 		{
 			name: "Trivial",
-			m:    Unbounded{},
+			m:    unbounded.M{},
 			cs:   nil,
 			c: *constraint.New(
-				*vector.New(1, 2),
-				*vector.New(0, 2),
+				*c2d.New(
+					*vector.New(1, 2),
+					*vector.New(0, 2),
+				),
+				true,
 			),
 			success: true,
 			want:    *vector.New(0, 2),
@@ -245,16 +292,21 @@ func TestSolve(t *testing.T) {
 		// intersecting constraints.
 		{
 			name: "AntiParallel/Intersect",
-			m:    Unbounded{},
-			cs: []constraint.C{
-				*constraint.New(
-					*vector.New(0, 1),
-					*vector.New(0, -1),
-				),
-			},
+			m:    unbounded.M{},
+			cs: mutable(
+				[]c2d.C{
+					*c2d.New(
+						*vector.New(0, 1),
+						*vector.New(0, -1),
+					),
+				},
+			),
 			c: *constraint.New(
-				*vector.New(0, 0),
-				*vector.New(0, 1),
+				*c2d.New(
+					*vector.New(0, 0),
+					*vector.New(0, 1),
+				),
+				true,
 			),
 			success: true,
 			// The 2D projection of the single pre-existing
@@ -272,16 +324,21 @@ func TestSolve(t *testing.T) {
 		// constraints.
 		{
 			name: "AntiParallel/Disjoint",
-			m:    Unbounded{},
-			cs: []constraint.C{
-				*constraint.New(
-					*vector.New(0, 1),
-					*vector.New(0, 1),
-				),
-			},
+			m:    unbounded.M{},
+			cs: mutable(
+				[]c2d.C{
+					*c2d.New(
+						*vector.New(0, 1),
+						*vector.New(0, 1),
+					),
+				},
+			),
 			c: *constraint.New(
-				*vector.New(0, 0),
-				*vector.New(0, -1),
+				*c2d.New(
+					*vector.New(0, 0),
+					*vector.New(0, -1),
+				),
+				true,
 			),
 			success: true,
 			// The 2D projection of the single pre-existing
@@ -310,15 +367,15 @@ func TestSolve(t *testing.T) {
 		// system of constraints defined by (a) and (b). This will
 		// generate the projected linear equations as defined in
 		// TestProject/Bisect/Multiple.
-		a := *constraint.New(
+		a := *c2d.New(
 			*vector.New(0, 6),
 			*vector.New(-2, 1),
 		)
-		b := *constraint.New(
+		b := *c2d.New(
 			*vector.New(0, 6),
 			*vector.New(3, 1),
 		)
-		c := *constraint.New(
+		c := *c2d.New(
 			*vector.New(0, 1),
 			*vector.New(0, -1),
 		)
@@ -326,9 +383,9 @@ func TestSolve(t *testing.T) {
 		return []config{
 			{
 				name:    "2DInfeasible",
-				m:       Unbounded{},
-				cs:      []constraint.C{a, b},
-				c:       c,
+				m:       unbounded.M{},
+				cs:      mutable([]c2d.C{a, b}),
+				c:       *constraint.New(c, true),
 				success: true,
 				want:    *vector.New(math.Inf(0), math.Inf(0)),
 			},
@@ -337,9 +394,9 @@ func TestSolve(t *testing.T) {
 			// does not matter.
 			{
 				name:    "2DInfeasible/OrderInvariance",
-				m:       Unbounded{},
-				cs:      []constraint.C{b, a},
-				c:       c,
+				m:       unbounded.M{},
+				cs:      mutable([]c2d.C{b, a}),
+				c:       *constraint.New(c, true),
 				success: true,
 				want:    *vector.New(math.Inf(0), math.Inf(0)),
 			},

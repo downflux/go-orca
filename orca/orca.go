@@ -4,16 +4,17 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/downflux/go-geometry/2d/constraint"
 	"github.com/downflux/go-geometry/nd/hypersphere"
 	"github.com/downflux/go-geometry/nd/vector"
 	"github.com/downflux/go-orca/agent"
+	"github.com/downflux/go-orca/internal/geometry/2d/constraint"
 	"github.com/downflux/go-orca/internal/solver"
 	"github.com/downflux/go-orca/internal/vo/agent/opt"
 	"github.com/downflux/go-orca/internal/vo/wall"
 	"github.com/downflux/go-orca/kd"
 	"github.com/downflux/go-orca/region"
 
+	c2d "github.com/downflux/go-geometry/2d/constraint"
 	v2d "github.com/downflux/go-geometry/2d/vector"
 	voagent "github.com/downflux/go-orca/internal/vo/agent"
 )
@@ -93,17 +94,6 @@ func step(a agent.A, t *kd.T, rs []region.R, f func(a agent.A) bool, tau float64
 	}
 
 	cs := make([]constraint.C, 0, len(ps))
-	for _, p := range ps {
-		cs = append(cs, constraint.C(
-			voagent.New(
-				p.(kd.P).A(),
-				opt.O{
-					Weight: opt.WeightEqual,
-					VOpt:   opt.VOptV,
-				},
-			).ORCA(a, tau),
-		))
-	}
 	for _, r := range rs {
 		// TODO(minkezhang): Support multi-segment region ORCA.
 		if len(r.R()) != 1 {
@@ -111,9 +101,31 @@ func step(a agent.A, t *kd.T, rs []region.R, f func(a agent.A) bool, tau float64
 		}
 		// TODO(minkezhang): Add to immutable constraints instead, as
 		// lines are immovable.
-		cs = append(cs, constraint.C(
-			wall.New(r.R()[0]).ORCA(a, tau),
-		))
+		cs = append(
+			cs,
+			*constraint.New(
+				c2d.C(wall.New(r.R()[0]).ORCA(a, tau)),
+				false,
+			),
+		)
+	}
+
+	for _, p := range ps {
+		cs = append(
+			cs,
+			*constraint.New(
+				c2d.C(
+					voagent.New(
+						p.(kd.P).A(),
+						opt.O{
+							Weight: opt.WeightEqual,
+							VOpt:   opt.VOptV,
+						},
+					).ORCA(a, tau),
+				),
+				true,
+			),
+		)
 	}
 
 	return Mutation{

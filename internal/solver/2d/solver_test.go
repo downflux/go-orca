@@ -5,17 +5,18 @@ import (
 	"math"
 	"testing"
 
-	"github.com/downflux/go-geometry/2d/constraint"
 	"github.com/downflux/go-geometry/2d/hyperplane"
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-geometry/nd/line"
+	"github.com/downflux/go-orca/internal/geometry/2d/constraint"
+	"github.com/downflux/go-orca/internal/solver/bounds/unbounded"
+	"github.com/downflux/go-orca/internal/solver/feasibility"
 	"github.com/google/go-cmp/cmp"
 
+	c2d "github.com/downflux/go-geometry/2d/constraint"
 	l2d "github.com/downflux/go-geometry/2d/line"
 )
-
-var _ M = Unbounded{}
 
 func TestIntersect(t *testing.T) {
 	type config struct {
@@ -29,7 +30,7 @@ func TestIntersect(t *testing.T) {
 	testConfigs := []config{
 
 		func() config {
-			c := *constraint.New(
+			c := *c2d.New(
 				*vector.New(1, 0),
 				*vector.New(0, 1),
 			)
@@ -37,7 +38,7 @@ func TestIntersect(t *testing.T) {
 			l := hyperplane.Line(hyperplane.HP(c))
 			return config{
 				name:    "FirstConstraint",
-				c:       c,
+				c:       *constraint.New(c, true),
 				cs:      []constraint.C{},
 				success: true,
 				want:    *segment.New(l, math.Inf(-1), math.Inf(0)),
@@ -45,19 +46,19 @@ func TestIntersect(t *testing.T) {
 		}(),
 
 		func() config {
-			c := *constraint.New(
+			c := *c2d.New(
 				*vector.New(0, 1),
 				*vector.New(0, 1),
 			)
 
-			d := *constraint.New(
+			d := *c2d.New(
 				*vector.New(0, -1),
 				*vector.New(0, -1),
 			)
 			return config{
 				name:    "SingleConstraint/Infeasible/Disjoint",
-				c:       c,
-				cs:      []constraint.C{d},
+				c:       *constraint.New(c, true),
+				cs:      []constraint.C{*constraint.New(d, true)},
 				success: false,
 				want:    segment.S{},
 			}
@@ -70,12 +71,12 @@ func TestIntersect(t *testing.T) {
 		func() config {
 			p := *vector.New(1, 0)
 
-			c := *constraint.New(
+			c := *c2d.New(
 				p,
 				*vector.New(1, -1),
 			)
 
-			d := *constraint.New(
+			d := *c2d.New(
 				p,
 				*vector.New(1, 0),
 			)
@@ -83,8 +84,8 @@ func TestIntersect(t *testing.T) {
 			l := hyperplane.Line(hyperplane.HP(c))
 			return config{
 				name:    "SingleConstraint/Feasible/SetTMin",
-				c:       c,
-				cs:      []constraint.C{d},
+				c:       *constraint.New(c, true),
+				cs:      []constraint.C{*constraint.New(d, true)},
 				success: true,
 				want:    *segment.New(l, 0, math.Inf(0)),
 			}
@@ -97,12 +98,12 @@ func TestIntersect(t *testing.T) {
 		func() config {
 			p := *vector.New(1, 0)
 
-			c := *constraint.New(
+			c := *c2d.New(
 				p,
 				*vector.New(1, 1),
 			)
 
-			d := *constraint.New(
+			d := *c2d.New(
 				p,
 				*vector.New(1, 0),
 			)
@@ -110,8 +111,8 @@ func TestIntersect(t *testing.T) {
 			l := hyperplane.Line(hyperplane.HP(c))
 			return config{
 				name:    "SingleConstraint/Feasible/SetTMax",
-				c:       c,
-				cs:      []constraint.C{d},
+				c:       *constraint.New(c, true),
+				cs:      []constraint.C{*constraint.New(d, true)},
 				success: true,
 				want:    *segment.New(l, math.Inf(-1), 0),
 			}
@@ -134,12 +135,12 @@ func TestIntersect(t *testing.T) {
 		// "relaxing" the constraint if C is added after D, which will
 		// return an infeasibility error.
 		func() []config {
-			c := *constraint.New(
+			c := *c2d.New(
 				*vector.New(1, 0),
 				*vector.New(1, 0),
 			)
 
-			d := *constraint.New(
+			d := *c2d.New(
 				*vector.New(2, 0),
 				*vector.New(1, 0),
 			)
@@ -148,15 +149,15 @@ func TestIntersect(t *testing.T) {
 			return []config{
 				{
 					name:    "SingleConstraint/Infeasible/RelaxedParallelConstraint",
-					c:       c,
-					cs:      []constraint.C{d},
+					c:       *constraint.New(c, true),
+					cs:      []constraint.C{*constraint.New(d, true)},
 					success: false,
 					want:    segment.S{},
 				},
 				{
 					name:    "SingleConstraint/Feasible/ConstrainedParallelConstraint",
-					c:       d,
-					cs:      []constraint.C{c},
+					c:       *constraint.New(d, true),
+					cs:      []constraint.C{*constraint.New(c, true)},
 					success: true,
 					want:    *segment.New(m, math.Inf(-1), math.Inf(0)),
 				},
@@ -166,7 +167,7 @@ func TestIntersect(t *testing.T) {
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
 			r := &region{
-				m:           Unbounded{},
+				m:           unbounded.M{},
 				constraints: c.cs,
 			}
 			got, ok := r.intersect(c.c)
@@ -194,27 +195,33 @@ func TestSolve(t *testing.T) {
 		cs      []constraint.C
 		o       O
 		v       vector.V
-		success bool
+		success feasibility.F
 		want    vector.V
 	}
 
 	testConfigs := []config{
 		{
-			name: "Infeasible",
-			m:    Unbounded{},
+			name: "Partial",
+			m:    unbounded.M{},
 			cs: []constraint.C{
 				*constraint.New(
-					*vector.New(0, 1),
-					*vector.New(0, 1),
+					*c2d.New(
+						*vector.New(0, 1),
+						*vector.New(0, 1),
+					),
+					true,
 				),
 				*constraint.New(
-					*vector.New(0, -1),
-					*vector.New(0, -1),
+					*c2d.New(
+						*vector.New(0, -1),
+						*vector.New(0, -1),
+					),
+					true,
 				),
 			},
 			o:       func(segment.S) vector.V { return vector.V{} },
 			v:       *vector.New(0, 1),
-			success: false,
+			success: feasibility.Partial,
 		},
 	}
 
@@ -229,16 +236,25 @@ func TestSolve(t *testing.T) {
 				// The graph shows a vertical x = 4 constraint,
 				// but the solution assumes x = 5.
 				*constraint.New(
-					*vector.New(5, 0),
-					*vector.New(-5, 0),
+					*c2d.New(
+						*vector.New(5, 0),
+						*vector.New(-5, 0),
+					),
+					true,
 				),
 				*constraint.New(
-					*vector.New(0, 4),
-					*vector.New(1, 2),
+					*c2d.New(
+						*vector.New(0, 4),
+						*vector.New(1, 2),
+					),
+					true,
 				),
 				*constraint.New(
-					*vector.New(0, 4),
-					*vector.New(-1, -4),
+					*c2d.New(
+						*vector.New(0, 4),
+						*vector.New(-1, -4),
+					),
+					true,
 				),
 			}
 			o := func(s segment.S) vector.V {
@@ -268,11 +284,11 @@ func TestSolve(t *testing.T) {
 			for _, v := range vs {
 				testConfigs = append(testConfigs, config{
 					name:    fmt.Sprintf("Simple/v0=%v", v),
-					m:       Unbounded{},
+					m:       unbounded.M{},
 					cs:      cs,
 					o:       o,
 					v:       v,
-					success: true,
+					success: feasibility.Feasible,
 					// This is the given solution and is a
 					// constant.
 					want: *vector.New(5, 2.75),
@@ -283,8 +299,8 @@ func TestSolve(t *testing.T) {
 
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
-			if got, ok := Solve(c.m, c.cs, c.o, c.v); ok != c.success || !vector.Within(got, c.want) {
-				t.Errorf("Solve() = %v, %v, want = %v, %v", got, ok, c.want, c.success)
+			if got, f := Solve(c.m, c.cs, c.o, c.v); f != c.success || got != nil && c.want != nil && !vector.Within(got, c.want) {
+				t.Errorf("Solve() = %v, %v, want = %v, %v", got, f, c.want, c.success)
 			}
 		})
 	}

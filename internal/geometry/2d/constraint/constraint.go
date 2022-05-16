@@ -17,5 +17,6 @@ func New(c constraint.C, mutable bool) *C {
 	}
 }
 
-func (c C) In(v vector.V) bool { return c.c.In(v) }
+func (c C) C() constraint.C    { return c.c }
+func (c C) In(v vector.V) bool { return c.C().In(v) }
 func (c C) Mutable() bool      { return c.mutable }
