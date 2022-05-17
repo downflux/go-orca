@@ -131,14 +131,14 @@ func TestSolve(t *testing.T) {
 						*v2d.New(0, 1),
 						*v2d.New(0, 1),
 					),
-					false,
+					true,
 				),
 				*constraint.New(
 					*c2d.New(
 						*v2d.New(0, -1),
 						*v2d.New(0, -1),
 					),
-					false,
+					true,
 				),
 			}
 

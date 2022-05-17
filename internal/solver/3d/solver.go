@@ -109,6 +109,8 @@ type region struct {
 	// hyperplanes).
 	constraints []constraint.C
 
+	immutable []constraint.C
+
 	infeasible bool
 }
 
@@ -116,11 +118,14 @@ func (r *region) Feasible() bool        { return !r.infeasible }
 func (r *region) Append(c constraint.C) { r.constraints = append(r.constraints, c) }
 
 func (r *region) Solve(c constraint.C) (vector.V, bool) {
-	cs, ok := r.project(c)
-
+	ps, ok := r.project(c)
 	if !ok {
 		return vector.V{}, r.Feasible()
 	}
+
+	cs := make([]constraint.C, 0, len(r.constraints)+len(r.immutable))
+	cs = append(cs, r.immutable...)
+	cs = append(cs, ps...)
 
 	// Our target is to move directly into the feasible region of the
 	// incremental constraint, as fast as the bounding constraints will
@@ -157,10 +162,6 @@ func (r *region) Solve(c constraint.C) (vector.V, bool) {
 // project reduces the current 3D constraint problem into a projected 2D
 // constraint problem.
 func (r *region) project(c constraint.C) ([]constraint.C, bool) {
-	if !c.Mutable() {
-		return nil, true
-	}
-
 	if !r.Feasible() {
 		return nil, r.Feasible()
 	}
@@ -168,10 +169,6 @@ func (r *region) project(c constraint.C) ([]constraint.C, bool) {
 	pcs := make([]constraint.C, 0, len(r.constraints))
 
 	for _, d := range r.constraints {
-		if !d.Mutable() {
-			pcs = append(pcs, d)
-			continue
-		}
 		// project takes as input two 2D linear constraints and returns
 		// a new constraint which represents the line of intersection of
 		// the two input constraints in 3D space. See package
@@ -259,11 +256,22 @@ func Solve(m M, cs []constraint.C, v vector.V) (vector.V, feasibility.F) {
 	// of some constraint plane from the input.
 	dist := 0.
 
+	immutable := make([]constraint.C, 0, len(cs))
+	mutable := make([]constraint.C, 0, len(cs))
+	for _, c := range cs {
+		if !c.Mutable() {
+			immutable = append(immutable, c)
+		} else {
+			mutable = append(mutable, c)
+		}
+	}
+
 	r := &region{
 		m:           m,
-		constraints: make([]constraint.C, 0, len(cs)),
+		immutable:   immutable,
+		constraints: make([]constraint.C, 0, len(mutable)),
 	}
-	for _, c := range cs {
+	for _, c := range mutable {
 		l := hyperplane.Line(hyperplane.HP(c.C()))
 		// The base 2D linear programming problem may be infeasible. In
 		// order to "solve" this problem, we are systematically relaxing
