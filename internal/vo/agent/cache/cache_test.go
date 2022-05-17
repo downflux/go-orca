@@ -11,9 +11,8 @@ import (
 	"github.com/downflux/go-geometry/epsilon"
 	"github.com/downflux/go-orca/internal/agent"
 	"github.com/downflux/go-orca/internal/vo/agent/cache/domain"
+	"github.com/downflux/go-orca/internal/vo/agent/cache/mock"
 	"github.com/downflux/go-orca/internal/vo/agent/opt"
-
-	mock "github.com/downflux/go-orca/internal/vo/agent/cache/mock"
 )
 
 type CacheVO interface {

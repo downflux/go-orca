@@ -1,4 +1,4 @@
-package ball
+package mock
 
 import (
 	"math"
