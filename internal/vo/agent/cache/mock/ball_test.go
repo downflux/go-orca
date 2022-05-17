@@ -9,12 +9,7 @@ import (
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-geometry/epsilon"
 	"github.com/downflux/go-orca/internal/agent"
-	"github.com/downflux/go-orca/internal/geometry/ball/domain"
-	"github.com/downflux/go-orca/internal/vo/agent/testdata"
-)
-
-var (
-	_ vo.VO = Reference{}
+	"github.com/downflux/go-orca/internal/vo/agent/cache/domain"
 )
 
 // rn returns a random int between [-100, 100).

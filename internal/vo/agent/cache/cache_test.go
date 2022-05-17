@@ -13,13 +13,12 @@ import (
 	"github.com/downflux/go-orca/internal/vo/agent/cache/domain"
 	"github.com/downflux/go-orca/internal/vo/agent/opt"
 
-	testdata "github.com/downflux/go-orca/internal/vo/agent/testdata"
-	reference "github.com/downflux/go-orca/internal/vo/agent/testdata/mock"
+	mock "github.com/downflux/go-orca/internal/vo/agent/cache/mock"
 )
 
-var (
-	_ testdata.VO = &VO{}
-)
+type CacheVO interface {
+	ORCA() (hyperplane.HP, error)
+}
 
 // rn returns a random int between [-100, 100).
 func rn() float64 { return rand.Float64()*200 - 100 }
@@ -151,7 +150,7 @@ func TestVOReference(t *testing.T) {
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
 			t.Run("ORCA", func(t *testing.T) {
-				got, err := reference.New(c.obstacle, c.agent, c.tau).ORCA()
+				got, err := mock.New(c.obstacle, c.agent, c.tau).ORCA()
 				if err != nil {
 					t.Fatalf("ORCA() returned error: %v", err)
 				}
@@ -164,7 +163,7 @@ func TestVOReference(t *testing.T) {
 }
 
 // TestVOConformance tests that agent-agent VOs will return u in the correct
-// domain using the reference implementation as a sanity check.
+// domain using the mock implementation as a sanity check.
 func TestVOConformance(t *testing.T) {
 	const nTests = 1000
 	const delta = 1e-10
@@ -226,7 +225,7 @@ func TestVOConformance(t *testing.T) {
 			}
 
 			t.Run("ORCA", func(t *testing.T) {
-				want, err := reference.New(c.obstacle, c.agent, float64(c.tau)).ORCA()
+				want, err := mock.New(c.obstacle, c.agent, float64(c.tau)).ORCA()
 				if err != nil {
 					t.Fatalf("ORCA() returned error: %v", err)
 				}
@@ -248,15 +247,15 @@ func TestVOConformance(t *testing.T) {
 func BenchmarkORCA(t *testing.B) {
 	testConfigs := []struct {
 		name        string
-		constructor func(agent, obstacle agent.A) testdata.VO
+		constructor func(agent, obstacle agent.A) CacheVO
 	}{
 		{
 			name:        "VOReference",
-			constructor: func(agent, obstacle agent.A) testdata.VO { return reference.New(agent, obstacle, 1) },
+			constructor: func(agent, obstacle agent.A) CacheVO { return mock.New(agent, obstacle, 1) },
 		},
 		{
 			name: "VO",
-			constructor: func(agent, obstacle agent.A) testdata.VO {
+			constructor: func(agent, obstacle agent.A) CacheVO {
 				v, _ := New(
 					O{
 						Agent:    agent,
