@@ -170,7 +170,8 @@ func (vo VO) ORCA(agent agent.A, tau float64) hyperplane.HP {
 	)
 	t := vo.obstacle.L().T(agent.P())
 
-	switch d := vo.domain(agent, tau); d {
+	d := vo.domain(agent, tau)
+	switch d {
 	case domain.CollisionLeft:
 		return *hyperplane.New(
 			*vector.New(0, 0), // VOpt
@@ -192,6 +193,86 @@ func (vo VO) ORCA(agent agent.A, tau float64) hyperplane.HP {
 			),
 		)
 	}
+
+	// No collisions -- start considering v-space instead.
+	l := *segment.New(
+		*line.New(
+			vector.Scale(1/tau, vo.obstacle.L().P()),
+			vector.Scale(1/tau, vo.obstacle.L().D()),
+		),
+		vo.obstacle.TMin(),
+		vo.obstacle.TMax(),
+	)
+
+	t = l.L().T(agent.V())
+
+	// t1 and t2 take into account obliqueness.
+	t1 := vo.l(agent).T(agent.V())
+	t2 := vo.r(agent).T(agent.V())
+
+	switch d {
+	case domain.Left:
+		// LeftCircle
+		//
+		// TODO(minkezhang): Figure out if TMin is the correct value
+		// here.
+		if (t < vo.obstacle.TMin() && t1 < 0) || (vo.oblique(agent) && t1 < 0 && t2 < 0) {
+			w := vector.Unit(
+				vector.Sub(vo.l(agent).P(), agent.V()))
+			return *hyperplane.New(
+				vector.Add(
+					vo.l(agent).P(),
+					vector.Scale(agent.R() / tau, w),
+				),
+				w,
+			)
+		}
+	case domain.Right:
+		// RightCircle
+		if t > vo.obstacle.TMax() && t2 < 0 {
+			w := vector.Unit(
+				vector.Sub(vo.r(agent).P(), agent.V()))
+			return *hyperlane.New(
+				vector.Add(
+					vo.r(agent).P(),
+					vector.Scale(agent.R() / tau, w),
+				),
+				w,
+			)
+		}
+	}
+
+	dl = l.L().Distance(agent.V())
+	d1 = vo.l(agent).Distance(agent.V())
+	d2 = vo.r(agent).Distance(agent.V())
+
+	if vo.oblique(agent) || t < vo.obstacle.TMin() || t > vo.obstacle.TMax() {
+		dl = math.Inf(1)
+	}
+	if t1 < 0 {
+		d1 = math.Inf(1)
+	}
+	if t2 < 0 {
+		d2 = math.Inf(1)
+	}
+
+	switch d {
+	case domain.Left:
+		return *hyperplane.New(
+			vector.Add(
+				l.L().L(l.M
+	case domain.Right:
+	case domain.Line:
+	}
+	if dl <= d1 && dl <= d2 {
+		return domain.Line
+	}
+
+	if dl <= d2 {
+		return domain.Left
+	}
+
+	return domain.Right
 
 	panic("unhandled ORCA case")
 }
