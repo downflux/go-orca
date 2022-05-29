@@ -2,6 +2,7 @@ package segment
 
 import (
 	"fmt"
+	"math"
 	"testing"
 
 	"github.com/downflux/go-geometry/2d/line"
@@ -123,6 +124,14 @@ func TestCollision(t *testing.T) {
 }
 
 func TestTangents(t *testing.T) {
+	o := *segment.New(
+		*line.New(
+			*vector.New(-1, 1),
+			*vector.New(1, 0),
+		),
+		0,
+		2,
+	)
 	configs := []struct {
 		name string
 
@@ -132,7 +141,23 @@ func TestTangents(t *testing.T) {
 
 		l vector.V
 		r vector.V
-	}{}
+	}{
+		{
+			name:     "Trivial",
+			obstacle: o,
+			p:        *vector.New(0, 0),
+			radius:   0.5,
+
+			l: vector.Scale(-1/2.0, *vector.New(
+				-math.Sqrt(1.75)-0.5,
+				-0.5+math.Sqrt(1.75)),
+			),
+			r: vector.Scale(1/2.0, *vector.New(
+				math.Sqrt(1.75)+0.5,
+				-0.5+math.Sqrt(1.75)),
+			),
+		},
+	}
 
 	for _, c := range configs {
 		s, err := New(c.obstacle, c.p, c.radius)
