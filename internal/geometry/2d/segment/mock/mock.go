@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/downflux/go-geometry/2d/line"
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
 )
@@ -110,6 +111,12 @@ func New(obstacle segment.S, p vector.V, radius float64) (*S, error) {
 		l = rotate(rpTMax, lTMax, radius, true)
 	}
 
+	obstacle = *segment.New(
+		*line.New(rpTMin, vector.Sub(rpTMax, rpTMin)),
+		0,
+		1,
+	)
+
 	return &S{
 		obstacle: obstacle,
 		radius:   radius,
@@ -123,3 +130,5 @@ func New(obstacle segment.S, p vector.V, radius float64) (*S, error) {
 func (s S) IsLeftNegative() bool { return true }
 func (s S) L() vector.V          { return s.l }
 func (s S) R() vector.V          { return s.r }
+
+func (s S) S() segment.S { return s.obstacle }
