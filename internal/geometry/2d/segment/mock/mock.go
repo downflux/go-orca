@@ -115,8 +115,8 @@ func New(obstacle segment.S, p vector.V, radius float64) (*S, error) {
 		radius:   radius,
 		p:        p,
 
-		l: vector.Scale(-1, vector.Unit(l)),
-		r: vector.Unit(r),
+		l: vector.Scale(-lTMin, vector.Unit(l)),
+		r: vector.Scale(lTMax, vector.Unit(r)),
 	}, nil
 }
 
