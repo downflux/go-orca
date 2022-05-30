@@ -1,15 +1,18 @@
-// TODO(minkezhang): Check for obstacle handedness.
 package mock
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/downflux/go-geometry/2d/hyperplane"
 	"github.com/downflux/go-geometry/2d/line"
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
+	"github.com/downflux/go-geometry/epsilon"
 	"github.com/downflux/go-orca/agent"
 	"github.com/downflux/go-orca/internal/vo/wall/cache/domain"
+
+	mock "github.com/downflux/go-orca/internal/geometry/2d/segment/mock"
 )
 
 type VO struct {
@@ -29,7 +32,7 @@ func New(obstacle segment.S) *VO {
 	}
 }
 
-func (vo VO) domain(agent agent.A, tau float64) domain.D {
+func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 	rp1 := vector.Sub(
 		vo.obstacle.L().L(vo.obstacle.TMin()),
 		agent.P(),
@@ -41,149 +44,25 @@ func (vo VO) domain(agent agent.A, tau float64) domain.D {
 
 	d1 := vector.Magnitude(rp1)
 	d2 := vector.Magnitude(rp2)
-	dl := vo.obstacle.L().Distance(agent.P())
+	d := vo.obstacle.L().Distance(agent.P())
 
 	// Check for collisions.
 	t := vo.obstacle.L().T(agent.P())
 	if t <= vo.obstacle.TMin() && d1 <= agent.R() {
-		return domain.CollisionLeft
-	}
-	if t >= vo.obstacle.TMax() && d2 <= agent.R() {
-		return domain.CollisionRight
-	}
-	if vo.obstacle.TMin() <= t && t <= vo.obstacle.TMax() && dl <= agent.R() {
-		return domain.CollisionLine
-	}
-
-	// No collisions -- start considering v-space instead.
-	l := *segment.New(
-		*line.New(
-			vector.Scale(1/tau, vo.obstacle.L().P()),
-			vector.Scale(1/tau, vo.obstacle.L().D()),
-		),
-		vo.obstacle.TMin(),
-		vo.obstacle.TMax(),
-	)
-
-	t = l.L().T(agent.V())
-
-	// t1 and t2 take into account obliqueness.
-	t1 := vo.l(agent).T(agent.V())
-	t2 := vo.r(agent).T(agent.V())
-
-	if (t < vo.obstacle.TMin() && t1 < 0) || (vo.oblique(agent) && t1 < 0 && t2 < 0) {
-		return domain.Left // LeftCircle
-	}
-	if t > vo.obstacle.TMax() && t2 < 0 {
-		return domain.Right // RightCircle
-	}
-
-	dl = l.L().Distance(agent.V())
-	d1 = vo.l(agent).Distance(agent.V())
-	d2 = vo.r(agent).Distance(agent.V())
-
-	if vo.oblique(agent) || t < vo.obstacle.TMin() || t > vo.obstacle.TMax() {
-		dl = math.Inf(1)
-	}
-	if t1 < 0 {
-		d1 = math.Inf(1)
-	}
-	if t2 < 0 {
-		d2 = math.Inf(1)
-	}
-
-	if dl <= d1 && dl <= d2 {
-		return domain.Line
-	}
-
-	if dl <= d2 {
-		return domain.Left
-	}
-
-	return domain.Right
-}
-
-func (vo VO) oblique(agent agent.A) bool {
-	d := vo.obstacle.L().Distance(agent.P())
-	t := vo.obstacle.L().T(agent.P())
-	return d < agent.R() && (t < vo.obstacle.TMin() || t > vo.obstacle.TMax())
-}
-
-func (vo VO) l(agent agent.A) line.L {
-	d := vo.obstacle.L().Distance(agent.P())
-	t := vo.obstacle.L().T(agent.P())
-	oblique_right := d < agent.R() && t > vo.obstacle.TMax()
-
-	o := vo.obstacle.L().L(vo.obstacle.TMin())
-	if oblique_right {
-		o = vo.obstacle.L().L(vo.obstacle.TMax())
-	}
-
-	rp := vector.Sub(o, agent.P())
-	l := math.Sqrt(vector.SquaredMagnitude(rp) - agent.R()*agent.R())
-
-	return *line.New(
-		/* p = */ o,
-		/* d = */ vector.Scale(
-			1/vector.SquaredMagnitude(rp),
-			*vector.New(
-				rp.X()*l-rp.Y()*agent.R(),
-				rp.X()*agent.R()+rp.Y()*l,
-			),
-		),
-	)
-
-}
-
-func (vo VO) r(agent agent.A) line.L {
-	d := vo.obstacle.L().Distance(agent.P())
-	t := vo.obstacle.L().T(agent.P())
-	oblique_left := d < agent.R() && t < vo.obstacle.TMin()
-
-	o := vo.obstacle.L().L(vo.obstacle.TMax())
-	if oblique_left {
-		o = vo.obstacle.L().L(vo.obstacle.TMin())
-	}
-	rp := vector.Sub(o, agent.P())
-	r := math.Sqrt(vector.SquaredMagnitude(rp) - agent.R()*agent.R())
-
-	return *line.New(
-		o,
-		vector.Scale(
-			1/vector.SquaredMagnitude(rp),
-			*vector.New(
-				rp.X()*r+rp.Y()*agent.R(),
-				-rp.X()*agent.R()+rp.Y()*r,
-			),
-		),
-	)
-}
-
-func (vo VO) ORCA(agent agent.A, tau float64) hyperplane.HP {
-	rp1 := vector.Sub(
-		vo.obstacle.L().L(vo.obstacle.TMin()),
-		agent.P(),
-	)
-	rp2 := vector.Sub(
-		vo.obstacle.L().L(vo.obstacle.TMax()),
-		agent.P(),
-	)
-	t := vo.obstacle.L().T(agent.P())
-
-	d := vo.domain(agent, tau)
-	switch d {
-	case domain.CollisionLeft:
-		return *hyperplane.New(
+		return domain.CollisionLeft, *hyperplane.New(
 			*vector.New(0, 0), // VOpt
 			vector.Unit(*vector.New(-rp1.X(), -rp1.Y())),
 		)
-	case domain.CollisionRight:
-		return *hyperplane.New(
+
+	}
+	if t >= vo.obstacle.TMax() && d2 <= agent.R() {
+		return domain.CollisionRight, *hyperplane.New(
 			*vector.New(0, 0),
 			vector.Unit(*vector.New(-rp2.X(), -rp2.Y())),
 		)
-	case domain.CollisionLine:
-		return *hyperplane.New(
+	}
+	if vo.obstacle.TMin() <= t && t <= vo.obstacle.TMax() && d <= agent.R() {
+		return domain.CollisionLine, *hyperplane.New(
 			*vector.New(0, 0),
 			vector.Unit(
 				vector.Sub(
@@ -194,85 +73,112 @@ func (vo VO) ORCA(agent agent.A, tau float64) hyperplane.HP {
 		)
 	}
 
-	// No collisions -- start considering v-space instead.
-	l := *segment.New(
+	// o is the truncated base of the VO cone in v-space.
+	o := *segment.New(
 		*line.New(
-			vector.Scale(1/tau, vo.obstacle.L().P()),
-			vector.Scale(1/tau, vo.obstacle.L().D()),
-		),
+			vector.Scale(1/tau, vector.Sub(
+				vo.obstacle.L().P(),
+				agent.P())),
+			vector.Scale(1/tau, vo.obstacle.L().D())),
 		vo.obstacle.TMin(),
 		vo.obstacle.TMax(),
 	)
+	wall, err := mock.New(o, *vector.New(0, 0), agent.R()/tau)
+	if err != nil {
+		panic(fmt.Sprintf("error while constructing the truncated VO cone base: %v", err))
+	}
 
-	t = l.L().T(agent.V())
+	l := *line.New(
+		wall.S().L().L(wall.S().TMin()),
+		wall.L())
+	r := *line.New(
+		wall.S().L().L(wall.S().TMax()),
+		wall.R())
 
-	// t1 and t2 take into account obliqueness.
-	t1 := vo.l(agent).T(agent.V())
-	t2 := vo.r(agent).T(agent.V())
+	oblique := epsilon.Within(wall.S().TMin(), wall.S().TMax())
 
-	switch d {
-	case domain.Left:
+	// t is the projected parametric value along the truncated base. Note
+	// that the segment reported by wall.S() is normalized, so t is always
+	// in [0, 1]. In the oblique case, the line segment is not well-defined,
+	// so we use a placeholder value here.
+	t = 0.5
+	if !oblique {
+		t = wall.S().L().T(agent.V())
+	}
+	tl := l.T(agent.V())
+	tr := r.T(agent.V())
+
+	// Note that l is always directed away towards the origin, while r is
+	// always directed away. RVO2 assumes both l and r are directed away
+	// from the origin.
+	if (t < 0 && tl > 0) || (oblique && tl > 0 && tr < 0) {
 		// LeftCircle
-		//
-		// TODO(minkezhang): Figure out if TMin is the correct value
-		// here.
-		if (t < vo.obstacle.TMin() && t1 < 0) || (vo.oblique(agent) && t1 < 0 && t2 < 0) {
-			w := vector.Unit(
-				vector.Sub(vo.l(agent).P(), agent.V()))
-			return *hyperplane.New(
-				vector.Add(
-					vo.l(agent).P(),
-					vector.Scale(agent.R() / tau, w),
-				),
-				w,
-			)
-		}
-	case domain.Right:
+		w := vector.Sub(agent.V(), wall.S().L().L(wall.S().TMin()))
+		return domain.Left, *hyperplane.New(
+			// Hyperplane lies tangent to the VO object.
+			/* p = */
+			line.New(
+				wall.S().L().L(wall.S().TMin()),
+				vector.Unit(w),
+			).L(agent.R()/tau),
+			/* n = */ vector.Scale(-1, vector.Unit(w)),
+		)
+	}
+	if t > 1 && tr < 0 {
 		// RightCircle
-		if t > vo.obstacle.TMax() && t2 < 0 {
-			w := vector.Unit(
-				vector.Sub(vo.r(agent).P(), agent.V()))
-			return *hyperlane.New(
-				vector.Add(
-					vo.r(agent).P(),
-					vector.Scale(agent.R() / tau, w),
-				),
-				w,
-			)
-		}
+		w := vector.Sub(agent.V(), wall.S().L().L(wall.S().TMax()))
+		return domain.Right, *hyperplane.New(
+			line.New(
+				wall.S().L().L(wall.S().TMax()),
+				vector.Unit(w),
+			).L(agent.R()/tau),
+			vector.Scale(-1, vector.Unit(w)),
+		)
 	}
 
-	dl = l.L().Distance(agent.V())
-	d1 = vo.l(agent).Distance(agent.V())
-	d2 = vo.r(agent).Distance(agent.V())
-
-	if vo.oblique(agent) || t < vo.obstacle.TMin() || t > vo.obstacle.TMax() {
-		dl = math.Inf(1)
-	}
-	if t1 < 0 {
-		d1 = math.Inf(1)
-	}
-	if t2 < 0 {
-		d2 = math.Inf(1)
+	// Get the distances to the three characteristic lines.
+	d = math.Inf(1)
+	if !oblique {
+		d = wall.S().L().Distance(agent.V())
 	}
 
-	switch d {
-	case domain.Left:
-		return *hyperplane.New(
-			vector.Add(
-				l.L().L(l.M
-	case domain.Right:
-	case domain.Line:
-	}
-	if dl <= d1 && dl <= d2 {
-		return domain.Line
+	dl := math.Inf(1)
+	if tl < 0 {
+		dl = l.Distance(agent.V())
 	}
 
-	if dl <= d2 {
-		return domain.Left
+	dr := math.Inf(1)
+	if tr > 0 {
+		dr = r.Distance(agent.V())
 	}
 
-	return domain.Right
+	if d <= dl && d <= dr {
+		w := vector.Sub(agent.V(), wall.S().L().L(t))
+		return domain.Line, *hyperplane.New(
+			/* p = */ line.New(
+				wall.S().L().L(wall.S().TMin()),
+				vector.Unit(w),
+			).L(agent.R()/tau),
+			/* n = */ vector.Scale(-1, vector.Unit(w)),
+		)
+	}
 
-	panic("unhandled ORCA case")
+	if dl <= dr {
+		w := vector.Sub(agent.V(), l.L(tl))
+		return domain.Left, *hyperplane.New(
+			/* p = */ line.New(l.P(), vector.Unit(w)).L(agent.R()/tau),
+			/* n = */ vector.Scale(-1, vector.Unit(w)),
+		)
+	}
+
+	w := vector.Sub(agent.V(), r.L(tl))
+	return domain.Right, *hyperplane.New(
+		/* p = */ line.New(r.P(), vector.Unit(w)).L(agent.R()/tau),
+		/* n = */ vector.Scale(-1, vector.Unit(w)),
+	)
+}
+
+func (vo VO) ORCA(agent agent.A, tau float64) hyperplane.HP {
+	_, orca := vo.orca(agent, tau)
+	return orca
 }
