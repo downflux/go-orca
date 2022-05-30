@@ -157,6 +157,39 @@ func TestTangents(t *testing.T) {
 				-0.5+math.Sqrt(1.75)),
 			),
 		},
+		{
+			name:     "Trivial/Mirrored",
+			obstacle: o,
+			p:        *vector.New(0, 2),
+			radius:   0.5,
+
+			l: vector.Scale(1/2.0, *vector.New(
+				-math.Sqrt(1.75)-0.5,
+				-0.5+math.Sqrt(1.75)),
+			),
+			r: vector.Scale(-1/2.0, *vector.New(
+				math.Sqrt(1.75)+0.5,
+				-0.5+math.Sqrt(1.75)),
+			),
+		},
+		{
+			name:     "Oblique/Left",
+			obstacle: o,
+			p:        *vector.New(-2, 1),
+			radius:   0.5,
+
+			l: vector.Scale(-1, *vector.New(math.Sqrt(0.75), 0.5)),
+			r: *vector.New(math.Sqrt(0.75), -0.5),
+		},
+		{
+			name:     "Oblique/Right",
+			obstacle: o,
+			p:        *vector.New(2, 1),
+			radius:   0.5,
+
+			l: vector.Scale(-1, *vector.New(-math.Sqrt(0.75), -0.5)),
+			r: *vector.New(-math.Sqrt(0.75), 0.5),
+		},
 	}
 
 	for _, c := range configs {
