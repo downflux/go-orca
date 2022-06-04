@@ -32,6 +32,11 @@ func New(obstacle segment.S) *VO {
 	}
 }
 
+func (vo VO) domain(agent agent.A, tau float64) domain.D {
+	domain, _ := vo.orca(agent, tau)
+	return domain
+}
+
 func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 	rp1 := vector.Sub(
 		vo.obstacle.L().L(vo.obstacle.TMin()),
