@@ -148,6 +148,8 @@ func TestTangents(t *testing.T) {
 			p:        *vector.New(0, 0),
 			radius:   0.5,
 
+			// l is always left negative, i.e. directed from the
+			// obstacle to agent.P.
 			l: vector.Scale(-1/2.0, *vector.New(
 				-math.Sqrt(1.75)-0.5,
 				-0.5+math.Sqrt(1.75)),

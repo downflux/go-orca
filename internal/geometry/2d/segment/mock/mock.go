@@ -93,7 +93,7 @@ func New(obstacle segment.S, p vector.V, radius float64) (*S, error) {
 	var r vector.V
 
 	// m is rpTMin rotated counter-clockwise about p to lie tangent to the
-	// cirlce around the obstacle TMin point.
+	// circle around the obstacle TMin point.
 	m := rotate(rpTMin, lTMin, radius, true)
 	if obstacle.L().T(m) < obstacle.TMin() {
 		l = m

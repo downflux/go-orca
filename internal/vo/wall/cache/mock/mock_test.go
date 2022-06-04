@@ -13,6 +13,10 @@ import (
 	mock "github.com/downflux/go-orca/internal/agent"
 )
 
+const (
+	delta = 1e-3
+)
+
 var (
 	_ vo.VO = VO{}
 )
@@ -25,6 +29,14 @@ func TestDomain(t *testing.T) {
 		),
 		0,
 		2,
+	)
+	r := *segment.New(
+		*line.New(
+			s.L().L(s.TMax()),
+			vector.Scale(-1, s.L().D()),
+		),
+		s.TMin(),
+		s.TMax(),
 	)
 
 	testConfigs := []struct {
@@ -66,6 +78,44 @@ func TestDomain(t *testing.T) {
 			}),
 			tau:  1,
 			want: domain.CollisionRight,
+		},
+		{
+			name: "Left/Circle",
+			vo:   *New(s),
+			agent: *mock.New(mock.O{
+				// agent.V lies within the left end of the
+				// scaled obstacle "pill".
+				V: vector.Add(s.L().L(s.TMin()), *vector.New(-delta, -delta)),
+				P: *vector.New(0, -1),
+				R: 1,
+			}),
+			tau:  1,
+			want: domain.Left,
+		},
+		{
+			// An obstacle pointing in the other direction should
+			// not affect the relative orientation domain of the VO
+			// object.
+			name: "Flipped/Left/Circle",
+			vo:   *New(r),
+			agent: *mock.New(mock.O{
+				V: vector.Add(s.L().L(s.TMin()), *vector.New(-delta, -delta)),
+				P: *vector.New(0, -1),
+				R: 1,
+			}),
+			tau:  1,
+			want: domain.Left,
+		},
+		{
+			name: "Right/Circle",
+			vo: *New(s),
+			agent: *mock.New(mock.O{
+				V: vector.Add(s.L().L(s.TMax()), *vector.New(delta, -delta)),
+				P: *vector.New(0, -1),
+				R: 1,
+			}),
+			tau: 1,
+			want: domain.Right,
 		},
 	}
 
