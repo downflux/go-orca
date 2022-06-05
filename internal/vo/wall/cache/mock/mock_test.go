@@ -96,7 +96,7 @@ func TestDomain(t *testing.T) {
 			// An obstacle pointing in the other direction should
 			// not affect the relative orientation domain of the VO
 			// object.
-			name: "Flipped/Left/Circle",
+			name: "Left/Circle/Flipped",
 			vo:   *New(r),
 			agent: *mock.New(mock.O{
 				V: vector.Add(s.L().L(s.TMin()), *vector.New(-delta, -delta)),
@@ -116,6 +116,60 @@ func TestDomain(t *testing.T) {
 			}),
 			tau: 1,
 			want: domain.Right,
+		},
+		{
+			name: "Left",
+			vo: *New(s),
+			agent: *mock.New(mock.O{
+				V: vector.Add(s.L().L(s.TMin()), *vector.New(-delta, delta)),
+				P: *vector.New(0, -1),
+				R: 1,
+			}),
+			tau: 1,
+			want: domain.Left,
+		},
+		{
+			name: "Right",
+			vo: *New(s),
+			agent: *mock.New(mock.O{
+				V: vector.Add(s.L().L(s.TMax()), *vector.New(delta, delta)),
+				P: *vector.New(0, -1),
+				R: 1,
+			}),
+			tau: 1,
+			want: domain.Right,
+		},
+		{
+			name: "Line/Top",
+			vo: *New(s),
+			agent: *mock.New(mock.O{
+				// V is just above the line in the opposite
+				// domain of the agent position.
+				V: vector.Add(
+					s.L().L(s.L().T(*vector.New(0, 0))),
+					*vector.New(0, delta),
+				),
+				P: *vector.New(0, -1),
+				R: 1,
+			}),
+			tau: 1,
+			want: domain.Line,
+		},
+		{
+			name: "Line/Bottom",
+			vo: *New(s),
+			agent: *mock.New(mock.O{
+				// V is just below the line in the same domain
+				// of the agent position.
+				V: vector.Add(
+					s.L().L(s.L().T(*vector.New(0, 0))),
+					*vector.New(0, -delta),
+				),
+				P: *vector.New(0, -1),
+				R: 1,
+			}),
+			tau: 1,
+			want: domain.Line,
 		},
 	}
 
