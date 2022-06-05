@@ -132,7 +132,7 @@ func TestTangents(t *testing.T) {
 		0,
 		2,
 	)
-	configs := []struct {
+	type config struct {
 		name string
 
 		obstacle segment.S
@@ -141,60 +141,85 @@ func TestTangents(t *testing.T) {
 
 		l vector.V
 		r vector.V
-	}{
-		{
-			name:     "Trivial",
-			obstacle: o,
-			p:        *vector.New(0, 0),
-			radius:   0.5,
-
-			// l is always left negative, i.e. directed from the
-			// obstacle to agent.P.
-			l: vector.Scale(-1/2.0, *vector.New(
-				-math.Sqrt(1.75)-0.5,
-				-0.5+math.Sqrt(1.75)),
-			),
-			r: vector.Scale(1/2.0, *vector.New(
-				math.Sqrt(1.75)+0.5,
-				-0.5+math.Sqrt(1.75)),
-			),
-		},
-		{
-			name:     "Trivial/Mirrored",
-			obstacle: o,
-			p:        *vector.New(0, 2),
-			radius:   0.5,
-
-			l: vector.Scale(1/2.0, *vector.New(
-				-math.Sqrt(1.75)-0.5,
-				-0.5+math.Sqrt(1.75)),
-			),
-			r: vector.Scale(-1/2.0, *vector.New(
-				math.Sqrt(1.75)+0.5,
-				-0.5+math.Sqrt(1.75)),
-			),
-		},
-		{
-			name:     "Oblique/Left",
-			obstacle: o,
-			p:        *vector.New(-2, 1),
-			radius:   0.5,
-
-			l: vector.Scale(-1, *vector.New(math.Sqrt(0.75), 0.5)),
-			r: *vector.New(math.Sqrt(0.75), -0.5),
-		},
-		{
-			name:     "Oblique/Right",
-			obstacle: o,
-			p:        *vector.New(2, 1),
-			radius:   0.5,
-
-			l: vector.Scale(-1, *vector.New(-math.Sqrt(0.75), -0.5)),
-			r: *vector.New(-math.Sqrt(0.75), 0.5),
-		},
 	}
 
-	for _, c := range configs {
+	var testConfigs []config
+	testConfigs = append(testConfigs, func() []config {
+		// l is always left negative, i.e. directed from the
+		// obstacle to agent.P.
+		l := vector.Scale(-1/2.0, *vector.New(
+			-math.Sqrt(1.75)-0.5,
+			-0.5+math.Sqrt(1.75)),
+		)
+		r := vector.Scale(1/2.0, *vector.New(
+			math.Sqrt(1.75)+0.5,
+			-0.5+math.Sqrt(1.75)),
+		)
+
+		return []config{
+			{
+				name:     "Trivial",
+				obstacle: o,
+				p:        *vector.New(0, 0),
+				radius:   0.5,
+				l:        l,
+				r:        r,
+			},
+			{
+				// Check that even if the obstacle segment
+				// definition is flipped, the left and right
+				// tangent vectors are invariant.
+				name: "Trivial/Flipped",
+				obstacle: *segment.New(
+					*line.New(
+						o.L().L(o.TMax()),
+						vector.Scale(-1, o.L().D()),
+					),
+					o.TMin(),
+					o.TMax(),
+				),
+				p:      *vector.New(0, 0),
+				radius: 0.5,
+
+				l: l,
+				r: r,
+			},
+		}
+	}()...)
+
+	testConfigs = append(testConfigs, config{
+		name:     "Trivial/Mirrored",
+		obstacle: o,
+		p:        *vector.New(0, 2),
+		radius:   0.5,
+
+		l: vector.Scale(1/2.0, *vector.New(
+			-math.Sqrt(1.75)-0.5,
+			-0.5+math.Sqrt(1.75)),
+		),
+		r: vector.Scale(-1/2.0, *vector.New(
+			math.Sqrt(1.75)+0.5,
+			-0.5+math.Sqrt(1.75)),
+		),
+	}, config{
+		name:     "Oblique/Left",
+		obstacle: o,
+		p:        *vector.New(-2, 1),
+		radius:   0.5,
+
+		l: vector.Scale(-1, *vector.New(math.Sqrt(0.75), 0.5)),
+		r: *vector.New(math.Sqrt(0.75), -0.5),
+	}, config{
+		name:     "Oblique/Right",
+		obstacle: o,
+		p:        *vector.New(2, 1),
+		radius:   0.5,
+
+		l: vector.Scale(-1, *vector.New(-math.Sqrt(0.75), -0.5)),
+		r: *vector.New(-math.Sqrt(0.75), 0.5),
+	})
+
+	for _, c := range testConfigs {
 		s, err := New(c.obstacle, c.p, c.radius)
 		if err != nil {
 			t.Errorf("New() = _, %v, want = _, nil", err)
