@@ -11,6 +11,8 @@ import (
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-orca/agent"
 	"github.com/downflux/go-orca/internal/vo/wall/cache"
+
+	mock "github.com/downflux/go-orca/internal/vo/wall/cache/mock"
 )
 
 type VO struct {
@@ -31,5 +33,6 @@ func New(obstacle segment.S) *VO {
 }
 
 func (vo VO) ORCA(a agent.A, tau float64) hyperplane.HP {
+	return mock.New(vo.obstacle).ORCA(a, tau)
 	return cache.New(vo.obstacle, a, tau).ORCA()
 }
