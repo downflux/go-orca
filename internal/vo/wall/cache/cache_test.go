@@ -42,6 +42,7 @@ func ra() agent.A {
 		agentimpl.O{
 			P: rv(),
 			V: rv(),
+			R: rn() + 100,
 		},
 	)
 }
@@ -62,7 +63,7 @@ func TestConformance(t *testing.T) {
 			name:     fmt.Sprintf("Random-%d", i),
 			obstacle: rs(),
 			agent:    ra(),
-			tau:      rn(),
+			tau:      rn() + 100,
 		})
 	}
 

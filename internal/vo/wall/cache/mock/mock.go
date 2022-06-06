@@ -161,7 +161,6 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 
 	if d <= dl && d <= dr {
 		w := vector.Sub(agent.V(), wall.S().L().L(t))
-		fmt.Println(agent.V(), t, wall.S(), wall.S().L().L(t))
 		return domain.Line, *hyperplane.New(
 			/* p = */ line.New(
 				wall.S().L().L(wall.S().TMin()),
