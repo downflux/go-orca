@@ -50,7 +50,6 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 	d1 := vector.Magnitude(rp1)
 	d2 := vector.Magnitude(rp2)
 	d := vo.obstacle.L().Distance(agent.P())
-
 	// Check for collisions.
 	t := vo.obstacle.L().T(agent.P())
 	if t <= vo.obstacle.TMin() && d1 <= agent.R() {
@@ -69,6 +68,8 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 	if vo.obstacle.TMin() <= t && t <= vo.obstacle.TMax() && d <= agent.R() {
 		return domain.CollisionLine, *hyperplane.New(
 			*vector.New(0, 0),
+			// TODO(minkezhang): Handle the NaN case when the agent
+			// lies on the line.
 			vector.Unit(
 				vector.Sub(
 					agent.P(),
@@ -100,6 +101,7 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 		wall.S().L().L(wall.S().TMax()),
 		wall.R())
 
+	// TODO(minkezhang): Test oblique case.
 	oblique := epsilon.Within(wall.S().TMin(), wall.S().TMax())
 
 	// t is the projected parametric value along the truncated base. Note
@@ -126,7 +128,7 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 				wall.S().L().L(wall.S().TMin()),
 				vector.Unit(w),
 			).L(agent.R()/tau),
-			/* n = */ vector.Scale(-1, vector.Unit(w)),
+			/* n = */ vector.Unit(w),
 		)
 	}
 	if t > 1 && tr < 0 {
@@ -137,7 +139,7 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 				wall.S().L().L(wall.S().TMax()),
 				vector.Unit(w),
 			).L(agent.R()/tau),
-			vector.Scale(-1, vector.Unit(w)),
+			vector.Unit(w),
 		)
 	}
 
@@ -159,12 +161,13 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 
 	if d <= dl && d <= dr {
 		w := vector.Sub(agent.V(), wall.S().L().L(t))
+		fmt.Println(agent.V(), t, wall.S(), wall.S().L().L(t))
 		return domain.Line, *hyperplane.New(
 			/* p = */ line.New(
 				wall.S().L().L(wall.S().TMin()),
 				vector.Unit(w),
 			).L(agent.R()/tau),
-			/* n = */ vector.Scale(-1, vector.Unit(w)),
+			/* n = */ vector.Unit(w),
 		)
 	}
 
@@ -172,14 +175,14 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 		w := vector.Sub(agent.V(), l.L(tl))
 		return domain.Left, *hyperplane.New(
 			/* p = */ line.New(l.P(), vector.Unit(w)).L(agent.R()/tau),
-			/* n = */ vector.Scale(-1, vector.Unit(w)),
+			/* n = */ vector.Unit(w),
 		)
 	}
 
 	w := vector.Sub(agent.V(), r.L(tl))
 	return domain.Right, *hyperplane.New(
 		/* p = */ line.New(r.P(), vector.Unit(w)).L(agent.R()/tau),
-		/* n = */ vector.Scale(-1, vector.Unit(w)),
+		/* n = */ vector.Unit(w),
 	)
 }
 
