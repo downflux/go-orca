@@ -204,7 +204,7 @@ func (c C) ORCA() hyperplane.HP {
 			o,
 		).ORCA(c.agent, c.tau)
 	case domain.Left:
-		s := *vosegment.New(c.segment, c.agent.R())
+		s := *vosegment.New(c.S(), c.agent.R() / c.tau)
 		return voagent.New(
 			agentimpl.New(
 				agentimpl.O{
@@ -215,7 +215,7 @@ func (c C) ORCA() hyperplane.HP {
 			o,
 		).ORCA(c.agent, c.tau)
 	case domain.Right:
-		s := *vosegment.New(c.segment, c.agent.R())
+		s := *vosegment.New(c.S(), c.agent.R() / c.tau)
 		return voagent.New(
 			agentimpl.New(
 				agentimpl.O{
