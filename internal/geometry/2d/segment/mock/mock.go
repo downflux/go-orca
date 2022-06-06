@@ -92,29 +92,20 @@ func New(obstacle segment.S, p vector.V, radius float64) (*S, error) {
 	var l vector.V
 	var r vector.V
 
-	var flipped bool
 	// m is rpTMin rotated counter-clockwise about p to lie tangent to the
 	// circle around the obstacle TMin point.
 	m := rotate(rpTMin, lTMin, radius, true)
-	if obstacle.L().T(m) < obstacle.TMin() {
+	s := rotate(rpTMax, lTMax, radius, false)
+
+	if obstacle.L().T(m) <= obstacle.TMin() {
 		l = m
+		r = s
 		// m is rotated the wrong way -- this means the obstacle is directed in
 		// the opposite direction, and actually makes up the "right" leg
 		// instead.
 	} else {
-		r = rotate(rpTMin, lTMin, radius, false)
-		flipped = true
-	}
-
-	s := rotate(rpTMax, lTMax, radius, false)
-	if obstacle.L().T(s) > obstacle.TMax() {
-		r = s
-	} else {
 		l = rotate(rpTMax, lTMax, radius, true)
-		flipped = true
-	}
-
-	if flipped {
+		r = rotate(rpTMin, lTMin, radius, false)
 		rpTMin, rpTMax = rpTMax, rpTMin
 	}
 
