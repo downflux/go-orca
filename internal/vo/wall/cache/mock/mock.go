@@ -185,6 +185,12 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 	)
 }
 
+// TODO(minkezhang): Delete this function.
+func (vo VO) DebugDomain(agent agent.A, tau float64) domain.D {
+	d, _ := vo.orca(agent, tau)
+	return d
+}
+
 func (vo VO) ORCA(agent agent.A, tau float64) hyperplane.HP {
 	_, orca := vo.orca(agent, tau)
 	return orca

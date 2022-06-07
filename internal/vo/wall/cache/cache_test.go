@@ -10,6 +10,7 @@ import (
 	"github.com/downflux/go-geometry/2d/line"
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
+	"github.com/downflux/go-geometry/epsilon"
 	"github.com/downflux/go-orca/agent"
 	"github.com/downflux/go-orca/internal/vo/wall/cache/domain"
 
@@ -48,6 +49,10 @@ func ra() agent.A {
 }
 func rs() segment.S { return *segment.New(*line.New(rv(), rv()), 0, 100) }
 
+func within(a, b hyperplane.HP) bool {
+	return vector.Within(a.N(), b.N()) && epsilon.Within(hyperplane.Line(a).Distance(b.P()), 0)
+}
+
 func TestConformance(t *testing.T) {
 	type config struct {
 		name     string
@@ -72,8 +77,24 @@ func TestConformance(t *testing.T) {
 			a := New(c.obstacle, c.agent, c.tau)
 			b := mock.New(c.obstacle)
 			want := b.ORCA(c.agent, c.tau)
-			if got := a.ORCA(); !hyperplane.Within(got, want) {
-				t.Errorf("ORCA() = %v, want = %v", got, want)
+			if got := a.ORCA(); !within(got, want) {
+				if a.domain() == domain.Line {
+					fmt.Printf("DEBUG: %v\n", map[string]interface{}{
+						"o.Min":       c.obstacle.L().L(c.obstacle.TMin()),
+						"o.Max":       c.obstacle.L().L(c.obstacle.TMax()),
+						"a.P":         c.agent.P(),
+						"a.V":         c.agent.V(),
+						"a.R":         c.agent.R(),
+						"tau":         c.tau,
+						"want.domain": b.DebugDomain(c.agent, c.tau),
+						"got.domain":  a.domain(),
+					})
+				}
+				t.Errorf("ORCA() = %v, want = %v (DEBUG: domain == %v)", got, want, a.domain())
+			}
+			// TODO(minkezhang): Remove this test.
+			if got := a.domain(); got != b.DebugDomain(c.agent, c.tau) {
+				t.Errorf("domain() = %v, want = %v", got, b.DebugDomain(c.agent, c.tau))
 			}
 		})
 	}
