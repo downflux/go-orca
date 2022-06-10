@@ -55,7 +55,7 @@ func within(a, b hyperplane.HP) bool {
 	//
 	// TODO(minkezhang): Make this tolerance conform with epsilon.epsilon.
 	const tolerance = 1e-3
-	return math.Abs(a.N().X() - b.N().X()) < tolerance && math.Abs(a.N().Y() - b.N().Y()) < tolerance && epsilon.Within(hyperplane.Line(a).Distance(b.P()), 0)
+	return math.Abs(a.N().X()-b.N().X()) < tolerance && math.Abs(a.N().Y()-b.N().Y()) < tolerance && epsilon.Within(hyperplane.Line(a).Distance(b.P()), 0)
 }
 
 func TestConformance(t *testing.T) {

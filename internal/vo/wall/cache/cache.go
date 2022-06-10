@@ -68,9 +68,20 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 					V: *vector.New(0, 0),
 				},
 			),
+			// Per van den Berg et al. (2011), we expect VOpt to be
+			// the 0-vector, and that u lies directly on the tangent
+			// plane (i.e. opt.WeightAll). However, for the official
+			// implementation, it appears we have set u = 0 for the
+			// collision case. We expect this is to ensure the
+			// 0-vector is always a valid solution to the ORCA
+			// plane, though we cannot verify this exact line of
+			// reasoning.
+			//
+			// TODO(minkezhang): Verify if WeightNone can be
+			// replaced with WeightAll.
 			opt.O{
 				Weight: opt.WeightNone,
-				VOpt: opt.VOptZero,
+				VOpt:   opt.VOptZero,
 			},
 		).ORCA(c.agent, c.tau)
 	}
@@ -87,7 +98,7 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 			),
 			opt.O{
 				Weight: opt.WeightNone,
-				VOpt: opt.VOptZero,
+				VOpt:   opt.VOptZero,
 			},
 		).ORCA(c.agent, c.tau)
 	}
