@@ -50,7 +50,12 @@ func ra() agent.A {
 func rs() segment.S { return *segment.New(*line.New(rv(), rv()), 0, 100) }
 
 func within(a, b hyperplane.HP) bool {
-	return vector.Within(a.N(), b.N()) && epsilon.Within(hyperplane.Line(a).Distance(b.P()), 0)
+	// Implementation differences lead to larger-than-normal tolerance
+	// errors.
+	//
+	// TODO(minkezhang): Make this tolerance conform with epsilon.epsilon.
+	const tolerance = 1e-3
+	return math.Abs(a.N().X() - b.N().X()) < tolerance && math.Abs(a.N().Y() - b.N().Y()) < tolerance && epsilon.Within(hyperplane.Line(a).Distance(b.P()), 0)
 }
 
 func TestConformance(t *testing.T) {
@@ -72,7 +77,7 @@ func TestConformance(t *testing.T) {
 		})
 	}
 
-	for _, c := range testConfigs {
+	for i, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
 			a := New(c.obstacle, c.agent, c.tau)
 			b := mock.New(c.obstacle)
@@ -88,6 +93,7 @@ func TestConformance(t *testing.T) {
 						"tau":         c.tau,
 						"want.domain": b.DebugDomain(c.agent, c.tau),
 						"got.domain":  a.domain(),
+						"i":           i,
 					})
 				}
 				t.Errorf("ORCA() = %v, want = %v (DEBUG: domain == %v)", got, want, a.domain())

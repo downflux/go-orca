@@ -159,6 +159,13 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 		dr = r.Distance(agent.V())
 	}
 
+	fmt.Printf("DEBUG(mock): %v\n", map[string]float64{
+		"d":  d,
+		"dl": dl,
+		"dr": dr,
+	})
+
+	fmt.Printf("DEBUG(mock): l == %v\n", wall.L())
 	if d <= dl && d <= dr {
 		w := vector.Sub(agent.V(), wall.S().L().L(t))
 		return domain.Line, *hyperplane.New(

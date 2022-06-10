@@ -38,17 +38,11 @@ func New(s segment.S, a agent.A, tau float64) *C {
 	}
 }
 
-// domain returns the domain in p-space of interaction between the velocity
-// obstacle and the agent positions.
-//
-// Obstacle "left" and "right" domains are hard to consruct ahead of time; when
-// referring to the collision domains, "left" refers to the end of the
-// characteristic line segment which has a minimal parametric t value, while in
-// the non-collision domains, the characteristic line segment may be flipped to
-// preserve normal orientation between the three lines. Note that this
-// convention does not take into account the relative orientation of agent
-// itself.
-func (c C) domain() domain.D {
+func (c C) orca() (domain.D, hyperplane.HP) {
+	o := opt.O{
+		Weight: opt.WeightNone, // All,
+		VOpt:   opt.VOptZero,
+	}
 
 	// t is the projected parametric value along the extended line. We need
 	// to detect the case where t extends beyond the segment itself, and
@@ -67,13 +61,35 @@ func (c C) domain() domain.D {
 	// epsilon.Within()). If we do not do this check, the VO segment
 	// constructor may raise an unexpected error.
 	if p := vector.Magnitude(c.P(c.segment.TMin())); t <= c.segment.TMin() && (p < c.agent.R() || epsilon.Within(p, c.agent.R())) {
-		return domain.CollisionLeft
+		return domain.CollisionLeft, voagent.New(
+			agentimpl.New(
+				agentimpl.O{
+					P: c.segment.L().L(c.segment.TMin()),
+					V: *vector.New(0, 0),
+				},
+			),
+			opt.O{
+				Weight: opt.WeightNone,
+				VOpt: opt.VOptZero,
+			},
+		).ORCA(c.agent, c.tau)
 	}
 
 	// Agent physically collides with the semicircle on the right side of
 	// the line segment.
 	if p := vector.Magnitude(c.P(c.segment.TMax())); t >= c.segment.TMax() && (p < c.agent.R() || epsilon.Within(p, c.agent.R())) {
-		return domain.CollisionRight
+		return domain.CollisionRight, voagent.New(
+			agentimpl.New(
+				agentimpl.O{
+					P: c.segment.L().L(c.segment.TMax()),
+					V: *vector.New(0, 0),
+				},
+			),
+			opt.O{
+				Weight: opt.WeightNone,
+				VOpt: opt.VOptZero,
+			},
+		).ORCA(c.agent, c.tau)
 	}
 
 	// d is perpendicular distance between the agent and the line.
@@ -81,7 +97,13 @@ func (c C) domain() domain.D {
 
 	// Agent physically collides wth the line segment itself.
 	if (c.segment.TMin() <= t && t <= c.segment.TMax()) && (d < c.agent.R() || epsilon.Within(d, c.agent.R())) {
-		return domain.CollisionLine
+		n := vector.Unit(
+			vector.Sub(
+				c.agent.P(),
+				c.segment.L().L(c.segment.T(c.agent.P())),
+			),
+		)
+		return domain.CollisionLine, *hyperplane.New(opt.VOptZero(c.agent), n)
 	}
 
 	// Construct a truncated line segment obstacle in v-space (i.e. where
@@ -125,87 +147,73 @@ func (c C) domain() domain.D {
 	l := line.New(s.CL().C().P(), s.L())
 	r := line.New(s.CR().C().P(), s.R())
 
-	t = s.S().L().T(c.V())
+	fmt.Printf("DEBUG: l == %v\n", l)
 
+	t = s.S().L().T(c.V())
 	// The characteristic segment s may be oriented in either direction
 	// relative to the "left" and "right" tangent lines with respect to the
 	// parametric value t = 0; thus, we need to check the underlying segment
 	// construction to determine which direction s is pointing, and use that
 	// to determine what domain we are in.
+	var dm domain.D
 	if t < s.S().TMin() {
-		return map[bool]domain.D{
+		dm = map[bool]domain.D{
 			// Covers region 1.
 			true: domain.Left,
 			// Covers region 5.
 			false: domain.Right,
 		}[s.IsLeftNegative()]
-	}
-	if t > s.S().TMax() {
-		return map[bool]domain.D{
+	} else if t > s.S().TMax() {
+		dm = map[bool]domain.D{
 			true:  domain.Right,
 			false: domain.Left,
 		}[s.IsLeftNegative()]
+	} else {
+		// We know that t is bounded between the min and max t-values of S by
+		// now. The official implementation uses w to calculate the distance to
+		// the line segments; however, we note that this distance may be
+		// visually represented by measuring the distance between v and the
+		// perpendicular distance to the segments, which can be reasoned by
+		// drawing a diagram; note that w is important for relating to the VO
+		// radius, but here, we are deferring the circular domain calculations
+		// to the cone VO objects themselves.
+		tl := l.T(c.V())
+		tr := r.T(c.V())
+
+		d = s.S().L().Distance(c.V())
+		dl := l.Distance(c.V())
+		dr := r.Distance(c.V())
+
+		// This check is for region 7 and parts of region 3 (specifically, the
+		// parts "under" region 3 bounded by the tl = 0 and tr = 0 normal lines.
+		if s.IsLeftNegative() && (tl > 0 && tr < 0) || !s.IsLeftNegative() && (tl < 0 && tr > 0) {
+			dm = domain.Line
+		}
+
+		if d <= dl && d <= dr {
+			fmt.Printf("DEBUG: %v\n", map[string]float64{
+				"d":  d,
+				"dl": dl,
+				"dr": dr,
+			})
+			dm = domain.Line
+		}
+		if dl <= dr {
+			dm = domain.Left
+
+		}
+		dm = domain.Right
+		dm = map[float64]domain.D{
+			d:  domain.Line,
+			dl: domain.Left,
+			dr: domain.Right,
+		}[min([]float64{d, dl, dr})]
 	}
 
-	// We know that t is bounded between the min and max t-values of S by
-	// now. The official implementation uses w to calculate the distance to
-	// the line segments; however, we note that this distance may be
-	// visually represented by measuring the distance between v and the
-	// perpendicular distance to the segments, which can be reasoned by
-	// drawing a diagram; note that w is important for relating to the VO
-	// radius, but here, we are deferring the circular domain calculations
-	// to the cone VO objects themselves.
-	tl := l.T(c.V())
-	tr := r.T(c.V())
-
-	d = s.S().L().Distance(c.V())
-	dl := l.Distance(c.V())
-	dr := r.Distance(c.V())
-
-	// This check is for region 7 and parts of region 3 (specifically, the
-	// parts "under" region 3 bounded by the tl = 0 and tr = 0 normal lines.
-	if s.IsLeftNegative() && (tl > 0 && tr < 0) || !s.IsLeftNegative() && (tl < 0 && tr > 0) {
-		return domain.Line
-	}
-
-	md := min([]float64{d, dl, dr})
-	return map[float64]domain.D{
-		d:  domain.Line,
-		dl: domain.Left,
-		dr: domain.Right,
-	}[md]
-}
-
-func (c C) ORCA() hyperplane.HP {
-	o := opt.O{
-		Weight: opt.WeightAll,
-		VOpt:   opt.VOptZero,
-	}
-
-	switch d := c.domain(); d {
-	case domain.CollisionLeft:
-		return voagent.New(
-			agentimpl.New(
-				agentimpl.O{
-					P: c.segment.L().L(c.segment.TMin()),
-					V: *vector.New(0, 0),
-				},
-			),
-			o,
-		).ORCA(c.agent, c.tau)
-	case domain.CollisionRight:
-		return voagent.New(
-			agentimpl.New(
-				agentimpl.O{
-					P: c.segment.L().L(c.segment.TMax()),
-					V: *vector.New(0, 0),
-				},
-			),
-			o,
-		).ORCA(c.agent, c.tau)
+	switch dm {
 	case domain.Left:
 		s := *vosegment.New(c.S(), c.agent.R()/c.tau)
-		return voagent.New(
+		return dm, voagent.New(
 			agentimpl.New(
 				agentimpl.O{
 					P: s.CL().C().P(),
@@ -214,9 +222,10 @@ func (c C) ORCA() hyperplane.HP {
 			),
 			o,
 		).ORCA(c.agent, c.tau)
+
 	case domain.Right:
 		s := *vosegment.New(c.S(), c.agent.R()/c.tau)
-		return voagent.New(
+		return dm, voagent.New(
 			agentimpl.New(
 				agentimpl.O{
 					P: s.CR().C().P(),
@@ -225,19 +234,11 @@ func (c C) ORCA() hyperplane.HP {
 			),
 			o,
 		).ORCA(c.agent, c.tau)
-	case domain.CollisionLine:
-		n := vector.Unit(
-			vector.Sub(
-				c.agent.P(),
-				c.segment.L().L(c.segment.T(c.agent.P())),
-			),
-		)
-		return *hyperplane.New(opt.VOptZero(c.agent), n)
 	case domain.Line:
 		s := c.S()
 
 		w := vector.Sub(c.agent.V(), s.L().L(s.T(c.agent.V())))
-		return *hyperplane.New(
+		return dm, *hyperplane.New(
 			line.New(
 				s.L().L(s.TMin()),
 				vector.Unit(w),
@@ -256,13 +257,33 @@ func (c C) ORCA() hyperplane.HP {
 		)
 		n := vector.Scale(-1, vector.Unit(u))
 
-		return *hyperplane.New(
+		return dm, *hyperplane.New(
 			vector.Add(opt.VOptZero(c.agent), vector.Scale(float64(opt.WeightAll), u)),
 			n,
 		)
 	default:
 		panic(fmt.Sprintf("invalid VO projection %v", d))
 	}
+}
+
+// domain returns the domain in p-space of interaction between the velocity
+// obstacle and the agent positions.
+//
+// Obstacle "left" and "right" domains are hard to consruct ahead of time; when
+// referring to the collision domains, "left" refers to the end of the
+// characteristic line segment which has a minimal parametric t value, while in
+// the non-collision domains, the characteristic line segment may be flipped to
+// preserve normal orientation between the three lines. Note that this
+// convention does not take into account the relative orientation of agent
+// itself.
+func (c C) domain() domain.D {
+	d, _ := c.orca()
+	return d
+}
+
+func (c C) ORCA() hyperplane.HP {
+	_, hp := c.orca()
+	return hp
 }
 
 // S returns the characteristic line segment defining the velocity obstacle,

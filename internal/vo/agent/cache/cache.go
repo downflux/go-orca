@@ -49,6 +49,8 @@ type VO struct {
 	agent    agent.A
 	obstacle agent.A
 
+	// weight is the relative slack u in the ORCA plane that will be taken
+	// up by the input agent (vs. the obstacle).
 	weight opt.Weight
 	vopt   opt.VOpt
 
@@ -125,8 +127,6 @@ func New(o O) (*VO, error) {
 
 // ORCA returns the half-plane of permissable velocities for an agent, given the
 // an agent constraint.
-//
-// TODO(minkezhang): Refactor to conform to take as input agent instead.
 func (vo *VO) ORCA() (hyperplane.HP, error) {
 	u, err := vo.u()
 	if err != nil {
