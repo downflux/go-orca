@@ -1,6 +1,7 @@
 package segment
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"math/rand"
@@ -50,7 +51,21 @@ func TestConformance(t *testing.T) {
 		r    float64
 		p    vector.V
 	}
-	var testConfigs []config
+	testConfigs := []config{
+		config{
+			name: "Trivial",
+			s: *segment.New(
+				*line.New(
+					/* p = */ *vector.New(-2, 2),
+					/* d = */ *vector.New(1, 0),
+				),
+				0,
+				4,
+			),
+			p: *vector.New(1, 1),
+			r: 0.5,
+		},
+	}
 	for i := 0; i < n; i++ {
 		c := &config{
 			name: fmt.Sprintf("Random-%v", i),
@@ -73,6 +88,15 @@ func TestConformance(t *testing.T) {
 				got := s.L()
 				want := shim(*r).L()
 				if !line.Within(got, want) {
+					d, _ := json.MarshalIndent(map[string]interface{}{
+						"c.s.P":    c.s.L().P(),
+						"c.s.D":    c.s.L().D(),
+						"c.s.TMin": c.s.TMin(),
+						"c.s.TMax": c.s.TMax(),
+						"r":        c.r,
+						"p":        c.p,
+					}, "", "  ")
+					t.Errorf("DEBUG: %s", d)
 					t.Errorf("L() = %v, want = %v", got, want)
 				}
 			})
