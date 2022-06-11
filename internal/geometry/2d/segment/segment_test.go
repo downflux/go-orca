@@ -3,14 +3,85 @@ package segment
 import (
 	"fmt"
 	"math"
+	"math/rand"
 	"testing"
 
 	"github.com/downflux/go-geometry/2d/line"
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
 
+	mock "github.com/downflux/go-orca/external/snape/RVO2/vo/geometry/2d/segment"
 	ov "github.com/downflux/go-orca/internal/geometry/2d/vector"
 )
+
+func rn() float64   { return rand.Float64()*200 - 100 }
+func rv() vector.V  { return *vector.New(rn(), rn()) }
+func rs() segment.S { return *segment.New(*line.New(rv(), rv()), rn(), rn()) }
+
+func TestConformance(t *testing.T) {
+	n := 1000
+	type config struct {
+		name string
+		s    segment.S
+		r    float64
+		p    vector.V
+	}
+	var testConfigs []config
+	for i := 0; i < n; i++ {
+		c := &config{
+			name: fmt.Sprintf("Random-%v", i),
+			s:    rs(),
+			p:    *vector.New(0, 0),
+		}
+		c.r = rand.Float64() * c.s.L().Distance(c.p)
+		testConfigs = append(testConfigs, *c)
+	}
+
+	for _, c := range testConfigs {
+		t.Run(c.name, func(t *testing.T) {
+			s := New(c.s, c.r)
+			r, err := mock.New(c.s, c.p, c.r)
+			if err != nil {
+				t.Errorf("New() = _, %v, want = _, nil", err)
+			}
+
+			t.Run(fmt.Sprintf("%v/L", c.name), func(t *testing.T) {
+				got := s.L()
+				want := r.L()
+				if !s.IsLeftNegative() {
+					got = vector.Scale(-1, got)
+				}
+				if !vector.Within(got, want) {
+					t.Errorf("L() = %v, want = %v", got, want)
+				}
+			})
+			t.Run(fmt.Sprintf("%v/R", c.name), func(t *testing.T) {
+				got := s.R()
+				want := r.R()
+				if !s.IsLeftNegative() {
+					got = vector.Scale(-1, got)
+				}
+				if !vector.Within(got, want) {
+					t.Errorf("R() = %v, want = %v", got, want)
+				}
+			})
+			t.Run(fmt.Sprintf("%v/S.TMin", c.name), func(t *testing.T) {
+				got := s.CL().C().P()
+				want := r.S().L().L(r.S().TMin())
+				if !vector.Within(got, want) {
+					t.Errorf("CL().C().P() == %v, want = %v", got, want)
+				}
+			})
+			t.Run(fmt.Sprintf("%v/S.TMax", c.name), func(t *testing.T) {
+				got := s.CR().C().P()
+				want := r.S().L().L(r.S().TMax())
+				if !vector.Within(got, want) {
+					t.Errorf("CL().C().P() == %v, want = %v", got, want)
+				}
+			})
+		})
+	}
+}
 
 func TestL(t *testing.T) {
 	type config struct {

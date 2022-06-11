@@ -107,6 +107,7 @@ func New(obstacle segment.S, p vector.V, radius float64) (*S, error) {
 		l = rotate(rpTMax, lTMax, radius, true)
 		r = rotate(rpTMin, lTMin, radius, false)
 		rpTMin, rpTMax = rpTMax, rpTMin
+		lTMin, lTMax = lTMax, lTMin
 	}
 
 	obstacle = *segment.New(

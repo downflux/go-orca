@@ -62,6 +62,7 @@ func (c C) L() vector.V {
 	l := math.Sqrt(
 		vector.SquaredMagnitude(c.C().P()) - c.C().R()*c.C().R(),
 	)
+
 	return vector.Scale(
 		l,
 		vector.Unit(
