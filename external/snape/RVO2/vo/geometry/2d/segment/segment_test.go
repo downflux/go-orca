@@ -225,12 +225,12 @@ func TestTangents(t *testing.T) {
 			t.Errorf("New() = _, %v, want = _, nil", err)
 		}
 		t.Run(fmt.Sprintf("%v/L", c.name), func(t *testing.T) {
-			if got := vector.Unit(s.L()); !vector.Within(got, c.l) {
+			if got := vector.Unit(s.L().D()); !vector.Within(got, c.l) {
 				t.Errorf("L() = %v, want = %v", got, c.l)
 			}
 		})
 		t.Run(fmt.Sprintf("%v/R", c.name), func(t *testing.T) {
-			if got := vector.Unit(s.R()); !vector.Within(got, c.r) {
+			if got := vector.Unit(s.R().D()); !vector.Within(got, c.r) {
 				t.Errorf("R() = %v, want = %v", got, c.r)
 			}
 		})

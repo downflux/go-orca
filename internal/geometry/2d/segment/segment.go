@@ -32,8 +32,8 @@ type S struct {
 	// r is the thickness of the line segment.
 	radius float64
 
-	l vector.V
-	r vector.V
+	l line.L
+	r line.L
 
 	cl cone.C
 	cr cone.C
@@ -70,20 +70,22 @@ func New(s segment.S, p vector.V, radius float64) *S {
 				err))
 	}
 
-	var l vector.V
-	var r vector.V
+	var l line.L
+	var r line.L
 
-	if s.L().T(cTMin.L()) <= s.TMin() {
-		l = vector.Scale(-1, cTMin.L())
-		r = vector.Scale(-1, cTMax.R())
+	if s.L().T(cTMin.L().D()) <= s.TMin() {
+		l = cTMin.L()
+		r = cTMax.R()
 	} else {
-		l = vector.Scale(-1, cTMax.L())
-		r = vector.Scale(-1, cTMin.R())
+		l = cTMax.L()
+		r = cTMin.R()
 		rpTMin, rpTMax = rpTMax, rpTMin
 	}
 
+	// Note that the segment flows from the right to the left. This
+	// preserves the normal orientation between L, R, and S.
 	s = *segment.New(
-		*line.New(rpTMin, vector.Sub(rpTMax, rpTMin)),
+		*line.New(rpTMax, vector.Sub(rpTMin, rpTMax)),
 		0,
 		1,
 	)
@@ -105,6 +107,6 @@ func (s S) S() segment.S { return s.s }
 // L calculates the left vector of the tangent line from the agent position to
 // the base of the truncated line segment.
 //
-// N.B.: ℓ is always directed towards the agent.
-func (s S) L() vector.V { return s.l }
-func (s S) R() vector.V { return s.r }
+// N.B.: ℓ is always directed away from the agent.
+func (s S) L() line.L { return s.l }
+func (s S) R() line.L { return s.r }

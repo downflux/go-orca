@@ -4,12 +4,15 @@ import (
 	"math"
 
 	"github.com/downflux/go-geometry/2d/hypersphere"
+	"github.com/downflux/go-geometry/2d/line"
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-geometry/epsilon"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
+// TODO(minkezhang): Add agent position as well and cone calculate the relative
+// offset.
 type C hypersphere.C
 
 func New(center hypersphere.C) (*C, error) {
@@ -58,17 +61,20 @@ func (c C) Beta() float64 {
 //          y: p.x * sin(𝛼) + p.y * cos(𝛼) }
 //
 // See design doc for more information.
-func (c C) L() vector.V {
+func (c C) L() line.L {
 	l := math.Sqrt(
 		vector.SquaredMagnitude(c.C().P()) - c.C().R()*c.C().R(),
 	)
 
-	return vector.Scale(
-		l,
-		vector.Unit(
-			*vector.New(
-				c.C().P().X()*l-c.C().P().Y()*c.C().R(),
-				c.C().P().X()*c.C().R()+c.C().P().Y()*l,
+	return *line.New(
+		/* p = */ *vector.New(0, 0),
+		/* d = */ vector.Scale(
+			l,
+			vector.Unit(
+				*vector.New(
+					c.C().P().X()*l-c.C().P().Y()*c.C().R(),
+					c.C().P().X()*c.C().R()+c.C().P().Y()*l,
+				),
 			),
 		),
 	)
@@ -76,4 +82,10 @@ func (c C) L() vector.V {
 
 // R calculates the right vector of the tangent line segment from the base of p
 // to the edge of te truncation circle.
-func (c C) R() vector.V { return vector.Rotate(2*c.Beta(), c.L()) }
+func (c C) R() line.L {
+	r := vector.Rotate(2*c.Beta(), c.L().D())
+	return *line.New(
+		vector.Scale(-1, r),
+		r,
+	)
+}

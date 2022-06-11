@@ -96,10 +96,10 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 
 	l := *line.New(
 		vosegment.S().L().L(vosegment.S().TMin()),
-		vosegment.L())
+		vosegment.L().D())
 	r := *line.New(
 		vosegment.S().L().L(vosegment.S().TMax()),
-		vosegment.R())
+		vosegment.R().D())
 
 	fmt.Printf("DEBUG(mock): l == %v\n", l)
 

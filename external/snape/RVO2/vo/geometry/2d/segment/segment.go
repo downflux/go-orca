@@ -18,10 +18,12 @@ type S struct {
 	radius float64
 
 	// l is the unit left tangent leg (relative to p), and point towards p.
-	l vector.V
+	// Note that this is anti-parallel to our convention, which has ℓ
+	// pointing away from p instead.
+	l line.L
 
 	// r is the unit right tangent leg and points away from p.
-	r vector.V
+	r line.L
 }
 
 // rotate will rotate the input vector v about the base of v. We define the
@@ -83,32 +85,41 @@ func New(obstacle segment.S, p vector.V, radius float64) (*S, error) {
 		lTMax = math.Sqrt(p*p - radius*radius)
 	}
 
+	// m is rpTMin rotated counter-clockwise about p to lie tangent to the
+	// circle around the obstacle TMin point.
+	m := rotate(rpTMin, lTMin, radius, true)
+	s := rotate(rpTMax, lTMax, radius, false)
+
+	// m is rotated the wrong way -- this means the obstacle is directed in
+	// the opposite direction, and actually makes up the "right" leg
+	// instead.
+	if obstacle.L().T(m) > obstacle.TMin() {
+		m = rotate(rpTMax, lTMax, radius, true)
+		s = rotate(rpTMin, lTMin, radius, false)
+		rpTMin, rpTMax = rpTMax, rpTMin
+		lTMin, lTMax = lTMax, lTMin
+	}
+
+	// m and s are just rotated position vectors; we need to ensure the
+	// tangent vectors have the appropriate length of the sides.
+	m = vector.Scale(-lTMin, m)
+	s = vector.Scale(lTMax, s)
+
 	// l is the left tangent leg relative to the agent position. We are
 	// defining velocity points "outside" of the velocity obstacle as
 	// feasible, and by our convention of 2D hyperplanes, the characteristic
 	// line of the hyperplane contains infeasible points on the "left" side.
 	// That is, l should point from the obstacle to the agent, while WLOG
 	// r should point from the agent to the obstacle.
-	var l vector.V
-	var r vector.V
-
-	// m is rpTMin rotated counter-clockwise about p to lie tangent to the
-	// circle around the obstacle TMin point.
-	m := rotate(rpTMin, lTMin, radius, true)
-	s := rotate(rpTMax, lTMax, radius, false)
-
-	if obstacle.L().T(m) <= obstacle.TMin() {
-		l = m
-		r = s
-		// m is rotated the wrong way -- this means the obstacle is directed in
-		// the opposite direction, and actually makes up the "right" leg
-		// instead.
-	} else {
-		l = rotate(rpTMax, lTMax, radius, true)
-		r = rotate(rpTMin, lTMin, radius, false)
-		rpTMin, rpTMax = rpTMax, rpTMin
-		lTMin, lTMax = lTMax, lTMin
-	}
+	l := *line.New(
+		// Because the left leg is pointing towards p in the official
+		// RVO2 implementation, the tangent point is facing the opposite
+		// direction of the tangent vector.
+		/* p = */
+		vector.Add(p, vector.Scale(-1, m)),
+		/* d = */ m,
+	)
+	r := *line.New(p, s)
 
 	obstacle = *segment.New(
 		*line.New(rpTMin, vector.Sub(rpTMax, rpTMin)),
@@ -116,19 +127,18 @@ func New(obstacle segment.S, p vector.V, radius float64) (*S, error) {
 		1,
 	)
 
-	fmt.Printf("DEBUG: rpTMin == %v\n", rpTMin)
 	return &S{
 		obstacle: obstacle,
 		radius:   radius,
 		p:        p,
 
-		l: vector.Scale(-lTMin, vector.Unit(l)),
-		r: vector.Scale(lTMax, vector.Unit(r)),
+		l: l,
+		r: r,
 	}, nil
 }
 
 func (s S) IsLeftNegative() bool { return true }
-func (s S) L() vector.V          { return s.l }
-func (s S) R() vector.V          { return s.r }
+func (s S) L() line.L            { return s.l }
+func (s S) R() line.L            { return s.r }
 
 func (s S) S() segment.S { return s.obstacle }

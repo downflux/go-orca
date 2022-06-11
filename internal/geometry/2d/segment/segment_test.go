@@ -14,9 +14,33 @@ import (
 	ov "github.com/downflux/go-orca/internal/geometry/2d/vector"
 )
 
+type shim mock.S
+
+func (s shim) L() line.L {
+	l := mock.S(s).L()
+	return *line.New(
+		/* p = */ vector.Add(l.P(), l.D()),
+		/* d = */ vector.Scale(-1, l.D()),
+	)
+}
+func (s shim) R() line.L {
+	r := mock.S(s).R()
+	return *line.New(
+		vector.Add(r.P(), r.D()),
+		vector.Scale(-1, r.D()),
+	)
+}
+
 func rn() float64   { return rand.Float64()*200 - 100 }
 func rv() vector.V  { return *vector.New(rn(), rn()) }
 func rs() segment.S { return *segment.New(*line.New(rv(), rv()), rn(), rn()) }
+
+// TestOrientation verifies L() and R() orientations follow the existing
+// convention -- that is, L() points from the base to the tangent point on the
+// circle, and R() is directed towards the base.
+func TestOrientation(t *testing.T) {
+
+}
 
 func TestConformance(t *testing.T) {
 	n := 1000
@@ -47,15 +71,15 @@ func TestConformance(t *testing.T) {
 
 			t.Run(fmt.Sprintf("%v/L", c.name), func(t *testing.T) {
 				got := s.L()
-				want := r.L()
-				if !vector.Within(got, want) {
+				want := shim(*r).L()
+				if !line.Within(got, want) {
 					t.Errorf("L() = %v, want = %v", got, want)
 				}
 			})
 			t.Run(fmt.Sprintf("%v/R", c.name), func(t *testing.T) {
 				got := s.R()
-				want := r.R()
-				if !vector.Within(got, want) {
+				want := shim(*r).R()
+				if !line.Within(got, want) {
 					t.Errorf("R() = %v, want = %v", got, want)
 				}
 			})
@@ -146,27 +170,17 @@ func TestL(t *testing.T) {
 
 	for _, c := range testConfigs {
 		t.Run(fmt.Sprintf("%v/L", c.name), func(t *testing.T) {
-			if got := c.s.L(); !vector.Within(c.l, got) {
-				t.Errorf("L() = %v, want = %v", got, c.l)
+			if got := c.s.L().D(); !vector.Within(c.l, got) {
+				t.Errorf("L().D() = %v, want = %v", got, c.l)
 			}
 		})
 		t.Run(fmt.Sprintf("%v/R", c.name), func(t *testing.T) {
-			if got := c.s.R(); !vector.Within(c.r, got) {
-				t.Errorf("R() = %v, want = %v", got, c.r)
-			}
-		})
-		t.Run(fmt.Sprintf("%v/Orientation/LS", c.name), func(t *testing.T) {
-			if !ov.IsNormalOrientation(c.s.L(), c.s.S().L().D()) {
-				t.Errorf("IsNormalOrientation() == false, want = true")
-			}
-		})
-		t.Run(fmt.Sprintf("%v/Orientation/SR", c.name), func(t *testing.T) {
-			if !ov.IsNormalOrientation(c.s.S().L().D(), c.s.R()) {
-				t.Errorf("IsNormalOrientation() == false, want = true")
+			if got := c.s.R().D(); !vector.Within(c.r, got) {
+				t.Errorf("R().D() = %v, want = %v", got, c.r)
 			}
 		})
 		t.Run(fmt.Sprintf("%v/Orientation/LR", c.name), func(t *testing.T) {
-			if !ov.IsNormalOrientation(c.s.L(), c.s.R()) {
+			if !ov.IsNormalOrientation(c.s.L().D(), c.s.R().D()) {
 				t.Errorf("IsNormalOrientation() == false, want = true")
 			}
 		})

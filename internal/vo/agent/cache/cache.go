@@ -23,6 +23,7 @@ import (
 
 	"github.com/downflux/go-geometry/2d/hyperplane"
 	"github.com/downflux/go-geometry/2d/hypersphere"
+	"github.com/downflux/go-geometry/2d/line"
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-geometry/epsilon"
 	"github.com/downflux/go-orca/agent"
@@ -91,7 +92,7 @@ type VO struct {
 	domainIsCached bool
 	pCache         vector.V
 	wCache         vector.V
-	lCache         vector.V
+	lCache         line.L
 	vCache         vector.V
 	rCache         float64
 	betaCache      float64
@@ -179,7 +180,7 @@ func (vo *VO) n() (vector.V, error) {
 		// orientation, and therefore already has an implicit negative
 		// sign attached, allowing the following determinant to be a
 		// continuous calculation from one leg to the other.
-		if vector.Determinant(l, vo.v()) > 0 {
+		if vector.Determinant(l.D(), vo.v()) > 0 {
 			orientation = -1
 		}
 	default:
@@ -224,8 +225,8 @@ func (vo *VO) u() (vector.V, error) {
 		//
 		// 𝜃 is the usual angle between the two vectors.
 		v := vector.Scale(
-			vector.Dot(vo.v(), l)/vector.SquaredMagnitude(l),
-			l,
+			vector.Dot(vo.v(), l.D())/vector.SquaredMagnitude(l.D()),
+			l.D(),
 		)
 		return vector.Sub(v, vo.v()), nil
 	default:
@@ -247,7 +248,7 @@ func (vo *VO) r() float64 {
 // about p.
 //
 // N.B.: This function must only be called when not in the collision domain.
-func (vo *VO) l() vector.V {
+func (vo *VO) l() line.L {
 	if !vo.lIsCached {
 		vo.lIsCached = true
 
@@ -258,7 +259,10 @@ func (vo *VO) l() vector.V {
 		// ℓ is calculated based on the truncated circle; we are
 		// artificially scaling the tangent leg by the scaling factor to
 		// match the official RVO2 implementation.
-		vo.lCache = vector.Scale(vo.tau, l)
+		vo.lCache = *line.New(
+			vector.Scale(vo.tau, l.P()),
+			vector.Scale(vo.tau, l.D()),
+		)
 	}
 	return vo.lCache
 }
