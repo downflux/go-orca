@@ -8,8 +8,8 @@ import (
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-orca/agent"
+	"github.com/downflux/go-orca/external/snape/RVO2/vo/wall/domain"
 	"github.com/downflux/go-orca/internal/vo"
-	"github.com/downflux/go-orca/internal/vo/wall/cache/domain"
 
 	mock "github.com/downflux/go-orca/internal/agent"
 )

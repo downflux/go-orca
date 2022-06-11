@@ -10,7 +10,7 @@ import (
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-geometry/epsilon"
 	"github.com/downflux/go-orca/agent"
-	"github.com/downflux/go-orca/internal/vo/wall/cache/domain"
+	"github.com/downflux/go-orca/external/snape/RVO2/vo/wall/domain"
 
 	vosegment "github.com/downflux/go-orca/external/snape/RVO2/vo/geometry/2d/segment"
 )
