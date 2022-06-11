@@ -10,8 +10,9 @@ import (
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-geometry/epsilon"
 	"github.com/downflux/go-orca/agent"
-	"github.com/downflux/go-orca/external/snape/RVO2/vo/geometry/2d/wall"
 	"github.com/downflux/go-orca/internal/vo/wall/cache/domain"
+
+	vosegment "github.com/downflux/go-orca/external/snape/RVO2/vo/geometry/2d/segment"
 )
 
 type VO struct {
@@ -88,28 +89,28 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 		vo.obstacle.TMin(),
 		vo.obstacle.TMax(),
 	)
-	wall, err := wall.New(o, *vector.New(0, 0), agent.R()/tau)
+	vosegment, err := vosegment.New(o, *vector.New(0, 0), agent.R()/tau)
 	if err != nil {
 		panic(fmt.Sprintf("error while constructing the truncated VO cone base: %v", err))
 	}
 
 	l := *line.New(
-		wall.S().L().L(wall.S().TMin()),
-		wall.L())
+		vosegment.S().L().L(vosegment.S().TMin()),
+		vosegment.L())
 	r := *line.New(
-		wall.S().L().L(wall.S().TMax()),
-		wall.R())
+		vosegment.S().L().L(vosegment.S().TMax()),
+		vosegment.R())
 
 	// TODO(minkezhang): Test oblique case.
-	oblique := epsilon.Within(wall.S().TMin(), wall.S().TMax())
+	oblique := epsilon.Within(vosegment.S().TMin(), vosegment.S().TMax())
 
 	// t is the projected parametric value along the truncated base. Note
-	// that the segment reported by wall.S() is normalized, so t is always
+	// that the segment reported by vosegment.S() is normalized, so t is always
 	// in [0, 1]. In the oblique case, the line segment is not well-defined,
 	// so we use a placeholder value here.
 	t = 0.5
 	if !oblique {
-		t = wall.S().L().T(agent.V())
+		t = vosegment.S().L().T(agent.V())
 	}
 	tl := l.T(agent.V())
 	tr := r.T(agent.V())
@@ -119,12 +120,12 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 	// from the origin.
 	if (t < 0 && tl > 0) || (oblique && tl > 0 && tr < 0) {
 		// LeftCircle
-		w := vector.Sub(agent.V(), wall.S().L().L(wall.S().TMin()))
+		w := vector.Sub(agent.V(), vosegment.S().L().L(vosegment.S().TMin()))
 		return domain.Left, *hyperplane.New(
 			// Hyperplane lies tangent to the VO object.
 			/* p = */
 			line.New(
-				wall.S().L().L(wall.S().TMin()),
+				vosegment.S().L().L(vosegment.S().TMin()),
 				vector.Unit(w),
 			).L(agent.R()/tau),
 			/* n = */ vector.Unit(w),
@@ -132,10 +133,10 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 	}
 	if t > 1 && tr < 0 {
 		// RightCircle
-		w := vector.Sub(agent.V(), wall.S().L().L(wall.S().TMax()))
+		w := vector.Sub(agent.V(), vosegment.S().L().L(vosegment.S().TMax()))
 		return domain.Right, *hyperplane.New(
 			line.New(
-				wall.S().L().L(wall.S().TMax()),
+				vosegment.S().L().L(vosegment.S().TMax()),
 				vector.Unit(w),
 			).L(agent.R()/tau),
 			vector.Unit(w),
@@ -145,7 +146,7 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 	// Get the distances to the three characteristic lines.
 	d = math.Inf(1)
 	if !oblique {
-		d = wall.S().L().Distance(agent.V())
+		d = vosegment.S().L().Distance(agent.V())
 	}
 
 	dl := math.Inf(1)
@@ -159,10 +160,10 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 	}
 
 	if d <= dl && d <= dr {
-		w := vector.Sub(agent.V(), wall.S().L().L(t))
+		w := vector.Sub(agent.V(), vosegment.S().L().L(t))
 		return domain.Line, *hyperplane.New(
 			/* p = */ line.New(
-				wall.S().L().L(wall.S().TMin()),
+				vosegment.S().L().L(vosegment.S().TMin()),
 				vector.Unit(w),
 			).L(agent.R()/tau),
 			/* n = */ vector.Unit(w),
