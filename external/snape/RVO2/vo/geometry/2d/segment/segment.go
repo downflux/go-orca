@@ -116,6 +116,7 @@ func New(obstacle segment.S, p vector.V, radius float64) (*S, error) {
 		1,
 	)
 
+	fmt.Printf("DEBUG: rpTMin == %v\n", rpTMin)
 	return &S{
 		obstacle: obstacle,
 		radius:   radius,

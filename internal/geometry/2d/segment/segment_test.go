@@ -31,7 +31,7 @@ func TestConformance(t *testing.T) {
 		c := &config{
 			name: fmt.Sprintf("Random-%v", i),
 			s:    rs(),
-			p:    *vector.New(0, 0),
+			p:    rv(),
 		}
 		c.r = rand.Float64() * c.s.L().Distance(c.p)
 		testConfigs = append(testConfigs, *c)
@@ -39,7 +39,7 @@ func TestConformance(t *testing.T) {
 
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
-			s := New(c.s, c.r)
+			s := New(c.s, c.p, c.r)
 			r, err := mock.New(c.s, c.p, c.r)
 			if err != nil {
 				t.Errorf("New() = _, %v, want = _, nil", err)
@@ -48,9 +48,6 @@ func TestConformance(t *testing.T) {
 			t.Run(fmt.Sprintf("%v/L", c.name), func(t *testing.T) {
 				got := s.L()
 				want := r.L()
-				if !s.IsLeftNegative() {
-					got = vector.Scale(-1, got)
-				}
 				if !vector.Within(got, want) {
 					t.Errorf("L() = %v, want = %v", got, want)
 				}
@@ -58,25 +55,8 @@ func TestConformance(t *testing.T) {
 			t.Run(fmt.Sprintf("%v/R", c.name), func(t *testing.T) {
 				got := s.R()
 				want := r.R()
-				if !s.IsLeftNegative() {
-					got = vector.Scale(-1, got)
-				}
 				if !vector.Within(got, want) {
 					t.Errorf("R() = %v, want = %v", got, want)
-				}
-			})
-			t.Run(fmt.Sprintf("%v/S.TMin", c.name), func(t *testing.T) {
-				got := s.CL().C().P()
-				want := r.S().L().L(r.S().TMin())
-				if !vector.Within(got, want) {
-					t.Errorf("CL().C().P() == %v, want = %v", got, want)
-				}
-			})
-			t.Run(fmt.Sprintf("%v/S.TMax", c.name), func(t *testing.T) {
-				got := s.CR().C().P()
-				want := r.S().L().L(r.S().TMax())
-				if !vector.Within(got, want) {
-					t.Errorf("CL().C().P() == %v, want = %v", got, want)
 				}
 			})
 		})
@@ -105,6 +85,7 @@ func TestL(t *testing.T) {
 					0,
 					2,
 				),
+				*vector.New(0, 0),
 				1.0,
 			),
 			l: *vector.New(-1, 0),
@@ -121,6 +102,7 @@ func TestL(t *testing.T) {
 					0,
 					2,
 				),
+				*vector.New(0, 0),
 				1.0,
 			),
 			l: *vector.New(1, 0),
@@ -137,6 +119,7 @@ func TestL(t *testing.T) {
 					0,
 					2,
 				),
+				*vector.New(0, 0),
 				1.0,
 			),
 			l: *vector.New(1.5, math.Sqrt(3)/2),
@@ -153,6 +136,7 @@ func TestL(t *testing.T) {
 					0,
 					2,
 				),
+				*vector.New(0, 0),
 				1.0,
 			),
 			l: *vector.New(-1.5, -math.Sqrt(3)/2),

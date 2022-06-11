@@ -101,6 +101,8 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 		vosegment.S().L().L(vosegment.S().TMax()),
 		vosegment.R())
 
+	fmt.Printf("DEBUG(mock): l == %v\n", l)
+
 	// TODO(minkezhang): Test oblique case.
 	oblique := epsilon.Within(vosegment.S().TMin(), vosegment.S().TMax())
 
