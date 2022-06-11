@@ -20,5 +20,8 @@ jobs:
     - name: Build github.com/downflux/go-orca
       run: go build -v github.com/downflux/go-orca/...
 
+    - name: Vet github.com/downflux/go-orca
+      run: go vet -v github.com/downflux/go-orca/...
+
     - name: Test github.com/downflux/go-orca
       run: go test -v github.com/downflux/go-orca/... -bench . -benchmem
