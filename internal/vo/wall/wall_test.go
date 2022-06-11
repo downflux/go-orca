@@ -13,7 +13,7 @@ import (
 	"github.com/downflux/go-geometry/epsilon"
 	"github.com/downflux/go-orca/agent"
 	"github.com/downflux/go-orca/external/snape/RVO2/vo/wall"
-	"github.com/downflux/go-orca/internal/vo"
+	"github.com/downflux/go-orca/vo"
 
 	agentimpl "github.com/downflux/go-orca/internal/agent"
 )

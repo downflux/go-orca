@@ -1,7 +1,7 @@
 package agent
 
 import (
-	"github.com/downflux/go-orca/internal/vo"
+	"github.com/downflux/go-orca/vo"
 )
 
 var (

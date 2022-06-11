@@ -9,8 +9,8 @@ import (
 	"github.com/downflux/go-geometry/2d/hyperplane"
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-orca/internal/agent"
-	"github.com/downflux/go-orca/internal/vo"
 	"github.com/downflux/go-orca/internal/vo/agent/opt"
+	"github.com/downflux/go-orca/vo"
 
 	mock "github.com/downflux/go-orca/external/snape/RVO2/vo/agent"
 )
