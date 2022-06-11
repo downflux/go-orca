@@ -1,4 +1,4 @@
-package mock
+package cache
 
 import (
 	"math"
@@ -10,8 +10,6 @@ import (
 	"github.com/downflux/go-orca/internal/vo/agent/cache/domain"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
-	agentimpl "github.com/downflux/go-orca/internal/agent"
 )
 
 const (
@@ -21,12 +19,12 @@ const (
 // Reference implements the official RVO2 spec. See
 // https://gamma.cs.unc.edu/RVO2/ for more information.
 type Reference struct {
-	agent    agentimpl.A
-	obstacle agentimpl.A
+	agent    agent.A
+	obstacle agent.A
 	tau      float64
 }
 
-func New(obstacle agentimpl.A, agent agentimpl.A, tau float64) *Reference {
+func New(obstacle agent.A, agent agent.A, tau float64) *Reference {
 	return &Reference{
 		agent:    agent,
 		obstacle: obstacle,

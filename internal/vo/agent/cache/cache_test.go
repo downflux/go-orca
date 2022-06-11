@@ -11,26 +11,11 @@ import (
 	"github.com/downflux/go-geometry/epsilon"
 	"github.com/downflux/go-orca/internal/agent"
 	"github.com/downflux/go-orca/internal/vo/agent/cache/domain"
-	"github.com/downflux/go-orca/internal/vo/agent/cache/mock"
 	"github.com/downflux/go-orca/internal/vo/agent/opt"
 )
 
 type CacheVO interface {
 	ORCA() (hyperplane.HP, error)
-}
-
-// rn returns a random int between [-100, 100).
-func rn() float64 { return rand.Float64()*200 - 100 }
-
-// ra returns an agent with randomized dimensions.
-func ra() agent.A {
-	return *agent.New(
-		agent.O{
-			P: *vector.New(rn(), rn()),
-			V: *vector.New(rn(), rn()),
-			R: math.Abs(rn()),
-		},
-	)
 }
 
 func TestOrientation(t *testing.T) {
@@ -157,125 +142,6 @@ func TestVOReference(t *testing.T) {
 					t.Errorf("ORCA() = %v, want = %v", got, c.orca)
 				}
 			})
-		})
-	}
-}
-
-// TestVOConformance tests that agent-agent VOs will return u in the correct
-// domain using the mock implementation as a sanity check.
-func TestVOConformance(t *testing.T) {
-	const nTests = 1000
-	const delta = 1e-10
-
-	type config struct {
-		name     string
-		agent    agent.A
-		obstacle agent.A
-		tau      float64
-	}
-
-	testConfigs := []config{
-		{
-			name:     "SimpleCase",
-			agent:    *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
-			obstacle: *agent.New(agent.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
-			tau:      1,
-		},
-		{
-			name:     "SimpleCaseLargeTimeStep",
-			agent:    *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
-			obstacle: *agent.New(agent.O{P: *vector.New(0, 5), V: *vector.New(1, -1), R: 2}),
-			tau:      3,
-		},
-		{
-			name:     "Collision",
-			agent:    *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1}),
-			obstacle: *agent.New(agent.O{P: *vector.New(0, 3), V: *vector.New(1, -1), R: 2}),
-			tau:      1,
-		},
-	}
-
-	for i := 0; i < nTests; i++ {
-		testConfigs = append(testConfigs, config{
-			name:     fmt.Sprintf("Random-%v", i),
-			agent:    ra(),
-			obstacle: ra(),
-			// A simulation timestep scalar of 0 indicates the
-			// simulation will never advance to the next snapshot,
-			// which is a meaningless case (and will produce
-			// boundary condition errors in our implementation).
-			tau: math.Abs(rn()) + delta,
-		})
-	}
-
-	for _, c := range testConfigs {
-		t.Run(c.name, func(t *testing.T) {
-			v, err := New(
-				O{
-					Obstacle: c.obstacle,
-					Agent:    c.agent,
-					Tau:      c.tau,
-					Weight:   opt.WeightEqual,
-					VOpt:     opt.VOptV,
-				},
-			)
-			if err != nil {
-				t.Fatalf("New() returned a non-nil error: %v", err)
-			}
-
-			t.Run("ORCA", func(t *testing.T) {
-				want, err := mock.New(c.obstacle, c.agent, float64(c.tau)).ORCA()
-				if err != nil {
-					t.Fatalf("ORCA() returned error: %v", err)
-				}
-				got, err := v.ORCA()
-				if err != nil {
-					t.Fatalf("ORCA() returned error: %v", err)
-				}
-
-				if !hyperplane.Within(got, want) {
-					t.Errorf("ORCA() = %v, want = %v", got, want)
-				}
-			})
-		})
-	}
-}
-
-// BenchmarkORCA compares the relative performance of VO.domain() bewteen the
-// official RVO2 spec vs. the custom implementation provided.
-func BenchmarkORCA(t *testing.B) {
-	testConfigs := []struct {
-		name        string
-		constructor func(agent, obstacle agent.A) CacheVO
-	}{
-		{
-			name:        "VOReference",
-			constructor: func(agent, obstacle agent.A) CacheVO { return mock.New(agent, obstacle, 1) },
-		},
-		{
-			name: "VO",
-			constructor: func(agent, obstacle agent.A) CacheVO {
-				v, _ := New(
-					O{
-						Agent:    agent,
-						Obstacle: obstacle,
-						Tau:      1,
-						Weight:   opt.WeightEqual,
-						VOpt:     opt.VOptV,
-					},
-				)
-				return v
-			},
-		},
-	}
-	for _, c := range testConfigs {
-		t.Run(c.name, func(t *testing.B) {
-			v := c.constructor(ra(), ra())
-
-			t.ResetTimer()
-			for i := 0; i < t.N; i++ {
-				v.ORCA()
-			}
 		})
 	}
 }
