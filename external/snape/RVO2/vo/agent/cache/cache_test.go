@@ -1,8 +1,6 @@
 package cache
 
 import (
-	"math"
-	"math/rand"
 	"testing"
 
 	"github.com/downflux/go-geometry/2d/hyperplane"
@@ -11,20 +9,6 @@ import (
 	"github.com/downflux/go-orca/internal/agent"
 	"github.com/downflux/go-orca/internal/vo/agent/cache/domain"
 )
-
-// rn returns a random int between [-100, 100).
-func rn() float64 { return rand.Float64()*200 - 100 }
-
-// ra returns an agent with randomized dimensions.
-func ra() agent.A {
-	return *agent.New(
-		agent.O{
-			P: *vector.New(rn(), rn()),
-			V: *vector.New(rn(), rn()),
-			R: math.Abs(rn()),
-		},
-	)
-}
 
 func TestOrientation(t *testing.T) {
 	a := *agent.New(agent.O{P: *vector.New(0, 0), V: *vector.New(0, 0), R: 1})
