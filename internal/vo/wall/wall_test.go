@@ -86,6 +86,9 @@ func TestConformance(t *testing.T) {
 			a := New(c.obstacle)
 			b := wall.New(c.obstacle)
 			want := b.ORCA(c.agent, c.tau)
+			if got := a.DebugDomain(c.agent, c.tau); got.String() != b.DebugDomain(c.agent, c.tau).String() {
+				t.Errorf("DebugDomain() == %v, want = %v", got.String(), b.DebugDomain(c.agent, c.tau).String())
+			}
 			if got := a.ORCA(c.agent, c.tau); !within(got, want) {
 				t.Errorf("ORCA() = %v, want = %v", got, want)
 			}

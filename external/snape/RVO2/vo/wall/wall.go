@@ -33,6 +33,9 @@ func New(obstacle segment.S) *VO {
 	}
 }
 
+// TODO(minkezhang): Remove this function.
+func (vo VO) DebugDomain(agent agent.A, tau float64) domain.D { return vo.domain(agent, tau) }
+
 func (vo VO) domain(agent agent.A, tau float64) domain.D {
 	domain, _ := vo.orca(agent, tau)
 	return domain
@@ -202,7 +205,6 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 }
 
 func (vo VO) ORCA(agent agent.A, tau float64) hyperplane.HP {
-	domain, orca := vo.orca(agent, tau)
-	fmt.Printf("DEBUG(mock): domain == %v\n", domain.String())
-	return orca
+	_, hp := vo.orca(agent, tau)
+	return hp
 }

@@ -38,6 +38,9 @@ func New(s segment.S, a agent.A, tau float64) *C {
 	}
 }
 
+// TODO(minkezhang): Remove this function.
+func (c C) DebugDomain() domain.D { return c.domain() }
+
 func (c C) orca() (domain.D, hyperplane.HP) {
 	o := opt.O{
 		Weight: opt.WeightNone, // All,
