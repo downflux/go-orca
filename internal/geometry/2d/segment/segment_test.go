@@ -31,22 +31,6 @@ func (s shim) R() line.L {
 	)
 }
 
-// TODO(minkezhang): Remove this.
-func (s shim) S() segment.S {
-	o := mock.S(s).S()
-	if !ov.IsNormalOrientation(s.L().D(), o.L().D()) {
-		o = *segment.New(
-			*line.New(
-				o.L().L(o.TMax()),
-				vector.Scale(-1, o.L().D()),
-			),
-			o.TMin(),
-			o.TMax(),
-		)
-	}
-	return o
-}
-
 func rn() float64   { return rand.Float64()*200 - 100 }
 func rv() vector.V  { return *vector.New(rn(), rn()) }
 func rs() segment.S { return *segment.New(*line.New(rv(), rv()), rn(), rn()) }
@@ -207,6 +191,20 @@ func TestL(t *testing.T) {
 		t.Run(fmt.Sprintf("%v/R", c.name), func(t *testing.T) {
 			if got := c.s.R().D(); !vector.Within(c.r, got) {
 				t.Errorf("R().D() = %v, want = %v", got, c.r)
+			}
+		})
+		t.Run(fmt.Sprintf("%v/Orientation/SR", c.name), func(t *testing.T) {
+			// Also cover the oblique case where the segment does
+			// not have a well-defined direction.
+			if !ov.IsNormalOrientation(c.s.S().L().D(), c.s.R().D()) && !vector.Within(c.s.S().L().D(), *vector.New(0, 0)) {
+				t.Errorf("IsNormalOrientation() == false, want = true")
+			}
+		})
+		t.Run(fmt.Sprintf("%v/Orientation/LS", c.name), func(t *testing.T) {
+			// Also cover the oblique case where the segment does
+			// not have a well-defined direction.
+			if !ov.IsNormalOrientation(c.s.L().D(), c.s.S().L().D()) && !vector.Within(c.s.S().L().D(), *vector.New(0, 0)) {
+				t.Errorf("IsNormalOrientation() == false, want = true")
 			}
 		})
 		t.Run(fmt.Sprintf("%v/Orientation/LR", c.name), func(t *testing.T) {
