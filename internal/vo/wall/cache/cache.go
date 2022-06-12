@@ -161,6 +161,11 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 
 	t = s.S().L().T(c.V())
 	var dm domain.D
+
+	// S() is a segment which is directed from the right to the left. This
+	// is done to ensure a consistent orientation between L(), S(), and R().
+	// Because S() starts from the "right" side, we are flipping the t
+	// boundary check from the official RVO2 implementation.
 	if t < s.S().TMin() {
 		dm = domain.Right
 	} else if t > s.S().TMax() {
