@@ -119,7 +119,7 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 
 	// Construct a truncated line segment obstacle in v-space (i.e. where
 	// the absolute position does not matter anymore), scaled.
-	s := *vosegment.New(c.S(), c.agent.R()/c.tau)
+	s := *vosegment.New(c.S(), *vector.New(0, 0), c.agent.R()/c.tau)
 
 	// If the agent does not physically collide with the obstacle in
 	// p-space, we need to determine if the agent will collide with the line
@@ -155,30 +155,17 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 	//
 	// These regions are the ones mentioned hereafter and in the tests.
 
-	l := line.New(s.CL().C().P(), s.L())
-	r := line.New(s.CR().C().P(), s.R())
+	l := line.New(s.S().L().L(s.S().TMin()), s.L().D())
+	r := line.New(s.S().L().L(s.S().TMax()), s.R().D())
 
 	fmt.Printf("DEBUG: l == %v\n", l)
 
 	t = s.S().L().T(c.V())
-	// The characteristic segment s may be oriented in either direction
-	// relative to the "left" and "right" tangent lines with respect to the
-	// parametric value t = 0; thus, we need to check the underlying segment
-	// construction to determine which direction s is pointing, and use that
-	// to determine what domain we are in.
 	var dm domain.D
 	if t < s.S().TMin() {
-		dm = map[bool]domain.D{
-			// Covers region 1.
-			true: domain.Left,
-			// Covers region 5.
-			false: domain.Right,
-		}[s.IsLeftNegative()]
+		dm = domain.Left
 	} else if t > s.S().TMax() {
-		dm = map[bool]domain.D{
-			true:  domain.Right,
-			false: domain.Left,
-		}[s.IsLeftNegative()]
+		dm = domain.Right
 	} else {
 		// We know that t is bounded between the min and max t-values of S by
 		// now. The official implementation uses w to calculate the distance to
@@ -197,7 +184,7 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 
 		// This check is for region 7 and parts of region 3 (specifically, the
 		// parts "under" region 3 bounded by the tl = 0 and tr = 0 normal lines.
-		if s.IsLeftNegative() && (tl > 0 && tr < 0) || !s.IsLeftNegative() && (tl < 0 && tr > 0) {
+		if tl < 0 && tr > 0 {
 			dm = domain.Line
 		}
 
@@ -223,11 +210,11 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 
 	switch dm {
 	case domain.Left:
-		s := *vosegment.New(c.S(), c.agent.R()/c.tau)
+		s := *vosegment.New(c.S(), *vector.New(0, 0), c.agent.R()/c.tau)
 		return dm, voagent.New(
 			agentimpl.New(
 				agentimpl.O{
-					P: s.CL().C().P(),
+					P: s.S().L().L(s.S().TMin()),
 					V: *vector.New(0, 0),
 				},
 			),
@@ -235,11 +222,11 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 		).ORCA(c.agent, c.tau)
 
 	case domain.Right:
-		s := *vosegment.New(c.S(), c.agent.R()/c.tau)
+		s := *vosegment.New(c.S(), *vector.New(0, 0), c.agent.R()/c.tau)
 		return dm, voagent.New(
 			agentimpl.New(
 				agentimpl.O{
-					P: s.CR().C().P(),
+					P: s.S().L().L(s.S().TMax()),
 					V: *vector.New(0, 0),
 				},
 			),

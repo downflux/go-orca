@@ -8,8 +8,7 @@
 //        S
 //
 // As with the case of the point-defined cone, we define tangential lines from
-// the origin to the left and right circles of at the ends of the line segment
-// S.
+// the VO to the left and right circles of at the ends of the line segment S.
 package segment
 
 import (
