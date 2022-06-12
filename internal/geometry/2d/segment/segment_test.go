@@ -1,7 +1,6 @@
 package segment
 
 import (
-	"encoding/json"
 	"fmt"
 	"math"
 	"math/rand"
@@ -30,6 +29,22 @@ func (s shim) R() line.L {
 		vector.Add(r.P(), r.D()),
 		vector.Scale(-1, r.D()),
 	)
+}
+
+// TODO(minkezhang): Remove this.
+func (s shim) S() segment.S {
+	o := mock.S(s).S()
+	if !ov.IsNormalOrientation(s.L().D(), o.L().D()) {
+		o = *segment.New(
+			*line.New(
+				o.L().L(o.TMax()),
+				vector.Scale(-1, o.L().D()),
+			),
+			o.TMin(),
+			o.TMax(),
+		)
+	}
+	return o
 }
 
 func rn() float64   { return rand.Float64()*200 - 100 }
@@ -88,15 +103,6 @@ func TestConformance(t *testing.T) {
 				got := s.L()
 				want := shim(*r).L()
 				if !line.Within(got, want) {
-					d, _ := json.MarshalIndent(map[string]interface{}{
-						"c.s.P":    c.s.L().P(),
-						"c.s.D":    c.s.L().D(),
-						"c.s.TMin": c.s.TMin(),
-						"c.s.TMax": c.s.TMax(),
-						"r":        c.r,
-						"p":        c.p,
-					}, "", "  ")
-					t.Errorf("DEBUG: %s", d)
 					t.Errorf("L() = %v, want = %v", got, want)
 				}
 			})

@@ -70,17 +70,20 @@ func New(s segment.S, p vector.V, radius float64) *S {
 				err))
 	}
 
-	var l line.L
-	var r line.L
-
-	if s.L().T(cTMin.L().D()) <= s.TMin() {
-		l = cTMin.L()
-		r = cTMax.R()
-	} else {
-		l = cTMax.L()
-		r = cTMin.R()
+	if s.L().T(cTMin.L().D()) > s.TMin() {
+		cTMin, cTMax = cTMax, cTMin
 		rpTMin, rpTMax = rpTMax, rpTMin
 	}
+	l := *line.New(
+		vector.Add(p, cTMin.L().P()),
+		cTMin.L().D(),
+	)
+	r := *line.New(
+		vector.Add(p, cTMax.R().P()),
+		cTMax.R().D(),
+	)
+
+	fmt.Printf("DEBUG: l.D() == %v, || l.D() || == %v\n", l.D(), vector.Magnitude(l.D()))
 
 	// Note that the segment flows from the right to the left. This
 	// preserves the normal orientation between L, R, and S.

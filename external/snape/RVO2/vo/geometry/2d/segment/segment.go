@@ -102,8 +102,8 @@ func New(obstacle segment.S, p vector.V, radius float64) (*S, error) {
 
 	// m and s are just rotated position vectors; we need to ensure the
 	// tangent vectors have the appropriate length of the sides.
-	m = vector.Scale(-lTMin, m)
-	s = vector.Scale(lTMax, s)
+	m = vector.Scale(-lTMin, vector.Unit(m))
+	s = vector.Scale(lTMax, vector.Unit(s))
 
 	// l is the left tangent leg relative to the agent position. We are
 	// defining velocity points "outside" of the velocity obstacle as
