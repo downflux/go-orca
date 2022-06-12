@@ -54,11 +54,11 @@ func TestConformance(t *testing.T) {
 
 	testConfigs := []config{
 		{
-			name: "Manual/Region=3",
+			name: "Manual/TestDomain/Region=3",
 			obstacle: *segment.New(
 				*line.New(
-					/* p == */ *vector.New(-2, 2),
-					/* d == */ *vector.New(1, 0),
+					/* p = */ *vector.New(-2, 2),
+					/* d = */ *vector.New(1, 0),
 				),
 				0,
 				4,

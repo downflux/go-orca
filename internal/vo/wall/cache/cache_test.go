@@ -59,8 +59,8 @@ func TestORCA(t *testing.T) {
 						/* v = */ *vector.New(0, 0),
 					),
 					want: *hyperplane.New(
-						*vector.New(0, -1),
-						*vector.New(0, 1),
+						/* p = */ *vector.New(-2, -1),
+						/* n = */ *vector.New(0, 1),
 					),
 				},
 				{
@@ -71,7 +71,7 @@ func TestORCA(t *testing.T) {
 						*vector.New(0, 0),
 					),
 					want: *hyperplane.New(
-						*vector.New(0, 1),
+						*vector.New(-2, 1),
 						*vector.New(0, -1),
 					),
 				},
@@ -127,7 +127,7 @@ func TestORCA(t *testing.T) {
 						*vector.New(0, 1),
 					),
 					want: *hyperplane.New(
-						*vector.New(-899.9500037496875, 8.999500037496867),
+						*vector.New(0, 0),
 						*vector.New(-0.9999500037496875, 0.009999500037496866),
 					),
 				},
@@ -139,7 +139,7 @@ func TestORCA(t *testing.T) {
 						*vector.New(0, 1),
 					),
 					want: *hyperplane.New(
-						*vector.New(899.9500037496875, 8.999500037496867),
+						*vector.New(0, 0),
 						*vector.New(0.9999500037496875, 0.009999500037496866),
 					),
 				},

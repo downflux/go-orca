@@ -1,7 +1,6 @@
 package cache
 
 import (
-	"encoding/json"
 	"fmt"
 	"math"
 
@@ -169,18 +168,6 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 	if t < s.S().TMin() {
 		dm = domain.Right
 	} else if t > s.S().TMax() {
-		data, _ := json.MarshalIndent(map[string]interface{}{
-			"s": fmt.Sprintf(
-				"P == %v, D == %v, TMin == %v, TMax == %v",
-				s.S().L().P(),
-				s.S().L().D(),
-				s.S().TMin(),
-				s.S().TMax()),
-			"t": t,
-			"v": c.V(),
-		}, "", "  ")
-		fmt.Printf("DEBUG: %s\n", data)
-
 		dm = domain.Left
 	} else {
 		// We know that t is bounded between the min and max t-values of S by
@@ -197,25 +184,6 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 		d = s.S().L().Distance(c.V())
 		dl := l.Distance(c.V())
 		dr := r.Distance(c.V())
-
-		data, _ := json.MarshalIndent(map[string]interface{}{
-			"l": fmt.Sprintf("P == %v, D == %v", l.P(), l.D()),
-			"r": fmt.Sprintf("P == %v, D == %v", r.P(), r.D()),
-			"s": fmt.Sprintf(
-				"P == %v, D == %v, TMin == %v, TMax == %v",
-				s.S().L().P(),
-				s.S().L().D(),
-				s.S().TMin(),
-				s.S().TMax()),
-			"tl": tl,
-			"tr": tr,
-			"t":  t,
-			"dl": dl,
-			"dr": dr,
-			"d":  d,
-			"v":  c.V(),
-		}, "", "  ")
-		fmt.Printf("DEBUG: %s\n", data)
 
 		// This check is for region 7 and parts of region 3 (specifically, the
 		// parts "under" region 3 bounded by the tl = 0 and tr = 0 normal lines.
