@@ -52,7 +52,25 @@ func TestConformance(t *testing.T) {
 		tau      float64
 	}
 
-	var testConfigs []config
+	testConfigs := []config{
+		{
+			name: "Manual/Region=3",
+			obstacle: *segment.New(
+				*line.New(
+					/* p == */ *vector.New(-2, 2),
+					/* d == */ *vector.New(1, 0),
+				),
+				0,
+				4,
+			),
+			agent: *agentimpl.New(agentimpl.O{
+				P: *vector.New(0, 0),
+				V: *vector.New(0, 4),
+				R: 1,
+			}),
+			tau: 1,
+		},
+	}
 
 	for i := 0; i < 1000; i++ {
 		testConfigs = append(testConfigs, config{

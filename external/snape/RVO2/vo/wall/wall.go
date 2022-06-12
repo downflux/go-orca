@@ -1,6 +1,7 @@
 package wall
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 
@@ -101,8 +102,6 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 		vosegment.S().L().L(vosegment.S().TMax()),
 		vosegment.R().D())
 
-	fmt.Printf("DEBUG(mock): l == %v\n", l)
-
 	// TODO(minkezhang): Test oblique case.
 	oblique := epsilon.Within(vosegment.S().TMin(), vosegment.S().TMax())
 
@@ -161,6 +160,21 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 		dr = r.Distance(agent.V())
 	}
 
+	data, _ := json.MarshalIndent(map[string]interface{}{
+		"l": fmt.Sprintf("P == %v, D == %v", l.P(), l.D()),
+		"r": fmt.Sprintf("P == %v, D == %v", r.P(), r.D()),
+		"s": fmt.Sprintf(
+			"P == %v, D == %v, TMin == %v, TMax == %v",
+			vosegment.S().L().P(),
+			vosegment.S().L().D(),
+			vosegment.S().TMin(),
+			vosegment.S().TMax()),
+		"tl": tl,
+		"tr": tr,
+		"t":  t,
+	}, "", "  ")
+	fmt.Printf("DEBUG(mock): %s\n", data)
+
 	if d <= dl && d <= dr {
 		w := vector.Sub(agent.V(), vosegment.S().L().L(t))
 		return domain.Line, *hyperplane.New(
@@ -188,6 +202,7 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 }
 
 func (vo VO) ORCA(agent agent.A, tau float64) hyperplane.HP {
-	_, orca := vo.orca(agent, tau)
+	domain, orca := vo.orca(agent, tau)
+	fmt.Printf("DEBUG(mock): domain == %v\n", domain.String())
 	return orca
 }

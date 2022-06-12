@@ -17,3 +17,18 @@ const (
 	Right
 	Line
 )
+
+func (d D) String() string {
+	v, ok := map[D]string{
+		CollisionLeft:  "COLLISION_LEFT",
+		CollisionRight: "COLLISION_RIGHT",
+		CollisionLine:  "COLLISION_LINE",
+		Left:           "LEFT",
+		Right:          "RIGHT",
+		Line:           "LINE",
+	}[d]
+	if !ok {
+		return "UNKNOWN"
+	}
+	return v
+}

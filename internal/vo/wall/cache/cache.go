@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 
@@ -155,10 +156,8 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 	//
 	// These regions are the ones mentioned hereafter and in the tests.
 
-	l := line.New(s.S().L().L(s.S().TMin()), s.L().D())
-	r := line.New(s.S().L().L(s.S().TMax()), s.R().D())
-
-	fmt.Printf("DEBUG: l == %v\n", l)
+	l := line.New(s.S().L().L(s.S().TMax()), s.L().D())
+	r := line.New(s.S().L().L(s.S().TMin()), s.R().D())
 
 	t = s.S().L().T(c.V())
 	var dm domain.D
@@ -182,6 +181,25 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 		dl := l.Distance(c.V())
 		dr := r.Distance(c.V())
 
+		data, _ := json.MarshalIndent(map[string]interface{}{
+			"l": fmt.Sprintf("P == %v, D == %v", l.P(), l.D()),
+			"r": fmt.Sprintf("P == %v, D == %v", r.P(), r.D()),
+			"s": fmt.Sprintf(
+				"P == %v, D == %v, TMin == %v, TMax == %v",
+				s.S().L().P(),
+				s.S().L().D(),
+				s.S().TMin(),
+				s.S().TMax()),
+			"tl": tl,
+			"tr": tr,
+			"t":  t,
+			"dl": dl,
+			"dr": dr,
+			"d":  d,
+			"v":  c.V(),
+		}, "", "  ")
+		fmt.Printf("DEBUG: %s\n", data)
+
 		// This check is for region 7 and parts of region 3 (specifically, the
 		// parts "under" region 3 bounded by the tl = 0 and tr = 0 normal lines.
 		if tl < 0 && tr > 0 {
@@ -189,11 +207,6 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 		}
 
 		if d <= dl && d <= dr {
-			fmt.Printf("DEBUG: %v\n", map[string]float64{
-				"d":  d,
-				"dl": dl,
-				"dr": dr,
-			})
 			dm = domain.Line
 		}
 		if dl <= dr {
