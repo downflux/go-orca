@@ -20,7 +20,6 @@ import (
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-orca/internal/geometry/2d/cone"
-	// ov "github.com/downflux/go-orca/internal/geometry/2d/vector"
 )
 
 type S struct {
@@ -34,9 +33,6 @@ type S struct {
 
 	l line.L
 	r line.L
-
-	cl cone.C
-	cr cone.C
 }
 
 func New(s segment.S, p vector.V, radius float64) *S {
@@ -70,7 +66,9 @@ func New(s segment.S, p vector.V, radius float64) *S {
 				err))
 	}
 
-	if s.L().T(cTMin.L().D()) > s.TMin() {
+	// If the end of the left tangent leg lies past the left segment,
+	// we flip the definition of the left and right orientations.
+	if s.L().T(vector.Add(p, cTMin.L().D())) > s.TMin() {
 		cTMin, cTMax = cTMax, cTMin
 		rpTMin, rpTMax = rpTMax, rpTMin
 	}
@@ -82,8 +80,6 @@ func New(s segment.S, p vector.V, radius float64) *S {
 		vector.Add(p, cTMax.R().P()),
 		cTMax.R().D(),
 	)
-
-	fmt.Printf("DEBUG: l.D() == %v, || l.D() || == %v\n", l.D(), vector.Magnitude(l.D()))
 
 	// Note that the segment flows from the right to the left. This
 	// preserves the normal orientation between L, R, and S.

@@ -93,7 +93,7 @@ func New(obstacle segment.S, p vector.V, radius float64) (*S, error) {
 	// m is rotated the wrong way -- this means the obstacle is directed in
 	// the opposite direction, and actually makes up the "right" leg
 	// instead.
-	if obstacle.L().T(m) > obstacle.TMin() {
+	if obstacle.L().T(vector.Add(m, p)) > obstacle.TMin() {
 		m = rotate(rpTMax, lTMax, radius, true)
 		s = rotate(rpTMin, lTMin, radius, false)
 		rpTMin, rpTMax = rpTMax, rpTMin
