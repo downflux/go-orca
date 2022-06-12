@@ -519,7 +519,7 @@ func TestDomain(t *testing.T) {
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
 			if got := c.c.domain(); got != c.want {
-				t.Errorf("domain() = %v, want = %v", got, c.want)
+				t.Errorf("domain() = %v, want = %v", got.String(), c.want.String())
 			}
 		})
 	}
