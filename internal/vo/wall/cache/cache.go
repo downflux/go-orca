@@ -204,21 +204,14 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 		// parts "under" region 3 bounded by the tl = 0 and tr = 0 normal lines.
 		if tl < 0 && tr > 0 {
 			dm = domain.Line
-		}
-
-		if d <= dl && d <= dr {
+		} else if d <= dl && d <= dr {
 			dm = domain.Line
-		}
-		if dl <= dr {
+		} else if dl <= dr {
 			dm = domain.Left
 
+		} else {
+			dm = domain.Right
 		}
-		dm = domain.Right
-		dm = map[float64]domain.D{
-			d:  domain.Line,
-			dl: domain.Left,
-			dr: domain.Right,
-		}[min([]float64{d, dl, dr})]
 	}
 
 	switch dm {
