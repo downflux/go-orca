@@ -162,9 +162,21 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 	t = s.S().L().T(c.V())
 	var dm domain.D
 	if t < s.S().TMin() {
-		dm = domain.Left
-	} else if t > s.S().TMax() {
 		dm = domain.Right
+	} else if t > s.S().TMax() {
+		data, _ := json.MarshalIndent(map[string]interface{}{
+			"s": fmt.Sprintf(
+				"P == %v, D == %v, TMin == %v, TMax == %v",
+				s.S().L().P(),
+				s.S().L().D(),
+				s.S().TMin(),
+				s.S().TMax()),
+			"t": t,
+			"v": c.V(),
+		}, "", "  ")
+		fmt.Printf("DEBUG: %s\n", data)
+
+		dm = domain.Left
 	} else {
 		// We know that t is bounded between the min and max t-values of S by
 		// now. The official implementation uses w to calculate the distance to
