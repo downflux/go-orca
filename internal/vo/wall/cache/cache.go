@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 
@@ -161,7 +162,32 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 	l := line.New(s.S().L().L(s.S().TMax()), s.L().D())
 	r := line.New(s.S().L().L(s.S().TMin()), s.R().D())
 
-	t = s.S().L().T(c.V())
+	oblique := vector.Within(
+		s.S().L().L(s.S().TMin()),
+		s.S().L().L(s.S().TMax()),
+	)
+	t = (s.S().TMax() - s.S().TMin()) / 2
+	if !oblique {
+		t = s.S().L().T(c.agent.V())
+	}
+
+	data, err := json.MarshalIndent(map[string]interface{}{
+		"l": fmt.Sprintf("P == %v, D == %v", l.P(), l.D()),
+		"r": fmt.Sprintf("P == %v, D == %v", r.P(), r.D()),
+		"s": fmt.Sprintf(
+			"P == %v, D == %v, TMin == %v, TMax == %v",
+			s.S().L().P(),
+			s.S().L().D(),
+			s.S().TMin(),
+			s.S().TMax()),
+		"t": t,
+		"v": c.agent.V(),
+	}, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("DEBUG: %s\n", data)
+
 	var dm domain.D
 
 	// S() is a segment which is directed from the right to the left. This
@@ -181,12 +207,55 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 		// drawing a diagram; note that w is important for relating to the VO
 		// radius, but here, we are deferring the circular domain calculations
 		// to the cone VO objects themselves.
-		tl := l.T(c.V())
-		tr := r.T(c.V())
+		tl := l.T(c.agent.V())
+		tr := r.T(c.agent.V())
 
-		d = s.S().L().Distance(c.V())
-		dl := l.Distance(c.V())
-		dr := r.Distance(c.V())
+		d = func() float64 {
+			if oblique {
+				return math.Inf(1)
+			}
+			return s.S().L().Distance(c.agent.V())
+		}()
+		dl := func() float64 {
+			if tl < 0 {
+				return math.Inf(1)
+			}
+			return l.Distance(c.agent.V())
+		}()
+		dr := func() float64 {
+			if tr > 0 {
+				return math.Inf(1)
+			}
+			return r.Distance(c.agent.V())
+		}()
+
+		data, err := json.MarshalIndent(map[string]interface{}{
+			"t":  t,
+			"tl": tl,
+			"tr": tr,
+			"d": func() interface{} {
+				if d == math.Inf(1) {
+					return "+Inf"
+				}
+				return d
+			}(),
+			"dr": func() interface{} {
+				if dr == math.Inf(1) {
+					return "+Inf"
+				}
+				return dr
+			}(),
+			"dl": func() interface{} {
+				if dl == math.Inf(1) {
+					return "+Inf"
+				}
+				return dl
+			}(),
+		}, "", "  ")
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("DEBUG: %s\n", data)
 
 		// This check is for region 7 and parts of region 3 (specifically, the
 		// parts "under" region 3 bounded by the tl = 0 and tr = 0 normal lines.
@@ -282,8 +351,6 @@ func (c C) ORCA() hyperplane.HP {
 // taking into account the time scalar 𝜏.
 func (c C) S() segment.S { return s(c.segment, c.agent, c.tau) }
 
-func (c C) V() vector.V { return v(*vector.New(0, 0), c.agent) }
-
 // P returns the position vector in p-space from the agent to a specific point
 // along the velocity obstacle line. Note that the distance here is independent
 // of the time scaling factor 𝜏.
@@ -300,9 +367,6 @@ func (c C) P(t float64) vector.V { return p(c.segment, c.agent, t) }
 func p(s segment.S, a agent.A, t float64) vector.V {
 	return vector.Sub(s.L().L(t), a.P())
 }
-
-// v returns the relative velocity between the agent and the obstacle line.
-func v(v vector.V, a agent.A) vector.V { return vector.Sub(a.V(), v) }
 
 // s generates a scaled line segment based on the lookahead time and the agent.
 func s(s segment.S, a agent.A, tau float64) segment.S {

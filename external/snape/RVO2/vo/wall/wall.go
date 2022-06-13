@@ -9,7 +9,6 @@ import (
 	"github.com/downflux/go-geometry/2d/line"
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
-	"github.com/downflux/go-geometry/epsilon"
 	"github.com/downflux/go-orca/agent"
 	"github.com/downflux/go-orca/external/snape/RVO2/vo/wall/domain"
 
@@ -106,7 +105,10 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 		vosegment.R().D())
 
 	// TODO(minkezhang): Test oblique case.
-	oblique := epsilon.Within(vosegment.S().TMin(), vosegment.S().TMax())
+	oblique := vector.Within(
+		vosegment.S().L().L(vosegment.S().TMin()),
+		vosegment.S().L().L(vosegment.S().TMax()),
+	)
 
 	// t is the projected parametric value along the truncated base. Note
 	// that the segment reported by vosegment.S() is normalized, so t is always
@@ -163,7 +165,7 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 		dr = r.Distance(agent.V())
 	}
 
-	data, _ := json.MarshalIndent(map[string]interface{}{
+	data, err := json.MarshalIndent(map[string]interface{}{
 		"l": fmt.Sprintf("P == %v, D == %v", l.P(), l.D()),
 		"r": fmt.Sprintf("P == %v, D == %v", r.P(), r.D()),
 		"s": fmt.Sprintf(
@@ -175,7 +177,29 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 		"tl": tl,
 		"tr": tr,
 		"t":  t,
+		"d": func() interface{} {
+			if d == math.Inf(1) {
+				return "+Inf"
+			}
+			return d
+		}(),
+		"dr": func() interface{} {
+			if dr == math.Inf(1) {
+				return "+Inf"
+			}
+			return dr
+		}(),
+		"dl": func() interface{} {
+			if dl == math.Inf(1) {
+				return "+Inf"
+			}
+			return dl
+		}(),
+		"v": agent.V(),
 	}, "", "  ")
+	if err != nil {
+		panic(err)
+	}
 	fmt.Printf("DEBUG(mock): %s\n", data)
 
 	if d <= dl && d <= dr {
