@@ -336,27 +336,13 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 		s := c.S()
 
 		w := vector.Sub(c.agent.V(), s.L().L(s.L().T(c.agent.V())))
+		n := vector.Unit(w)
+		u := line.New(s.L().L(s.TMin()), n).L(c.agent.R() / c.tau)
 		return dm, *hyperplane.New(
-			line.New(
-				s.L().L(s.TMin()),
-				vector.Unit(w),
-			).L(c.agent.R()/c.tau),
-			vector.Unit(w),
-		)
-
-		w = vector.Sub(
-			c.agent.V(),
-			s.L().L(s.T(c.agent.V())),
-		)
-		r := c.agent.R() / c.tau
-		u := vector.Scale(
-			r/vector.Magnitude(w)-1,
-			w,
-		)
-		n := vector.Scale(-1, vector.Unit(u))
-
-		return dm, *hyperplane.New(
-			vector.Add(opt.VOptZero(c.agent), vector.Scale(float64(opt.WeightAll), u)),
+			vector.Add(
+				opt.VOptZero(c.agent),
+				vector.Scale(float64(opt.WeightAll), u),
+			),
 			n,
 		)
 	default:
