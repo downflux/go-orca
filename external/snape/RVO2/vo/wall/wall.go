@@ -122,8 +122,8 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 	tr := r.T(agent.V())
 
 	// Note that l is always directed away towards the origin, while r is
-	// always directed away. RVO2 assumes both l and r are directed away
-	// from the origin.
+	// always directed away. RVO2 assumes the left tangent leg is directed
+	// towards the origin, wherease r is directed away.
 	if (t < 0 && tl > 0) || (oblique && tl > 0 && tr < 0) {
 		// LeftCircle
 		w := vector.Sub(agent.V(), vosegment.S().L().L(vosegment.S().TMin()))

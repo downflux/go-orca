@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"encoding/json"
+	// "encoding/json"
 	"fmt"
 	"math"
 
@@ -171,6 +171,36 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 		t = s.S().L().T(c.agent.V())
 	}
 
+	// We know that t is bounded between the min and max t-values of S by
+	// now. The official implementation uses w to calculate the distance to
+	// the line segments; however, we note that this distance may be
+	// visually represented by measuring the distance between v and the
+	// perpendicular distance to the segments, which can be reasoned by
+	// drawing a diagram; note that w is important for relating to the VO
+	// radius, but here, we are deferring the circular domain calculations
+	// to the cone VO objects themselves.
+	tl := l.T(c.agent.V())
+	tr := r.T(c.agent.V())
+/*
+	d = func() float64 {
+		if oblique {
+			return math.Inf(1)
+		}
+		return s.S().L().Distance(c.agent.V())
+	}()
+	dl := func() float64 {
+		if tl < 0 {
+			return math.Inf(1)
+		}
+		return l.Distance(c.agent.V())
+	}()
+	dr := func() float64 {
+		if tr > 0 {
+			return math.Inf(1)
+		}
+		return r.Distance(c.agent.V())
+	}()
+
 	data, err := json.MarshalIndent(map[string]interface{}{
 		"l": fmt.Sprintf("P == %v, D == %v", l.P(), l.D()),
 		"r": fmt.Sprintf("P == %v, D == %v", r.P(), r.D()),
@@ -182,34 +212,41 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 			s.S().TMax()),
 		"t": t,
 		"v": c.agent.V(),
+		"d": func() interface{} {
+			if d == math.Inf(1) {
+				return "+Inf"
+			}
+			return d
+		}(),
+		"dr": func() interface{} {
+			if dr == math.Inf(1) {
+				return "+Inf"
+			}
+			return dr
+		}(),
+		"dl": func() interface{} {
+			if dl == math.Inf(1) {
+				return "+Inf"
+			}
+			return dl
+		}(),
 	}, "", "  ")
 	if err != nil {
 		panic(err)
 	}
 	fmt.Printf("DEBUG: %s\n", data)
-
+	*/
 	var dm domain.D
 
 	// S() is a segment which is directed from the right to the left. This
 	// is done to ensure a consistent orientation between L(), S(), and R().
 	// Because S() starts from the "right" side, we are flipping the t
 	// boundary check from the official RVO2 implementation.
-	if t < s.S().TMin() {
-		dm = domain.Right
-	} else if t > s.S().TMax() {
+	if (t > s.S().TMax() && tl < 0) || (oblique && tl < 0 && tr > 0) {
 		dm = domain.Left
+	} else if t < s.S().TMin() && tr > 0 {
+		dm = domain.Right
 	} else {
-		// We know that t is bounded between the min and max t-values of S by
-		// now. The official implementation uses w to calculate the distance to
-		// the line segments; however, we note that this distance may be
-		// visually represented by measuring the distance between v and the
-		// perpendicular distance to the segments, which can be reasoned by
-		// drawing a diagram; note that w is important for relating to the VO
-		// radius, but here, we are deferring the circular domain calculations
-		// to the cone VO objects themselves.
-		tl := l.T(c.agent.V())
-		tr := r.T(c.agent.V())
-
 		d = func() float64 {
 			if oblique {
 				return math.Inf(1)
@@ -228,7 +265,7 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 			}
 			return r.Distance(c.agent.V())
 		}()
-
+/*
 		data, err := json.MarshalIndent(map[string]interface{}{
 			"t":  t,
 			"tl": tl,
@@ -256,7 +293,7 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 			panic(err)
 		}
 		fmt.Printf("DEBUG: %s\n", data)
-
+*/
 		// This check is for region 7 and parts of region 3 (specifically, the
 		// parts "under" region 3 bounded by the tl = 0 and tr = 0 normal lines.
 		if tl < 0 && tr > 0 {

@@ -90,7 +90,7 @@ func TestConformance(t *testing.T) {
 				t.Errorf("DebugDomain() == %v, want = %v", got.String(), b.DebugDomain(c.agent, c.tau).String())
 			}
 			if got := a.ORCA(c.agent, c.tau); !within(got, want) {
-				t.Errorf("ORCA() = %v, want = %v", got, want)
+				t.Errorf("ORCA() = %v, want = %v; domain == %v", got, want, a.DebugDomain(c.agent, c.tau).String())
 			}
 		})
 	}
