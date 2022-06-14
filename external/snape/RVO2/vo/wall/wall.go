@@ -204,6 +204,7 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 
 	if d <= dl && d <= dr {
 		w := vector.Sub(agent.V(), vosegment.S().L().L(t))
+		fmt.Printf("DEBUG(mock): w == %v\n", w)
 		return domain.Line, *hyperplane.New(
 			/* p = */ line.New(
 				vosegment.S().L().L(vosegment.S().TMin()),
