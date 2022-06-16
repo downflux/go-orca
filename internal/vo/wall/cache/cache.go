@@ -43,8 +43,14 @@ func New(s segment.S, a agent.A, tau float64) *C {
 func (c C) DebugDomain() domain.D { return c.domain() }
 
 func (c C) orca() (domain.D, hyperplane.HP) {
+	// Per van den Berg et al. (2011), we expect VOpt to be
+	// the 0-vector, and that u lies directly on the tangent
+	// plane (i.e. opt.WeightNone). This means the agent
+	// will not attempt to avoid collisions with the wall
+	// unless this will result in a collision within the
+	// next timestep.
 	o := opt.O{
-		Weight: opt.WeightNone, // All,
+		Weight: opt.WeightNone,
 		VOpt:   opt.VOptZero,
 	}
 
@@ -72,21 +78,7 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 					V: *vector.New(0, 0),
 				},
 			),
-			// Per van den Berg et al. (2011), we expect VOpt to be
-			// the 0-vector, and that u lies directly on the tangent
-			// plane (i.e. opt.WeightAll). However, for the official
-			// implementation, it appears we have set u = 0 for the
-			// collision case. We expect this is to ensure the
-			// 0-vector is always a valid solution to the ORCA
-			// plane, though we cannot verify this exact line of
-			// reasoning.
-			//
-			// TODO(minkezhang): Verify if WeightNone can be
-			// replaced with WeightAll.
-			opt.O{
-				Weight: opt.WeightNone,
-				VOpt:   opt.VOptZero,
-			},
+			o,
 		).ORCA(c.agent, c.tau)
 	}
 
@@ -100,10 +92,7 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 					V: *vector.New(0, 0),
 				},
 			),
-			opt.O{
-				Weight: opt.WeightNone,
-				VOpt:   opt.VOptZero,
-			},
+			o,
 		).ORCA(c.agent, c.tau)
 	}
 
@@ -243,9 +232,9 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 	// Because S() starts from the "right" side, we are flipping the t
 	// boundary check from the official RVO2 implementation.
 	if (t > s.S().TMax() && tl < 0) || (oblique && tl < 0 && tr > 0) {
-		dm = domain.Left
+		dm = domain.Left // LeftCircle
 	} else if t < s.S().TMin() && tr > 0 {
-		dm = domain.Right
+		dm = domain.Right // RightCircle
 	} else {
 		d = func() float64 {
 			if oblique {
@@ -314,7 +303,7 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 		return dm, voagent.New(
 			agentimpl.New(
 				agentimpl.O{
-					P: s.S().L().L(s.S().TMin()),
+					P: s.S().L().L(s.S().TMax()),
 					V: *vector.New(0, 0),
 				},
 			),
@@ -323,15 +312,27 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 
 	case domain.Right:
 		s := *vosegment.New(c.S(), *vector.New(0, 0), c.agent.R()/c.tau)
-		return dm, voagent.New(
+		r := s.S().L().L(s.S().TMin())
+		w := vector.Sub(c.agent.V(), r)
+
+		hp := voagent.New(
 			agentimpl.New(
 				agentimpl.O{
-					P: s.S().L().L(s.S().TMax()),
+					P: r,
 					V: *vector.New(0, 0),
 				},
 			),
 			o,
 		).ORCA(c.agent, c.tau)
+
+		u := line.New(r, vector.Unit(w)).L(c.agent.R() / c.tau)
+		return dm, *hyperplane.New(
+			vector.Add(
+				o.VOpt(c.agent),
+				vector.Scale(float64(opt.WeightAll), u),
+			),
+			hp.N(),
+		)
 	case domain.Line:
 		s := c.S()
 

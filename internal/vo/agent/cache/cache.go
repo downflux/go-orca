@@ -51,7 +51,7 @@ type VO struct {
 	obstacle agent.A
 
 	// weight is the relative slack u in the ORCA plane that will be taken
-	// up by the input agent (vs. the obstacle).
+	// up by the input agent (i.e., not the obstacle).
 	weight opt.Weight
 	vopt   opt.VOpt
 

@@ -35,13 +35,21 @@ func ra() agent.A {
 }
 func rs() segment.S { return *segment.New(*line.New(rv(), rv()), 0, 100) }
 
-func within(a, b hyperplane.HP) bool {
+func within(got, want hyperplane.HP) bool {
 	// Implementation differences lead to larger-than-normal tolerance
 	// errors.
 	//
 	// TODO(minkezhang): Make this tolerance conform with epsilon.epsilon.
-	const tolerance = 1e-3
-	return math.Abs(a.N().X()-b.N().X()) < tolerance && math.Abs(a.N().Y()-b.N().Y()) < tolerance && epsilon.Within(hyperplane.Line(a).Distance(b.P()), 0)
+	const tolerance = 1e-2
+	fmt.Printf("DEBUG: A == %v\n", math.Abs(got.N().X() - want.N().X()) / want.N().X() < tolerance)
+	fmt.Printf("DEBUG: B == %v\n", math.Abs(got.N().Y() - want.N().Y()) / want.N().Y() < tolerance)
+	fmt.Printf("DEBUG: C == %v\n", epsilon.Within(hyperplane.Line(got).Distance(want.P()), 0))
+	return (
+		math.Abs(got.N().X() - want.N().X()) / want.N().X() < tolerance) && (
+		math.Abs(got.N().Y() - want.N().Y()) / want.N().Y() < tolerance) && (
+		epsilon.Within(hyperplane.Line(got).Distance(want.P()), 0))
+		
+	// return math.Abs(a.N().X()-b.N().X()) < tolerance && math.Abs(a.N().Y()-b.N().Y()) < tolerance && epsilon.Within(hyperplane.Line(a).Distance(b.P()), 0)
 }
 
 func TestConformance(t *testing.T) {
