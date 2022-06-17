@@ -62,7 +62,7 @@ func TestConformance(t *testing.T) {
 		},
 	}
 
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 1e5; i++ {
 		testConfigs = append(testConfigs, config{
 			name:     fmt.Sprintf("Random-%d", i),
 			obstacle: rs(),

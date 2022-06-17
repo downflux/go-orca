@@ -37,9 +37,6 @@ func New(s segment.S, a agent.A, tau float64) *C {
 	}
 }
 
-// TODO(minkezhang): Remove this function.
-func (c C) DebugDomain() domain.D { return c.domain() }
-
 func (c C) orca() (domain.D, hyperplane.HP) {
 	// Per van den Berg et al. (2011), we expect VOpt to be
 	// the 0-vector, and that u lies directly on the tangent
@@ -145,8 +142,6 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 	//       |  6  |
 	//
 	// These regions are the ones mentioned hereafter and in the tests.
-	//
-	// TODO(minkezhang): Update this docstring to be accurate.
 
 	l := line.New(s.S().L().L(s.S().TMax()), s.L().D())
 	r := line.New(s.S().L().L(s.S().TMin()), s.R().D())
@@ -194,24 +189,18 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 		)
 	}
 
-	d = func() float64 {
-		if oblique {
-			return math.Inf(1)
-		}
-		return s.S().L().Distance(c.agent.V())
-	}()
-	dl := func() float64 {
-		if tl < 0 {
-			return math.Inf(1)
-		}
-		return l.Distance(c.agent.V())
-	}()
-	dr := func() float64 {
-		if tr > 0 {
-			return math.Inf(1)
-		}
-		return r.Distance(c.agent.V())
-	}()
+	d = map[bool]float64{
+		true:  math.Inf(1),
+		false: s.S().L().Distance(c.agent.V()),
+	}[oblique || t < s.S().TMin() || t > s.S().TMax()]
+	dl := map[bool]float64{
+		true:  math.Inf(1),
+		false: l.Distance(c.agent.V()),
+	}[tl < 0]
+	dr := map[bool]float64{
+		true:  math.Inf(1),
+		false: r.Distance(c.agent.V()),
+	}[tr > 0]
 
 	// This check is for region 7 and parts of region 3 (specifically, the
 	// parts "under" region 3 bounded by the tl = 0 and tr = 0 normal lines.
