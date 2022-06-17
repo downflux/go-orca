@@ -14,7 +14,9 @@ const (
 	// straight lines of the line VO.
 
 	Left
+	LeftCircle
 	Right
+	RightCircle
 	Line
 )
 
@@ -24,7 +26,9 @@ func (d D) String() string {
 		CollisionRight: "COLLISION_RIGHT",
 		CollisionLine:  "COLLISION_LINE",
 		Left:           "LEFT",
+		LeftCircle:     "LEFT_CIRCLE",
 		Right:          "RIGHT",
+		RightCircle:    "RIGHT_CIRCLE",
 		Line:           "LINE",
 	}[d]
 	if !ok {

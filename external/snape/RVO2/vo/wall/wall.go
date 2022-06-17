@@ -125,9 +125,8 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 	// always directed away. RVO2 assumes the left tangent leg is directed
 	// towards the origin, wherease r is directed away.
 	if (t < 0 && tl > 0) || (oblique && tl > 0 && tr < 0) {
-		// LeftCircle
 		w := vector.Sub(agent.V(), vosegment.S().L().L(vosegment.S().TMin()))
-		return domain.Left, *hyperplane.New(
+		return domain.LeftCircle, *hyperplane.New(
 			// Hyperplane lies tangent to the VO object.
 			/* p = */
 			line.New(
@@ -138,9 +137,8 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 		)
 	}
 	if t > 1 && tr < 0 {
-		// RightCircle
 		w := vector.Sub(agent.V(), vosegment.S().L().L(vosegment.S().TMax()))
-		return domain.Right, *hyperplane.New(
+		return domain.RightCircle, *hyperplane.New(
 			line.New(
 				vosegment.S().L().L(vosegment.S().TMax()),
 				vector.Unit(w),
@@ -165,46 +163,8 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 		dr = r.Distance(agent.V())
 	}
 
-	data, err := json.MarshalIndent(map[string]interface{}{
-		"l": fmt.Sprintf("P == %v, D == %v", l.P(), l.D()),
-		"r": fmt.Sprintf("P == %v, D == %v", r.P(), r.D()),
-		"s": fmt.Sprintf(
-			"P == %v, D == %v, TMin == %v, TMax == %v",
-			vosegment.S().L().P(),
-			vosegment.S().L().D(),
-			vosegment.S().TMin(),
-			vosegment.S().TMax()),
-		"tl": tl,
-		"tr": tr,
-		"t":  t,
-		"d": func() interface{} {
-			if d == math.Inf(1) {
-				return "+Inf"
-			}
-			return d
-		}(),
-		"dr": func() interface{} {
-			if dr == math.Inf(1) {
-				return "+Inf"
-			}
-			return dr
-		}(),
-		"dl": func() interface{} {
-			if dl == math.Inf(1) {
-				return "+Inf"
-			}
-			return dl
-		}(),
-		"v": agent.V(),
-	}, "", "  ")
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("DEBUG(mock): %s\n", data)
-
 	if d <= dl && d <= dr {
 		w := vector.Sub(agent.V(), vosegment.S().L().L(t))
-		fmt.Printf("DEBUG(mock): w == %v\n", w)
 		return domain.Line, *hyperplane.New(
 			/* p = */ line.New(
 				vosegment.S().L().L(vosegment.S().TMin()),
@@ -216,10 +176,21 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 
 	if dl <= dr {
 		w := vector.Sub(agent.V(), l.L(tl))
-		return domain.Left, *hyperplane.New(
+		hp := *hyperplane.New(
 			/* p = */ line.New(l.P(), vector.Unit(w)).L(agent.R()/tau),
 			/* n = */ vector.Unit(w),
 		)
+		data, err := json.MarshalIndent(
+			map[string]interface{}{
+				"l.D()": l.D(),
+				"l.P()": l.P(),
+				"w":     vector.Unit(w),
+			}, "", "  ")
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("DEBUG(mock): %s\n", data)
+		return domain.Left, hp
 	}
 
 	w := vector.Sub(agent.V(), r.L(tl))

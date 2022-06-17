@@ -81,13 +81,27 @@ func TestConformance(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			a := New(c.obstacle)
 			b := wall.New(c.obstacle)
+			got := a.ORCA(c.agent, c.tau)
 			want := b.ORCA(c.agent, c.tau)
 			if got := a.DebugDomain(c.agent, c.tau); got.String() != b.DebugDomain(c.agent, c.tau).String() {
 				t.Errorf("DebugDomain() == %v, want = %v", got.String(), b.DebugDomain(c.agent, c.tau).String())
 			}
-			if got := a.ORCA(c.agent, c.tau); !within(got, want) {
-				t.Errorf("ORCA() = %v, want = %v; domain == %v", got, want, a.DebugDomain(c.agent, c.tau).String())
-			}
+			t.Run(fmt.Sprintf("%v/ORCA/N", c.name), func(t *testing.T) {
+				got := got.N()
+				want := want.N()
+				if !vector.WithinEpsilon(got, want, epsilon.Relative(0.01)) {
+					t.Errorf("D() = %v, want = %v", got, want)
+				}
+			})
+			t.Run(fmt.Sprintf("%v/ORCA/P", c.name), func(t *testing.T) {
+				if !epsilon.Absolute(1e-5).Within(
+					hyperplane.Line(
+						got).Distance(want.P()),
+					0,
+				) {
+					t.Errorf("P() = %v, want = %v", got.P(), want.P())
+				}
+			})
 		})
 	}
 }

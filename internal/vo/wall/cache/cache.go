@@ -1,7 +1,7 @@
 package cache
 
 import (
-	// "encoding/json"
+	"encoding/json"
 	"fmt"
 	"math"
 
@@ -178,9 +178,9 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 	// Because S() starts from the "right" side, we are flipping the t
 	// boundary check from the official RVO2 implementation.
 	if (t > s.S().TMax() && tl < 0) || (oblique && tl < 0 && tr > 0) {
-		dm = domain.Left // LeftCircle
+		dm = domain.LeftCircle
 	} else if t < s.S().TMin() && tr > 0 {
-		dm = domain.Right // RightCircle
+		dm = domain.RightCircle
 	} else {
 		d = func() float64 {
 			if oblique {
@@ -216,20 +216,35 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 	}
 
 	switch dm {
+	case domain.LeftCircle:
+		fallthrough
+	case domain.RightCircle:
+		fallthrough
 	case domain.Left:
 		fallthrough
 	case domain.Right:
-		s := *vosegment.New(c.S(), *vector.New(0, 0), c.agent.R()/c.tau)
-		p := s.S().L().L(s.S().TMin())
-		if dm == domain.Left {
-			p = s.S().L().L(s.S().TMax())
-		}
-		w := vector.Sub(c.agent.V(), p)
+		p := map[domain.D]vector.V{
+			domain.Right:       r.P(),
+			domain.RightCircle: r.P(),
+			domain.Left:        l.P(),
+			domain.LeftCircle:  l.P(),
+		}[dm]
+		w := vector.Sub(c.agent.V(), map[domain.D]vector.V{
+			domain.Right:       r.L(tr),
+			domain.RightCircle: p,
+			domain.Left:        l.L(tl),
+			domain.LeftCircle:  p,
+		}[dm])
 
 		hp := voagent.New(
 			agentimpl.New(
 				agentimpl.O{
-					P: p,
+					P: map[domain.D]vector.V{
+						domain.Right:       vector.Add(c.agent.P(), vector.Scale(c.tau, p)),
+						domain.Left:        vector.Add(c.agent.P(), vector.Scale(c.tau, p)),
+						domain.RightCircle: p,
+						domain.LeftCircle:  p,
+					}[dm],
 					V: *vector.New(0, 0),
 				},
 			),
@@ -237,6 +252,17 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 		).ORCA(c.agent, c.tau)
 
 		u := line.New(p, vector.Unit(w)).L(c.agent.R() / c.tau)
+		data, err := json.MarshalIndent(
+			map[string]interface{}{
+				"u":      u,
+				"w":      vector.Unit(w),
+				"hp.N()": hp.N(),
+			}, "", "  ")
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("DEBUG: %s\n", data)
+
 		return dm, *hyperplane.New(
 			vector.Add(
 				o.VOpt(c.agent),
