@@ -19,7 +19,6 @@
 package cache
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/downflux/go-geometry/2d/hyperplane"
@@ -130,7 +129,6 @@ func New(o O) (*VO, error) {
 // ORCA returns the half-plane of permissable velocities for an agent, given the
 // an agent constraint.
 func (vo *VO) ORCA() (hyperplane.HP, error) {
-	fmt.Printf("DEBUG(agent): domain == %v\n", vo.domain())
 	u, err := vo.u()
 	if err != nil {
 		return hyperplane.HP{}, err

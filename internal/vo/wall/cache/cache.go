@@ -1,8 +1,6 @@
 package cache
 
 import (
-	"encoding/json"
-	"fmt"
 	"math"
 
 	"github.com/downflux/go-geometry/2d/hyperplane"
@@ -147,6 +145,8 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 	//       |  6  |
 	//
 	// These regions are the ones mentioned hereafter and in the tests.
+	//
+	// TODO(minkezhang): Update this docstring to be accurate.
 
 	l := line.New(s.S().L().L(s.S().TMax()), s.L().D())
 	r := line.New(s.S().L().L(s.S().TMin()), s.R().D())
@@ -171,117 +171,77 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 	tl := l.T(c.agent.V())
 	tr := r.T(c.agent.V())
 
-	var dm domain.D
-
 	// S() is a segment which is directed from the right to the left. This
 	// is done to ensure a consistent orientation between L(), S(), and R().
 	// Because S() starts from the "right" side, we are flipping the t
 	// boundary check from the official RVO2 implementation.
 	if (t > s.S().TMax() && tl < 0) || (oblique && tl < 0 && tr > 0) {
-		dm = domain.LeftCircle
-	} else if t < s.S().TMin() && tr > 0 {
-		dm = domain.RightCircle
-	} else {
-		d = func() float64 {
-			if oblique {
-				return math.Inf(1)
-			}
-			return s.S().L().Distance(c.agent.V())
-		}()
-		dl := func() float64 {
-			if tl < 0 {
-				return math.Inf(1)
-			}
-			return l.Distance(c.agent.V())
-		}()
-		dr := func() float64 {
-			if tr > 0 {
-				return math.Inf(1)
-			}
-			return r.Distance(c.agent.V())
-		}()
-
-		// This check is for region 7 and parts of region 3 (specifically, the
-		// parts "under" region 3 bounded by the tl = 0 and tr = 0 normal lines.
-		if tl < 0 && tr > 0 {
-			dm = domain.Line
-		} else if d <= dl && d <= dr {
-			dm = domain.Line
-		} else if dl <= dr {
-			dm = domain.Left
-
-		} else {
-			dm = domain.Right
-		}
+		w := vector.Sub(c.agent.V(), l.P())
+		return domain.LeftCircle, *hyperplane.New(
+			/* p = */ line.New(
+				l.P(), vector.Unit(w),
+			).L(c.agent.R()/c.tau),
+			/* n = */ vector.Unit(w),
+		)
+	}
+	if t < s.S().TMin() && tr > 0 {
+		w := vector.Sub(c.agent.V(), r.P())
+		return domain.RightCircle, *hyperplane.New(
+			line.New(
+				r.P(), vector.Unit(w),
+			).L(c.agent.R()/c.tau),
+			vector.Unit(w),
+		)
 	}
 
-	switch dm {
-	case domain.LeftCircle:
-		fallthrough
-	case domain.RightCircle:
-		fallthrough
-	case domain.Left:
-		fallthrough
-	case domain.Right:
-		p := map[domain.D]vector.V{
-			domain.Right:       r.P(),
-			domain.RightCircle: r.P(),
-			domain.Left:        l.P(),
-			domain.LeftCircle:  l.P(),
-		}[dm]
-		w := vector.Sub(c.agent.V(), map[domain.D]vector.V{
-			domain.Right:       r.L(tr),
-			domain.RightCircle: p,
-			domain.Left:        l.L(tl),
-			domain.LeftCircle:  p,
-		}[dm])
-
-		hp := voagent.New(
-			agentimpl.New(
-				agentimpl.O{
-					P: vector.Add(c.agent.P(), vector.Scale(c.tau, p)),
-					V: *vector.New(0, 0),
-				},
-			),
-			o,
-		).ORCA(c.agent, c.tau)
-
-		u := line.New(p, vector.Unit(w)).L(c.agent.R() / c.tau)
-		data, err := json.MarshalIndent(
-			map[string]interface{}{
-				"u":      u,
-				"domain": dm.String(),
-				"w":      vector.Unit(w),
-				"hp.N()": hp.N(),
-			}, "", "  ")
-		if err != nil {
-			panic(err)
+	d = func() float64 {
+		if oblique {
+			return math.Inf(1)
 		}
-		fmt.Printf("DEBUG: %s\n", data)
+		return s.S().L().Distance(c.agent.V())
+	}()
+	dl := func() float64 {
+		if tl < 0 {
+			return math.Inf(1)
+		}
+		return l.Distance(c.agent.V())
+	}()
+	dr := func() float64 {
+		if tr > 0 {
+			return math.Inf(1)
+		}
+		return r.Distance(c.agent.V())
+	}()
 
-		return dm, *hyperplane.New(
-			vector.Add(
-				o.VOpt(c.agent),
-				vector.Scale(float64(opt.WeightAll), u),
-			),
-			hp.N(),
+	// This check is for region 7 and parts of region 3 (specifically, the
+	// parts "under" region 3 bounded by the tl = 0 and tr = 0 normal lines.
+	if tl < 0 && tr > 0 || d <= dl && d <= dr {
+		w := vector.Sub(c.agent.V(), s.S().L().L(t))
+		return domain.Line, *hyperplane.New(
+			line.New(
+				r.P(), vector.Unit(w),
+			).L(c.agent.R()/c.tau),
+			vector.Unit(w),
 		)
-	case domain.Line:
-		s := c.S()
-
-		w := vector.Sub(c.agent.V(), s.L().L(s.L().T(c.agent.V())))
-		n := vector.Unit(w)
-		u := line.New(s.L().L(s.TMin()), n).L(c.agent.R() / c.tau)
-		return dm, *hyperplane.New(
-			vector.Add(
-				opt.VOptZero(c.agent),
-				vector.Scale(float64(opt.WeightAll), u),
-			),
-			n,
-		)
-	default:
-		panic(fmt.Sprintf("invalid VO projection %v", d))
 	}
+	if dl <= dr {
+		w := vector.Sub(c.agent.V(), l.L(tl))
+		return domain.Left, *hyperplane.New(
+			line.New(
+				l.P(), vector.Unit(w),
+			).L(c.agent.R()/c.tau),
+			vector.Unit(w),
+		)
+
+	}
+
+	w := vector.Sub(c.agent.V(), r.L(tl))
+	return domain.Right, *hyperplane.New(
+		line.New(
+			r.P(), vector.Unit(w),
+		).L(c.agent.R()/c.tau),
+		vector.Unit(w),
+	)
 }
 
 // domain returns the domain in p-space of interaction between the velocity

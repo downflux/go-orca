@@ -1,7 +1,6 @@
 package wall
 
 import (
-	"encoding/json"
 	"fmt"
 	"math"
 
@@ -31,9 +30,6 @@ func New(obstacle segment.S) *VO {
 		),
 	}
 }
-
-// TODO(minkezhang): Remove this function.
-func (vo VO) DebugDomain(agent agent.A, tau float64) domain.D { return vo.domain(agent, tau) }
 
 func (vo VO) domain(agent agent.A, tau float64) domain.D {
 	domain, _ := vo.orca(agent, tau)
@@ -125,30 +121,18 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 	// always directed away. RVO2 assumes the left tangent leg is directed
 	// towards the origin, wherease r is directed away.
 	if (t < 0 && tl > 0) || (oblique && tl > 0 && tr < 0) {
-		w := vector.Sub(agent.V(), vosegment.S().L().L(vosegment.S().TMin()))
+		w := vector.Sub(agent.V(), l.P())
 		return domain.LeftCircle, *hyperplane.New(
 			// Hyperplane lies tangent to the VO object.
 			/* p = */
-			line.New(
-				vosegment.S().L().L(vosegment.S().TMin()),
-				vector.Unit(w),
-			).L(agent.R()/tau),
+			line.New(l.P(), vector.Unit(w)).L(agent.R()/tau),
 			/* n = */ vector.Unit(w),
 		)
 	}
 	if t > 1 && tr < 0 {
-		w := vector.Sub(agent.V(), vosegment.S().L().L(vosegment.S().TMax()))
-		data, _ := json.MarshalIndent(
-			map[string]interface{}{
-				"w": vector.Unit(w),
-			},
-			"", "  ")
-		fmt.Printf("DEBUG(mock): %s\n", data)
+		w := vector.Sub(agent.V(), r.P())
 		return domain.RightCircle, *hyperplane.New(
-			line.New(
-				vosegment.S().L().L(vosegment.S().TMax()),
-				vector.Unit(w),
-			).L(agent.R()/tau),
+			line.New(r.P(), vector.Unit(w)).L(agent.R()/tau),
 			vector.Unit(w),
 		)
 	}

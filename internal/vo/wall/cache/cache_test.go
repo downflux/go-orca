@@ -71,7 +71,7 @@ func TestORCA(t *testing.T) {
 						*vector.New(0, 0),
 					),
 					want: *hyperplane.New(
-						*vector.New(-2, 1),
+						*vector.New(2, 1),
 						*vector.New(0, -1),
 					),
 				},
@@ -319,6 +319,8 @@ func TestDomain(t *testing.T) {
 				),
 			)
 
+			// TODO(minkezhang): Rename these tests and make sure we
+			// are covering all cases.
 			return []config{
 				{
 					name: "Region=3",
@@ -435,7 +437,7 @@ func TestDomain(t *testing.T) {
 							*vector.New(-2, 0),
 						),
 					),
-					want: domain.Left,
+					want: domain.LeftCircle,
 				},
 				{
 					name: "Region=6/Border=5",
@@ -456,7 +458,7 @@ func TestDomain(t *testing.T) {
 							*vector.New(2, 0),
 						),
 					),
-					want: domain.Right,
+					want: domain.RightCircle,
 				},
 				{
 					name: "Region=1/Border=2",

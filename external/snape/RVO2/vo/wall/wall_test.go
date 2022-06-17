@@ -91,7 +91,7 @@ func TestDomain(t *testing.T) {
 				R: 1,
 			}),
 			tau:  1,
-			want: domain.Left,
+			want: domain.LeftCircle,
 		},
 		{
 			// An obstacle pointing in the other direction should
@@ -105,7 +105,7 @@ func TestDomain(t *testing.T) {
 				R: 1,
 			}),
 			tau:  1,
-			want: domain.Left,
+			want: domain.LeftCircle,
 		},
 		{
 			name: "Right/Circle",
@@ -116,7 +116,7 @@ func TestDomain(t *testing.T) {
 				R: 1,
 			}),
 			tau:  1,
-			want: domain.Right,
+			want: domain.RightCircle,
 		},
 		{
 			name: "Left",
@@ -127,7 +127,7 @@ func TestDomain(t *testing.T) {
 				R: 1,
 			}),
 			tau:  1,
-			want: domain.Left,
+			want: domain.LeftCircle,
 		},
 		{
 			name: "Right",
@@ -138,7 +138,7 @@ func TestDomain(t *testing.T) {
 				R: 1,
 			}),
 			tau:  1,
-			want: domain.Right,
+			want: domain.RightCircle,
 		},
 		{
 			name: "Line/Top",
