@@ -68,13 +68,13 @@ func TestL(t *testing.T) {
 				t.Fatalf("New() unexpectedly failed: %v", err)
 			}
 			t.Run(fmt.Sprintf("%s/L", c.name), func(t *testing.T) {
-				if got := co.L(); !vector.Within(got, c.l) {
-					t.Errorf("L() = %v, want = %v", got, c.l)
+				if got := co.L().D(); !vector.Within(got, c.l) {
+					t.Errorf("L().D() = %v, want = %v", got, c.l)
 				}
 			})
 			t.Run(fmt.Sprintf("%s/R", c.name), func(t *testing.T) {
-				if got := co.R(); !vector.Within(got, c.r) {
-					t.Errorf("R() = %v, want = %v", got, c.r)
+				if got := co.R().D(); !vector.Within(got, c.r) {
+					t.Errorf("R().D() = %v, want = %v", got, c.r)
 				}
 			})
 			// By convention, we force establish the right tangent
@@ -85,8 +85,10 @@ func TestL(t *testing.T) {
 			// segment defining the linear VO is defined in terms of
 			// a parametric equation, and will need an established
 			// orientation.
+			//
+			// TODO(minkezhang): Remove this check.
 			t.Run(fmt.Sprintf("%s/Orientation", c.name), func(t *testing.T) {
-				if !ov.IsNormalOrientation(co.L(), co.R()) {
+				if !ov.IsNormalOrientation(co.L().D(), co.R().D()) {
 					t.Errorf("IsNormalOrientation() = false, want = true")
 				}
 			})

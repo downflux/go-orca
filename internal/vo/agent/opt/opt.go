@@ -10,6 +10,7 @@ import (
 const (
 	WeightEqual = 0.5
 	WeightAll   = 1.0
+	WeightNone  = 0.0
 )
 
 func VOptV(agent agent.A) vector.V    { return agent.V() }
@@ -39,7 +40,7 @@ type O struct {
 }
 
 func Validate(o O) error {
-	if o.Weight <= 0 || o.Weight > 1 {
+	if o.Weight < 0 || o.Weight > 1 {
 		return grpc.Errorf(codes.InvalidArgument, "invalid agent ORCA weighting")
 	}
 

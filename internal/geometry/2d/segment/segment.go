@@ -8,8 +8,7 @@
 //        S
 //
 // As with the case of the point-defined cone, we define tangential lines from
-// the origin to the left and right circles of at the ends of the line segment
-// S.
+// the VO to the left and right circles of at the ends of the line segment S.
 package segment
 
 import (
@@ -20,30 +19,45 @@ import (
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-orca/internal/geometry/2d/cone"
-
-	ov "github.com/downflux/go-orca/internal/geometry/2d/vector"
 )
 
 type S struct {
 	// s represents the relative physical line segment of the obstacle.
 	s segment.S
 
-	// r is the thickness of the line segment.
-	r float64
+	p vector.V
 
-	cl cone.C
-	cr cone.C
+	// r is the thickness of the line segment.
+	radius float64
+
+	l line.L
+	r line.L
 }
 
-func New(s segment.S, r float64) *S {
-	cTMin, err := cone.New(*hypersphere.New(s.L().L(s.TMin()), r))
+func New(s segment.S, p vector.V, radius float64) *S {
+	rpTMin := vector.Sub(s.L().L(s.TMin()), p)
+	rpTMax := vector.Sub(s.L().L(s.TMax()), p)
+
+	// Check for obliqueness.
+	if d := s.L().Distance(p); d < radius {
+		// If the agent lies past the TMin point of the obstacle (and
+		// the distance to the projected line defind by the obstacle),
+		// then the far end of the obstacle is obscured.
+		if t := s.L().T(p); t < s.TMin() {
+			rpTMax = rpTMin
+		} else if t > s.TMax() {
+			rpTMin = rpTMax
+		}
+	}
+
+	cTMin, err := cone.New(*hypersphere.New(rpTMin, radius))
 	if err != nil {
 		panic(
 			fmt.Sprintf(
 				"could not construct line segment VO object: %v",
 				err))
 	}
-	cTMax, err := cone.New(*hypersphere.New(s.L().L(s.TMax()), r))
+	cTMax, err := cone.New(*hypersphere.New(rpTMax, radius))
 	if err != nil {
 		panic(
 			fmt.Sprintf(
@@ -51,118 +65,46 @@ func New(s segment.S, r float64) *S {
 				err))
 	}
 
-	cl := cTMin
-	cr := cTMax
-
-	t := s.L().T(*vector.New(0, 0))
-	d := s.L().Distance(*vector.New(0, 0))
-
-	if (
-	// The right truncation circle is obstructing the view of the
-	// left end of the line segment. Use the right circle to
-	// calculate the left tangent leg.
-	t >= s.TMax() && d <= r) || (
-	// The agent is flipped across the truncation line.
-	vector.Determinant(
-		s.L().D(),
-		s.L().L(s.TMin()),
-	) < 0) {
-		cl = cTMax
+	// If the end of the left tangent leg lies past the left segment,
+	// we flip the definition of the left and right orientations.
+	if s.L().T(vector.Add(p, cTMin.L().D())) > s.TMin() {
+		cTMin, cTMax = cTMax, cTMin
+		rpTMin, rpTMax = rpTMax, rpTMin
 	}
-	if (
-	// The left truncation circle is obstructing the view of the
-	// right end of the line segment. Use the left circle to
-	// calculate the right tangent leg.
-	t <= s.TMin() && d <= r) || (
-	// The agent is flipped across the truncation line.
-	vector.Determinant(
-		s.L().D(),
-		s.L().L(s.TMin()),
-	) < 0) {
-		cr = cTMin
-	}
+	l := *line.New(
+		vector.Add(p, cTMin.L().P()),
+		cTMin.L().D(),
+	)
+	r := *line.New(
+		vector.Add(p, cTMax.R().P()),
+		cTMax.R().D(),
+	)
+
+	// Note that the segment flows from the right to the left. This
+	// preserves the normal orientation between L, R, and S.
+	s = *segment.New(
+		*line.New(rpTMax, vector.Sub(rpTMin, rpTMax)),
+		0,
+		1,
+	)
 
 	return &S{
-		s:  s,
-		r:  r,
-		cl: *cl,
-		cr: *cr,
+		s:      s,
+		p:      p,
+		radius: radius,
+
+		l: l,
+		r: r,
 	}
 }
 
 // S returns the base of line segment VO. Depending on the setup, this segment
 // may differ from the constructor input segment.
-func (s S) S() segment.S {
-	v := s.s
-	// In the oblique case, we need to generate a new segment which
-	// preserves the relative orientation between L, S, and R. We take as
-	// the segment direction L + R, and set the root of the segment at the
-	// base of the cone(s).
-	if hypersphere.Within(s.cl.C(), s.cr.C()) {
-		v = *segment.New(
-			*line.New(
-				s.cl.C().P(),
-				vector.Add(
-					s.L(),
-					s.R(),
-				),
-			),
-			0,
-			0,
-		)
-	}
-	if !ov.IsNormalOrientation(s.L(), v.L().D()) {
-		v = *segment.New(
-			*line.New(
-				s.s.L().L(s.s.TMax()),
-				vector.Scale(-1, v.L().D()),
-			),
-			v.TMin(),
-			v.TMax(),
-		)
-	}
-	return v
-}
-
-// IsLeftNegative calculates the relative orientation of L, S, and R.
-//
-// W do not enforce a convention of directionality for L, S, or R directly --
-// that is, S here may point either to the left or right. We do enforce that L,
-// S, and R are normally oriented with one another, i.e.
-//
-//   |L x S| > 0, and
-//   |S x R| > 0
-//
-// This means the line segments defining the cone are actually directed either
-// as
-//
-//     ____/ R  or  L \____
-//   L \ S              S / R
-//
-// We can check for which orientation we are in by checking which end of the S
-// corresponds with the base of the left line segment L.
-//
-// We (rather arbitrarily) define the "left-negative" orientation as the first
-// case, and "left-positive" as the second.
-//
-// In the left-negative orientation, L is pointing downwards, S is right, and R
-// is pointing upwards.
-func (s S) IsLeftNegative() bool {
-	return vector.Within(
-		s.CL().C().P(),
-		s.S().L().L(s.S().TMin()))
-}
+func (s S) S() segment.S { return s.s }
 
 // L calculates the left vector of the tangent line from the agent position to
 // the base of the truncated line segment.
 //
-// N.B.: ℓ may be generated by either the left or right truncation circle, but
-// is always the left-side tangent line of that circle. The right truncation
-// circle will be used if the it obstructs the view of the left truncation
-// circle (the oblique case), or if the agent is "flipped" across the truncation
-// line.
-func (s S) L() vector.V { return s.CL().L() }
-
-func (s S) R() vector.V { return s.CR().R() }
-func (s S) CL() cone.C  { return s.cl }
-func (s S) CR() cone.C  { return s.cr }
+// N.B.: ℓ is always directed away from the agent.
+func (s S) L() line.L { return s.l }
+func (s S) R() line.L { return s.r }

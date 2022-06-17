@@ -8,9 +8,8 @@ import (
 	"github.com/downflux/go-geometry/2d/line"
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
+	"github.com/downflux/go-orca/internal/agent"
 	"github.com/downflux/go-orca/internal/vo/wall/cache/domain"
-
-	agentimpl "github.com/downflux/go-orca/internal/agent"
 )
 
 const (
@@ -20,8 +19,8 @@ const (
 func cache(s segment.S, p vector.V, v vector.V) C {
 	return *New(
 		s,
-		*agentimpl.New(
-			agentimpl.O{
+		*agent.New(
+			agent.O{
 				P: p,
 				R: 1.0,
 				V: v,
@@ -60,8 +59,8 @@ func TestORCA(t *testing.T) {
 						/* v = */ *vector.New(0, 0),
 					),
 					want: *hyperplane.New(
-						*vector.New(0, -1),
-						*vector.New(0, 1),
+						/* p = */ *vector.New(-2, -1),
+						/* n = */ *vector.New(0, 1),
 					),
 				},
 				{
@@ -72,7 +71,7 @@ func TestORCA(t *testing.T) {
 						*vector.New(0, 0),
 					),
 					want: *hyperplane.New(
-						*vector.New(0, 1),
+						*vector.New(2, 1),
 						*vector.New(0, -1),
 					),
 				},
@@ -128,7 +127,7 @@ func TestORCA(t *testing.T) {
 						*vector.New(0, 1),
 					),
 					want: *hyperplane.New(
-						*vector.New(-899.9500037496875, 8.999500037496867),
+						*vector.New(0, 0),
 						*vector.New(-0.9999500037496875, 0.009999500037496866),
 					),
 				},
@@ -140,7 +139,7 @@ func TestORCA(t *testing.T) {
 						*vector.New(0, 1),
 					),
 					want: *hyperplane.New(
-						*vector.New(899.9500037496875, 8.999500037496867),
+						*vector.New(0, 0),
 						*vector.New(0.9999500037496875, 0.009999500037496866),
 					),
 				},
@@ -320,6 +319,8 @@ func TestDomain(t *testing.T) {
 				),
 			)
 
+			// TODO(minkezhang): Rename these tests and make sure we
+			// are covering all cases.
 			return []config{
 				{
 					name: "Region=3",
@@ -436,7 +437,7 @@ func TestDomain(t *testing.T) {
 							*vector.New(-2, 0),
 						),
 					),
-					want: domain.Left,
+					want: domain.LeftCircle,
 				},
 				{
 					name: "Region=6/Border=5",
@@ -457,7 +458,7 @@ func TestDomain(t *testing.T) {
 							*vector.New(2, 0),
 						),
 					),
-					want: domain.Right,
+					want: domain.RightCircle,
 				},
 				{
 					name: "Region=1/Border=2",
@@ -520,7 +521,7 @@ func TestDomain(t *testing.T) {
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
 			if got := c.c.domain(); got != c.want {
-				t.Errorf("domain() = %v, want = %v", got, c.want)
+				t.Errorf("domain() = %v, want = %v", got.String(), c.want.String())
 			}
 		})
 	}
