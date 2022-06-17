@@ -1,3 +1,7 @@
+// Package cache implements the VO for a wall segment obstacle.
+//
+// TODO(minkezhang): Ensure VO returned is continuous at the regional
+// boundaries.
 package cache
 
 import (
