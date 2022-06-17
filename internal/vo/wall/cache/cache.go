@@ -239,12 +239,7 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 		hp := voagent.New(
 			agentimpl.New(
 				agentimpl.O{
-					P: map[domain.D]vector.V{
-						domain.Right:       vector.Add(c.agent.P(), vector.Scale(c.tau, p)),
-						domain.Left:        vector.Add(c.agent.P(), vector.Scale(c.tau, p)),
-						domain.RightCircle: p,
-						domain.LeftCircle:  p,
-					}[dm],
+					P: vector.Add(c.agent.P(), vector.Scale(c.tau, p)),
 					V: *vector.New(0, 0),
 				},
 			),
@@ -255,6 +250,7 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 		data, err := json.MarshalIndent(
 			map[string]interface{}{
 				"u":      u,
+				"domain": dm.String(),
 				"w":      vector.Unit(w),
 				"hp.N()": hp.N(),
 			}, "", "  ")

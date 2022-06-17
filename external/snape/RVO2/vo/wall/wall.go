@@ -138,6 +138,12 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 	}
 	if t > 1 && tr < 0 {
 		w := vector.Sub(agent.V(), vosegment.S().L().L(vosegment.S().TMax()))
+		data, _ := json.MarshalIndent(
+			map[string]interface{}{
+				"w": vector.Unit(w),
+			},
+			"", "  ")
+		fmt.Printf("DEBUG(mock): %s\n", data)
 		return domain.RightCircle, *hyperplane.New(
 			line.New(
 				vosegment.S().L().L(vosegment.S().TMax()),
@@ -176,21 +182,10 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 
 	if dl <= dr {
 		w := vector.Sub(agent.V(), l.L(tl))
-		hp := *hyperplane.New(
+		return domain.Left, *hyperplane.New(
 			/* p = */ line.New(l.P(), vector.Unit(w)).L(agent.R()/tau),
 			/* n = */ vector.Unit(w),
 		)
-		data, err := json.MarshalIndent(
-			map[string]interface{}{
-				"l.D()": l.D(),
-				"l.P()": l.P(),
-				"w":     vector.Unit(w),
-			}, "", "  ")
-		if err != nil {
-			panic(err)
-		}
-		fmt.Printf("DEBUG(mock): %s\n", data)
-		return domain.Left, hp
 	}
 
 	w := vector.Sub(agent.V(), r.L(tl))

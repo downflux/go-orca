@@ -90,7 +90,7 @@ func TestConformance(t *testing.T) {
 				got := got.N()
 				want := want.N()
 				if !vector.WithinEpsilon(got, want, epsilon.Relative(0.01)) {
-					t.Errorf("D() = %v, want = %v", got, want)
+					t.Errorf("N() = %v, want = %v", got, want)
 				}
 			})
 			t.Run(fmt.Sprintf("%v/ORCA/P", c.name), func(t *testing.T) {
