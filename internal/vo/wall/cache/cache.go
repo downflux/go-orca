@@ -170,61 +170,7 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 	// to the cone VO objects themselves.
 	tl := l.T(c.agent.V())
 	tr := r.T(c.agent.V())
-	/*
-		d = func() float64 {
-			if oblique {
-				return math.Inf(1)
-			}
-			return s.S().L().Distance(c.agent.V())
-		}()
-		dl := func() float64 {
-			if tl < 0 {
-				return math.Inf(1)
-			}
-			return l.Distance(c.agent.V())
-		}()
-		dr := func() float64 {
-			if tr > 0 {
-				return math.Inf(1)
-			}
-			return r.Distance(c.agent.V())
-		}()
 
-		data, err := json.MarshalIndent(map[string]interface{}{
-			"l": fmt.Sprintf("P == %v, D == %v", l.P(), l.D()),
-			"r": fmt.Sprintf("P == %v, D == %v", r.P(), r.D()),
-			"s": fmt.Sprintf(
-				"P == %v, D == %v, TMin == %v, TMax == %v",
-				s.S().L().P(),
-				s.S().L().D(),
-				s.S().TMin(),
-				s.S().TMax()),
-			"t": t,
-			"v": c.agent.V(),
-			"d": func() interface{} {
-				if d == math.Inf(1) {
-					return "+Inf"
-				}
-				return d
-			}(),
-			"dr": func() interface{} {
-				if dr == math.Inf(1) {
-					return "+Inf"
-				}
-				return dr
-			}(),
-			"dl": func() interface{} {
-				if dl == math.Inf(1) {
-					return "+Inf"
-				}
-				return dl
-			}(),
-		}, "", "  ")
-		if err != nil {
-			panic(err)
-		}
-		fmt.Printf("DEBUG: %s\n", data)
-	*/
 	var dm domain.D
 
 	// S() is a segment which is directed from the right to the left. This
@@ -254,35 +200,7 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 			}
 			return r.Distance(c.agent.V())
 		}()
-		/*
-			data, err := json.MarshalIndent(map[string]interface{}{
-				"t":  t,
-				"tl": tl,
-				"tr": tr,
-				"d": func() interface{} {
-					if d == math.Inf(1) {
-						return "+Inf"
-					}
-					return d
-				}(),
-				"dr": func() interface{} {
-					if dr == math.Inf(1) {
-						return "+Inf"
-					}
-					return dr
-				}(),
-				"dl": func() interface{} {
-					if dl == math.Inf(1) {
-						return "+Inf"
-					}
-					return dl
-				}(),
-			}, "", "  ")
-			if err != nil {
-				panic(err)
-			}
-			fmt.Printf("DEBUG: %s\n", data)
-		*/
+
 		// This check is for region 7 and parts of region 3 (specifically, the
 		// parts "under" region 3 bounded by the tl = 0 and tr = 0 normal lines.
 		if tl < 0 && tr > 0 {
@@ -299,33 +217,26 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 
 	switch dm {
 	case domain.Left:
-		s := *vosegment.New(c.S(), *vector.New(0, 0), c.agent.R()/c.tau)
-		return dm, voagent.New(
-			agentimpl.New(
-				agentimpl.O{
-					P: s.S().L().L(s.S().TMax()),
-					V: *vector.New(0, 0),
-				},
-			),
-			o,
-		).ORCA(c.agent, c.tau)
-
+		fallthrough
 	case domain.Right:
 		s := *vosegment.New(c.S(), *vector.New(0, 0), c.agent.R()/c.tau)
-		r := s.S().L().L(s.S().TMin())
-		w := vector.Sub(c.agent.V(), r)
+		p := s.S().L().L(s.S().TMin())
+		if dm == domain.Left {
+			p = s.S().L().L(s.S().TMax())
+		}
+		w := vector.Sub(c.agent.V(), p)
 
 		hp := voagent.New(
 			agentimpl.New(
 				agentimpl.O{
-					P: r,
+					P: p,
 					V: *vector.New(0, 0),
 				},
 			),
 			o,
 		).ORCA(c.agent, c.tau)
 
-		u := line.New(r, vector.Unit(w)).L(c.agent.R() / c.tau)
+		u := line.New(p, vector.Unit(w)).L(c.agent.R() / c.tau)
 		return dm, *hyperplane.New(
 			vector.Add(
 				o.VOpt(c.agent),

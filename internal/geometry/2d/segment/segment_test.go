@@ -9,6 +9,7 @@ import (
 	"github.com/downflux/go-geometry/2d/line"
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
+	"github.com/downflux/go-geometry/epsilon"
 
 	mock "github.com/downflux/go-orca/external/snape/RVO2/vo/geometry/2d/segment"
 	ov "github.com/downflux/go-orca/internal/geometry/2d/vector"
@@ -86,14 +87,14 @@ func TestConformance(t *testing.T) {
 			t.Run(fmt.Sprintf("%v/L", c.name), func(t *testing.T) {
 				got := s.L()
 				want := shim(*r).L()
-				if !line.Within(got, want) {
+				if !line.WithinEpsilon(got, want, epsilon.Absolute(1e-5)) {
 					t.Errorf("L() = %v, want = %v", got, want)
 				}
 			})
 			t.Run(fmt.Sprintf("%v/R", c.name), func(t *testing.T) {
 				got := s.R()
 				want := shim(*r).R()
-				if !line.Within(got, want) {
+				if !line.WithinEpsilon(got, want, epsilon.Absolute(1e-5)) {
 					t.Errorf("R() = %v, want = %v", got, want)
 				}
 			})
@@ -184,12 +185,12 @@ func TestL(t *testing.T) {
 
 	for _, c := range testConfigs {
 		t.Run(fmt.Sprintf("%v/L", c.name), func(t *testing.T) {
-			if got := c.s.L().D(); !vector.Within(c.l, got) {
+			if got := c.s.L().D(); !vector.WithinEpsilon(c.l, got, epsilon.Absolute(1e-5)) {
 				t.Errorf("L().D() = %v, want = %v", got, c.l)
 			}
 		})
 		t.Run(fmt.Sprintf("%v/R", c.name), func(t *testing.T) {
-			if got := c.s.R().D(); !vector.Within(c.r, got) {
+			if got := c.s.R().D(); !vector.WithinEpsilon(c.r, got, epsilon.Absolute(1e-5)) {
 				t.Errorf("R().D() = %v, want = %v", got, c.r)
 			}
 		})

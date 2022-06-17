@@ -8,6 +8,7 @@ import (
 
 	"github.com/downflux/go-geometry/2d/hyperplane"
 	"github.com/downflux/go-geometry/2d/vector"
+	"github.com/downflux/go-geometry/epsilon"
 	"github.com/downflux/go-orca/internal/agent"
 	"github.com/downflux/go-orca/internal/vo/agent/opt"
 	"github.com/downflux/go-orca/vo"
@@ -93,7 +94,7 @@ func TestVOConformance(t *testing.T) {
 				want := mock.New(c.obstacle).ORCA(c.agent, float64(c.tau))
 				got := v.ORCA(c.agent, c.tau)
 
-				if !hyperplane.Within(got, want) {
+				if !hyperplane.WithinEpsilon(got, want, epsilon.Absolute(1e-5)) {
 					t.Errorf("ORCA() = %v, want = %v", got, want)
 				}
 			})
