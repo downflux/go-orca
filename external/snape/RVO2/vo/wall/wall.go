@@ -176,7 +176,7 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 		)
 	}
 
-	w := vector.Sub(agent.V(), r.L(tl))
+	w := vector.Sub(agent.V(), r.L(tr))
 	return domain.Right, *hyperplane.New(
 		/* p = */ line.New(r.P(), vector.Unit(w)).L(agent.R()/tau),
 		/* n = */ vector.Unit(w),

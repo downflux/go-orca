@@ -228,7 +228,7 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 
 	}
 
-	w := vector.Sub(c.agent.V(), r.L(tl))
+	w := vector.Sub(c.agent.V(), r.L(tr))
 	return domain.Right, *hyperplane.New(
 		line.New(
 			r.P(), vector.Unit(w),
