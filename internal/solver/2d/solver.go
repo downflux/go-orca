@@ -2,6 +2,7 @@
 package solver
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/downflux/go-geometry/2d/hyperplane"

@@ -10,6 +10,7 @@ import (
 	"github.com/downflux/go-geometry/2d/hypersphere"
 	"github.com/downflux/go-geometry/2d/segment"
 	"github.com/downflux/go-geometry/2d/vector"
+	"github.com/downflux/go-geometry/epsilon"
 )
 
 // M defines a 2D circular bounding constraint.
@@ -42,7 +43,12 @@ func (m M) Bound(c constraint.C) (segment.S, bool) {
 // Within checks if the input vector is contained within the circle.
 //
 // TODO(minkezhang): Rename to In instead.
-func (m M) Within(v vector.V) bool { return hypersphere.C(m).In(v) }
+func (m M) Within(v vector.V) bool {
+	return hypersphere.C(m).In(v) || epsilon.Absolute(1e-5).Within(
+		vector.SquaredMagnitude(vector.Sub(v, hypersphere.C(m).P())),
+		hypersphere.C(m).R()*hypersphere.C(m).R(),
+	)
+}
 
 // V transforms the input vector such that the output will lie on a edge of the
 // circle.

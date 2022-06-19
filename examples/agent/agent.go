@@ -35,16 +35,6 @@ type A struct {
 	r float64
 }
 
-// d returns the direction the agent should travel in.
-func (a *A) d() vector.V {
-	v := vector.Sub(a.G(), a.P())
-	// Ensure when we're close enough, we stop.
-	if epsilon.Absolute(a.R()).Within(vector.SquaredMagnitude(v), 0) {
-		return *vector.New(0, 0)
-	}
-	return vector.Unit(v)
-}
-
 // S returns the maximum speed of the agent. We are setting the agent speed to
 // be invariant -- this means agents can still move to avoid other agents even
 // after arriving at the destination.
