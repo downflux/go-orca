@@ -45,8 +45,8 @@ type M interface {
 	// bounds of M.
 	Bound(c c2d.C) (segment.S, bool)
 
-	// Within checks if the given vector satisifies the initial bounds of M.
-	Within(v vector.V) bool
+	// In checks if the given vector satisifies the initial bounds of M.
+	In(v vector.V) bool
 }
 
 // region describes an incremental 2D subspace embedded in 2D ambient space.
@@ -202,7 +202,7 @@ func (r *region) intersect(c constraint.C) (segment.S, bool) {
 // optimization functions, this is the v0 defined in Algorithm 2DBoundedLP of de
 // Berg.
 func Solve(m M, cs []constraint.C, o O, v vector.V) (vector.V, feasibility.F) {
-	if !m.Within(v) {
+	if !m.In(v) {
 		return vector.V{}, feasibility.Infeasible
 	}
 

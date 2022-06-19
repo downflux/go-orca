@@ -17,5 +17,5 @@ func (M) Bound(c constraint.C) (segment.S, bool) {
 	return *segment.New(l, math.Inf(-1), math.Inf(0)), true
 }
 
-func (M) Within(v vector.V) bool { return true }
-func (M) V(v vector.V) vector.V  { return v }
+func (M) In(v vector.V) bool    { return true }
+func (M) V(v vector.V) vector.V { return v }

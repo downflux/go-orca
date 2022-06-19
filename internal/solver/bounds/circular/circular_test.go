@@ -132,7 +132,7 @@ func TestV(t *testing.T) {
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
 			m := *New(c.r)
-			if got := m.Within(m.V(c.v)); got != true {
+			if got := m.In(m.V(c.v)); got != true {
 				t.Errorf("In() = %v, want = %v", got, true)
 			}
 		})
