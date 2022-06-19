@@ -129,69 +129,22 @@ func New(o O) (*VO, error) {
 // ORCA returns the half-plane of permissable velocities for an agent, given the
 // an agent constraint.
 func (vo *VO) ORCA() (hyperplane.HP, error) {
-	u, err := vo.u()
-	if err != nil {
-		return hyperplane.HP{}, err
-	}
-	n, err := vo.n()
+	result, err := vo.preprocess()
 	if err != nil {
 		return hyperplane.HP{}, err
 	}
 	return *hyperplane.New(
-		vector.Add(vo.vopt(vo.agent), vector.Scale(float64(vo.weight), u)),
-		n,
+		vector.Add(vo.vopt(vo.agent), vector.Scale(float64(vo.weight), result.U)),
+		result.N,
 	), nil
 }
 
-// n returns the outward normal vector of u -- that is, if u is pointed towards
-// the internal of VO, n should be anti-parallel to u.
-func (vo *VO) n() (vector.V, error) {
-	u, err := vo.u()
-	if err != nil {
-		return vector.V{}, err
-	}
-
-	orientation := 1.0
-	switch d := vo.domain(); d {
-	case domain.Collision:
-		fallthrough
-	case domain.Circle:
-		tr := vo.r()
-		tw := vo.w()
-
-		if d == domain.Collision {
-			tr = r(vo.agent, vo.obstacle) / minTau
-			tw = w(vo.agent, vo.obstacle, minTau)
-		}
-
-		if vector.SquaredMagnitude(tw) > tr*tr {
-			orientation = -1.
-		}
-	case domain.Right:
-		fallthrough
-	case domain.Left:
-		l := vo.l()
-
-		// We check the side of v compared to the projected edge ℓ, with
-		// the convention that if v is to the "left" of ℓ, we chose n to
-		// be anti-parallel to u.
-		//
-		// N.B.: The "right" leg is represented anti-parallel to the
-		// orientation, and therefore already has an implicit negative
-		// sign attached, allowing the following determinant to be a
-		// continuous calculation from one leg to the other.
-		if vector.Determinant(l.D(), vo.v()) > 0 {
-			orientation = -1
-		}
-	default:
-		return vector.V{}, status.Errorf(codes.Internal, "invalid VO projection %v", d)
-	}
-	return vector.Unit(vector.Scale(orientation, u)), nil
+type result struct {
+	U vector.V
+	N vector.V
 }
 
-// u returns the calculated vector difference between the relative velocity v
-// and the closest part of the VO, pointing into the VO edge.
-func (vo *VO) u() (vector.V, error) {
+func (vo *VO) preprocess() (result, error) {
 	switch d := vo.domain(); d {
 	case domain.Collision:
 		fallthrough
@@ -204,7 +157,19 @@ func (vo *VO) u() (vector.V, error) {
 			tw = w(vo.agent, vo.obstacle, minTau)
 		}
 
-		return vector.Scale(tr/vector.Magnitude(tw)-1, tw), nil
+		u := vector.Scale(tr/vector.Magnitude(tw)-1, tw)
+		n := vector.Unit(vector.Scale(
+			map[bool]float64{
+				false: 1,
+				true:  -1,
+			}[vector.SquaredMagnitude(tw) > tr*tr],
+			u,
+		))
+
+		return result{
+			U: u,
+			N: n,
+		}, nil
 	case domain.Right:
 		fallthrough
 	case domain.Left:
@@ -228,10 +193,82 @@ func (vo *VO) u() (vector.V, error) {
 			vector.Dot(vo.v(), l.D())/vector.SquaredMagnitude(l.D()),
 			l.D(),
 		)
-		return vector.Sub(v, vo.v()), nil
+		u := vector.Sub(v, vo.v())
+		n := vector.Unit(vector.Scale(
+			// We check the side of v compared to the projected edge
+			// ℓ, with the convention that if v is to the "left" of
+			// ℓ, we chose n to be anti-parallel to u.
+			//
+			// N.B.: The "right" leg is represented anti-parallel to
+			// the orientation, and therefore already has an
+			// implicit negative sign attached, allowing the
+			// following determinant to be a continuous calculation
+			// from one leg to the other.
+			map[bool]float64{
+				false: 1,
+				true:  -1,
+			}[vector.Determinant(l.D(), vo.v()) > 0],
+			u,
+		))
+		return result{
+			U: u,
+			N: n,
+		}, nil
 	default:
-		return vector.V{}, status.Errorf(codes.Internal, "invalid VO projection %v", d)
+		return result{}, status.Errorf(codes.Internal, "invalid VO projection %v", d)
 	}
+}
+
+// domain returns the indicated edge of the truncated VO that is closest to w.
+func (vo *VO) domain() domain.D {
+	if !vo.domainIsCached {
+		vo.domainIsCached = true
+
+		vo.domainCache = func() domain.D {
+			beta, err := vo.beta()
+			// Retain parity with RVO2 behavior.
+			if err != nil {
+				return domain.Collision
+			}
+
+			theta, err := vo.theta()
+			// Retain parity with RVO2 behavior.
+			if err != nil {
+				return domain.Right
+			}
+
+			if theta < beta || math.Abs(2*math.Pi-theta) < beta {
+				return domain.Circle
+			}
+
+			if theta < math.Pi {
+				return domain.Left
+			}
+
+			return domain.Right
+		}()
+	}
+	return vo.domainCache
+}
+
+// n returns the outward normal vector of u -- that is, if u is pointed towards
+// the internal of VO, n should be anti-parallel to u.
+func (vo *VO) n() (vector.V, error) {
+	result, err := vo.preprocess()
+	if err != nil {
+		return vector.V{}, err
+	}
+	return result.N, nil
+}
+
+// u returns the calculated vector difference between the relative velocity v
+// and the closest part of the VO, pointing into the VO edge.
+func (vo *VO) u() (vector.V, error) {
+	result, err := vo.preprocess()
+	if err != nil {
+		return vector.V{}, err
+	}
+	return result.U, nil
 }
 
 // r calculates the radius of the unscaled velocity object.
@@ -371,38 +408,6 @@ func (vo *VO) theta() (float64, error) {
 	}
 
 	return vo.thetaCache, nil
-}
-
-// domain returns the indicated edge of the truncated VO that is closest to w.
-func (vo *VO) domain() domain.D {
-	if !vo.domainIsCached {
-		vo.domainIsCached = true
-
-		vo.domainCache = func() domain.D {
-			beta, err := vo.beta()
-			// Retain parity with RVO2 behavior.
-			if err != nil {
-				return domain.Collision
-			}
-
-			theta, err := vo.theta()
-			// Retain parity with RVO2 behavior.
-			if err != nil {
-				return domain.Right
-			}
-
-			if theta < beta || math.Abs(2*math.Pi-theta) < beta {
-				return domain.Circle
-			}
-
-			if theta < math.Pi {
-				return domain.Left
-			}
-
-			return domain.Right
-		}()
-	}
-	return vo.domainCache
 }
 
 // v is a utility function calculating the relative velocities between two
