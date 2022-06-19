@@ -251,7 +251,7 @@ func (r *region) project(c constraint.C) ([]constraint.C, bool) {
 // N.B: This is not a general-purpose 3D linear programming solver. Both the
 // bounding constraints M and input constraints are 2D-specific.
 func Solve(m M, cs []constraint.C, v vector.V) (vector.V, feasibility.F) {
-	if !m.Within(v) {
+	if !m.In(v) {
 		return vector.V{}, feasibility.Infeasible
 	}
 

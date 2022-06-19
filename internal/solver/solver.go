@@ -43,7 +43,7 @@ func Solve(cs []constraint.C, v vector.V, r float64) vector.V {
 	m := *circular.New(r)
 	// Ensure the desired target velocity is within the initial bounding
 	// constraints.
-	if !m.Within(v) {
+	if !m.In(v) {
 		v = m.V(v)
 	}
 

@@ -40,10 +40,8 @@ func (m M) Bound(c constraint.C) (segment.S, bool) {
 	return *segment.New(l, math.Min(t1, t2), math.Max(t1, t2)), ok
 }
 
-// Within checks if the input vector is contained within the circle.
-//
-// TODO(minkezhang): Rename to In instead.
-func (m M) Within(v vector.V) bool {
+// In checks if the input vector is contained within the circle.
+func (m M) In(v vector.V) bool {
 	return hypersphere.C(m).In(v) || epsilon.Absolute(1e-5).Within(
 		vector.SquaredMagnitude(vector.Sub(v, hypersphere.C(m).P())),
 		hypersphere.C(m).R()*hypersphere.C(m).R(),
