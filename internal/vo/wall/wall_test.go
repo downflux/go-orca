@@ -2,6 +2,7 @@ package wall
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"testing"
 
@@ -35,6 +36,11 @@ func ra() agent.A {
 func rs() segment.S { return *segment.New(*line.New(rv(), rv()), 0, 100) }
 
 func TestConformance(t *testing.T) {
+	const n = 1e4
+	// minTau is the lower bound on tau values for agent-agent VOs. A tau
+	// lower than this will cause an error.
+	const minTau = 1e-3
+
 	type config struct {
 		name     string
 		obstacle segment.S
@@ -62,12 +68,12 @@ func TestConformance(t *testing.T) {
 		},
 	}
 
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < n; i++ {
 		testConfigs = append(testConfigs, config{
 			name:     fmt.Sprintf("Random-%d", i),
 			obstacle: rs(),
 			agent:    ra(),
-			tau:      rn() + 100,
+			tau:      math.Max(minTau, (rn() + 100)),
 		})
 	}
 
