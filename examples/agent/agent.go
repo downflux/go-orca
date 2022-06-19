@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"math"
+
 	"github.com/downflux/go-geometry/2d/vector"
 	"github.com/downflux/go-geometry/epsilon"
 	"github.com/downflux/go-orca/agent"
@@ -46,10 +48,11 @@ func (a *A) S() float64 { return a.s }
 // navigate to avoid collisions.
 func (a *A) T() vector.V {
 	d := vector.Sub(a.G(), a.P())
-	if epsilon.Within(vector.SquaredMagnitude(d), 0) {
+	m := vector.SquaredMagnitude(d)
+	if epsilon.Absolute(1e-5).Within(m, 0) {
 		d = *vector.New(0, 0)
 	}
-	return vector.Scale(a.S(), vector.Unit(d))
+	return vector.Scale(math.Min(a.S(), a.S()*m), d)
 }
 
 func (a *A) P() vector.V     { return a.p }
