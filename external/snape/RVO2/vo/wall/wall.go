@@ -183,7 +183,7 @@ func (vo VO) orca(agent agent.A, tau float64) (domain.D, hyperplane.HP) {
 	)
 }
 
-func (vo VO) ORCA(agent agent.A, tau float64) hyperplane.HP {
+func (vo VO) ORCA(agent agent.A, tau float64) []hyperplane.HP {
 	_, hp := vo.orca(agent, tau)
-	return hp
+	return []hyperplane.HP{hp}
 }

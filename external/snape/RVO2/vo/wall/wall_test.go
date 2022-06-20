@@ -260,7 +260,7 @@ func TestORCA(t *testing.T) {
 
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
-			if got := c.vo.ORCA(c.agent, c.tau); !hyperplane.Within(got, c.want) {
+			if got := c.vo.ORCA(c.agent, c.tau)[0]; !hyperplane.Within(got, c.want) {
 				t.Errorf("ORCA() = %v, want = %v", got, c.want)
 			}
 		})

@@ -30,4 +30,6 @@ func New(obstacle segment.S) *VO {
 	return &VO{obstacle: obstacle}
 }
 
-func (vo VO) ORCA(a agent.A, tau float64) hyperplane.HP { return cache.New(vo.obstacle, a, tau).ORCA() }
+func (vo VO) ORCA(a agent.A, tau float64) []hyperplane.HP {
+	return []hyperplane.HP{cache.New(vo.obstacle, a, tau).ORCA()}
+}

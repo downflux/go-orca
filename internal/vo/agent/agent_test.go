@@ -91,8 +91,8 @@ func TestVOConformance(t *testing.T) {
 				},
 			)
 			t.Run("ORCA", func(t *testing.T) {
-				want := mock.New(c.obstacle).ORCA(c.agent, float64(c.tau))
-				got := v.ORCA(c.agent, c.tau)
+				want := mock.New(c.obstacle).ORCA(c.agent, float64(c.tau))[0]
+				got := v.ORCA(c.agent, c.tau)[0]
 
 				if !hyperplane.WithinEpsilon(got, want, epsilon.Absolute(1e-5)) {
 					t.Errorf("ORCA() = %v, want = %v", got, want)

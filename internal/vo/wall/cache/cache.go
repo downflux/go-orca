@@ -78,7 +78,7 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 				},
 			),
 			o,
-		).ORCA(c.agent, c.tau)
+		).ORCA(c.agent, c.tau)[0]
 	}
 
 	// Agent physically collides with the semicircle on the right side of
@@ -92,7 +92,7 @@ func (c C) orca() (domain.D, hyperplane.HP) {
 				},
 			),
 			o,
-		).ORCA(c.agent, c.tau)
+		).ORCA(c.agent, c.tau)[0]
 	}
 
 	// d is perpendicular distance between the agent and the line.

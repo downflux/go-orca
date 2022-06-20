@@ -101,31 +101,21 @@ func step(a agent.A, t *kd.T, rs []region.R, f func(a agent.A) bool, tau float64
 		}
 		// TODO(minkezhang): Add to immutable constraints instead, as
 		// lines are immovable.
-		cs = append(
-			cs,
-			*constraint.New(
-				c2d.C(wall.New(r.R()[0]).ORCA(a, tau)),
-				false,
-			),
-		)
+		for _, hp := range wall.New(r.R()[0]).ORCA(a, tau) {
+			cs = append(cs, *constraint.New(c2d.C(hp), false))
+		}
 	}
 
 	for _, p := range ps {
-		cs = append(
-			cs,
-			*constraint.New(
-				c2d.C(
-					voagent.New(
-						p.(kd.P).A(),
-						opt.O{
-							Weight: opt.WeightEqual,
-							VOpt:   opt.VOptV,
-						},
-					).ORCA(a, tau),
-				),
-				true,
-			),
-		)
+		for _, hp := range voagent.New(
+			p.(kd.P).A(),
+			opt.O{
+				Weight: opt.WeightEqual,
+				VOpt:   opt.VOptV,
+			},
+		).ORCA(a, tau) {
+			cs = append(cs, *constraint.New(c2d.C(hp), true))
+		}
 	}
 
 	return Mutation{

@@ -30,7 +30,7 @@ func New(obstacle agent.A, o opt.O) *VO {
 	}
 }
 
-func (vo VO) ORCA(agent agent.A, tau float64) hyperplane.HP {
+func (vo VO) ORCA(agent agent.A, tau float64) []hyperplane.HP {
 	b, err := cache.New(
 		cache.O{
 			Obstacle: vo.obstacle,
@@ -49,5 +49,5 @@ func (vo VO) ORCA(agent agent.A, tau float64) hyperplane.HP {
 		panic(fmt.Sprintf("cannot construct ORCA constraint: %v", err))
 	}
 
-	return orca
+	return []hyperplane.HP{orca}
 }

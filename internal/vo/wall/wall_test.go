@@ -82,15 +82,15 @@ func TestConformance(t *testing.T) {
 			a := New(c.obstacle)
 			b := wall.New(c.obstacle)
 			t.Run(fmt.Sprintf("%v/ORCA/N", c.name), func(t *testing.T) {
-				got := a.ORCA(c.agent, c.tau).N()
-				want := b.ORCA(c.agent, c.tau).N()
+				got := a.ORCA(c.agent, c.tau)[0].N()
+				want := b.ORCA(c.agent, c.tau)[0].N()
 				if !vector.WithinEpsilon(got, want, epsilon.Relative(0.05)) {
 					t.Errorf("N() = %v, want = %v", got, want)
 				}
 			})
 			t.Run(fmt.Sprintf("%v/ORCA/P", c.name), func(t *testing.T) {
-				got := a.ORCA(c.agent, c.tau)
-				want := b.ORCA(c.agent, c.tau)
+				got := a.ORCA(c.agent, c.tau)[0]
+				want := b.ORCA(c.agent, c.tau)[0]
 				if !epsilon.Absolute(1e-5).Within(
 					hyperplane.Line(
 						got).Distance(want.P()),
