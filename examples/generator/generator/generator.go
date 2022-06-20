@@ -69,18 +69,70 @@ func L(w int, h int, s float64, r float64) config.O {
 	segments := []segment.O{
 		{
 			P:    *vector.New(25, 25),
-			D:    *vector.New(0, 1),
+			D:    *vector.New(0, 50),
 			TMin: 0,
-			TMax: float64(h) / 4 * 50,
+			TMax: float64(h) / 4,
 		},
 		{
 			P: vector.Add(
 				*vector.New(75, 25),
 				*vector.New(25, 0),
 			),
-			D:    *vector.New(1, 1),
+			D:    *vector.New(50, 50),
 			TMin: 0,
-			TMax: float64(h) / 4 * 50,
+			TMax: float64(h) / 4,
+		},
+
+		// Generate box obstacle.
+		{
+			P:    *vector.New(125, 75),
+			D:    *vector.New(0, 50),
+			TMin: 0,
+			TMax: 5,
+		},
+		{
+			P:    *vector.New(125, 325),
+			D:    *vector.New(50, 0),
+			TMin: 0,
+			TMax: 5,
+		},
+		{
+			P:    *vector.New(375, 325),
+			D:    *vector.New(0, -50),
+			TMin: 0,
+			TMax: 5,
+		},
+		{
+			P:    *vector.New(375, 75),
+			D:    *vector.New(-50, 0),
+			TMin: 0,
+			TMax: 5,
+		},
+
+		// Generate border.
+		{
+			P:    *vector.New(-50, -50),
+			D:    *vector.New(0, 50),
+			TMin: 0,
+			TMax: float64(h) + 1,
+		},
+		{
+			P:    *vector.New(-50, float64(h)*50),
+			D:    *vector.New(50, 0),
+			TMin: 0,
+			TMax: float64(w) + 1,
+		},
+		{
+			P:    *vector.New(float64(w)*50, float64(h)*50),
+			D:    *vector.New(0, -50),
+			TMin: 0,
+			TMax: float64(h) + 1,
+		},
+		{
+			P:    *vector.New(float64(w)*50, -50),
+			D:    *vector.New(-50, 0),
+			TMin: 0,
+			TMax: float64(w) + 1,
 		},
 	}
 	return config.O{
