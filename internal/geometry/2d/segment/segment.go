@@ -3,9 +3,9 @@
 // characteristic "turning radius", which defines the sharpness of the curve
 // from the bottom line segment to the edges.
 //
-//   L \     / R
-//      \___/
-//        S
+//	L \     / R
+//	   \___/
+//	     S
 //
 // As with the case of the point-defined cone, we define tangential lines from
 // the VO to the left and right circles of at the ends of the line segment S.

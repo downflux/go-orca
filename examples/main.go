@@ -3,9 +3,9 @@
 //
 // Example:
 //
-//   go run \
-//     examples/generator/main.go --mode=random | go run \
-//     examples/main.go > demo.gif
+//	go run \
+//	  examples/generator/main.go --mode=random | go run \
+//	  examples/main.go > demo.gif
 package main
 
 import (

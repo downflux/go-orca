@@ -20,9 +20,9 @@ import (
 // Adding a noise function here to the output will randomize the path of the
 // agent a bit, e.g.
 //
-//   weight := 1e-3
-//   dt := rand.Float64() * (s.TMax() - s.TMin()) * weight
-//   v := s.L().L(s.T(v) + dt)
+//	weight := 1e-3
+//	dt := rand.Float64() * (s.TMax() - s.TMin()) * weight
+//	v := s.L().L(s.T(v) + dt)
 //
 // This will help with the case where two slow-moving agents become stuck while
 // trying to move directly past each other (i.e. agent targets are directly

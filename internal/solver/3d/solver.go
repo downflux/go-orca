@@ -9,7 +9,7 @@
 // question into a 3D one by adding a slack constraint, which allows us to add
 // some arbitrary value to ensure all 2D constraints are satisfied --
 //
-//   ax + by + cz <= b
+//	ax + by + cz <= b
 //
 // The 3D linear programming problem is to instead minimize the slack value
 // necessary to fulfill all constraints. Geometrically, we see the 3D is a
@@ -37,7 +37,7 @@
 // directly from the positive Z-axis, the lines of intersection between planes
 // are just regular 2D parametric lines, i.e.
 //
-//   L = P + tD
+//	L = P + tD
 //
 // Consider two completely vertical intersecting planes (i.e., their line of
 // intersection is a vertical line), and then tilt the system sligtly so that

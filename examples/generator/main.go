@@ -5,7 +5,7 @@
 //
 // Example:
 //
-//   go run main.go > config.json
+//	go run main.go > config.json
 package main
 
 import (
