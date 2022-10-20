@@ -36,7 +36,8 @@ func (c C) C() hypersphere.C { return hypersphere.C(c) }
 // tangent point.
 //
 // Returns:
-//   Angle in radians between 0 and π; w is bound by 𝛽 if -𝛽 < 𝜃 < 𝛽.
+//
+//	Angle in radians between 0 and π; w is bound by 𝛽 if -𝛽 < 𝜃 < 𝛽.
 func (c C) Beta() float64 {
 	return math.Acos(c.C().R() / vector.Magnitude(c.C().P()))
 }
@@ -47,18 +48,18 @@ func (c C) Beta() float64 {
 // N.B.: The domain of ℓ can be calculated by rotating p anti-clockwise about
 // the origin by
 //
-//   𝛼 := π / 2 - 𝛽
+//	𝛼 := π / 2 - 𝛽
 //
 // ℓ may be scaled via
 //
-//   ||p|| ** 2 = ||ℓ|| ** 2 + r ** 2.
+//	||p|| ** 2 = ||ℓ|| ** 2 + r ** 2.
 //
 // Note that ℓ, p, and a third leg with length r form a right triangle. Because
 // of this, We know cos(𝛼) = ||ℓ|| / ||p|| and sin(𝛼) = r / ||p||. These can be
 // substituted directly to the rotation matrix:
 //
-//   ℓ ~ V{ x: p.x * cos(𝛼) - p.y * sin(𝛼),
-//          y: p.x * sin(𝛼) + p.y * cos(𝛼) }
+//	ℓ ~ V{ x: p.x * cos(𝛼) - p.y * sin(𝛼),
+//	       y: p.x * sin(𝛼) + p.y * cos(𝛼) }
 //
 // See design doc for more information.
 func (c C) L() line.L {

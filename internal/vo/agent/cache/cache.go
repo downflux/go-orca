@@ -340,7 +340,8 @@ func (vo *VO) w() vector.V {
 // Note that while 𝛽 is independent of the scaling factor 𝜏.
 //
 // Returns:
-//   Angle in radians between 0 and π; w is bound by 𝛽 if -𝛽 < 𝜃 < 𝛽.
+//
+//	Angle in radians between 0 and π; w is bound by 𝛽 if -𝛽 < 𝜃 < 𝛽.
 func (vo *VO) beta() (float64, error) {
 	if !vo.betaIsCached {
 		// Check for collisions between agents -- i.e. the combined radii
@@ -360,15 +361,16 @@ func (vo *VO) beta() (float64, error) {
 //
 // Note that
 //
-//   1.   w • p   = ||w|| ||p|| cos(𝜃), and
-//   2. ||w x p|| = ||w|| ||p|| sin(𝜃)
+//  1. w • p   = ||w|| ||p|| cos(𝜃), and
+//  2. ||w x p|| = ||w|| ||p|| sin(𝜃)
 //
 // vo.p() is defined as vo.obstacle.P() - vo.agent.P(); however, we want 𝜃 = 0 when w is
 // pointing towards the origin -- that is, opposite the direction of p.
 // Therefore, we flip p in our calculations here.
 //
 // Returns:
-//   Angle between w and -p in the range [0, 2π).
+//
+//	Angle between w and -p in the range [0, 2π).
 func (vo *VO) theta() (float64, error) {
 	if vector.SquaredMagnitude(vo.w()) == 0 || vector.SquaredMagnitude(vo.p()) == 0 {
 		return 0, status.Errorf(codes.OutOfRange, "cannot find the incident angle between w and p for 0-length vectors")

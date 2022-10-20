@@ -10,16 +10,16 @@ import (
 	"github.com/downflux/go-geometry/2d/hypersphere"
 	"github.com/downflux/go-geometry/nd/vector"
 	"github.com/downflux/go-kd/kd"
-	"github.com/downflux/go-kd/point"
 	"github.com/downflux/go-orca/agent"
 	"github.com/google/go-cmp/cmp"
 
 	v2d "github.com/downflux/go-geometry/2d/vector"
 	agentimpl "github.com/downflux/go-orca/internal/agent"
-	okd "github.com/downflux/go-orca/kd"
 )
 
-var _ okd.P = p{}
+var (
+	_ P = p{}
+)
 
 type p struct {
 	a agent.A
@@ -43,18 +43,22 @@ func ra() agentimpl.A {
 		},
 	)
 }
-func rt(n int) *kd.T {
+func rt(n int) *kd.KD[P] {
 	// Generating large number of points in tests will mess with data
 	// collection figures. We should ignore these allocs.
 	runtime.MemProfileRate = 0
 	defer func() { runtime.MemProfileRate = 512 * 1024 }()
 
-	ps := make([]point.P, 0, n)
+	ps := make([]P, 0, n)
 	for i := 0; i < n; i++ {
 		a := ra()
 		ps = append(ps, p{a: &a})
 	}
-	t, _ := kd.New(ps)
+	t := kd.New(kd.O[P]{
+		Data: ps,
+		K:    2,
+		N:    1,
+	})
 	return t
 }
 
@@ -96,23 +100,24 @@ func TestStep(t *testing.T) {
 
 	for _, c := range testConfigs {
 		t.Run(c.name, func(t *testing.T) {
-			var ps []point.P
+			var ps []P
 			for _, a := range c.agents {
 				ps = append(ps, p{a: a})
 			}
 
-			tr, err := kd.New(ps)
-			if err != nil {
-				t.Fatalf("New() = _, %v, want = _, %v", err, nil)
-			}
+			tr := kd.New(kd.O[P]{
+				Data: ps,
+				K:    2,
+				N:    1,
+			})
 
 			s := math.Inf(-1)
 			for _, p := range kd.Data(tr) {
-				s = math.Max(s, p.(okd.P).A().S())
+				s = math.Max(s, p.A().S())
 			}
 
-			got, err := Step(O{
-				T:        okd.Lift(tr),
+			got, err := Step(O[P]{
+				T:        tr,
 				Tau:      c.tau,
 				F:        c.f,
 				PoolSize: 1,
@@ -137,7 +142,7 @@ func TestStep(t *testing.T) {
 func BenchmarkStep(b *testing.B) {
 	type config struct {
 		name string
-		t    *kd.T
+		t    *kd.KD[P]
 		size int
 	}
 
@@ -155,13 +160,13 @@ func BenchmarkStep(b *testing.B) {
 	for _, c := range testConfigs {
 		s := math.Inf(-1)
 		for _, p := range kd.Data(c.t) {
-			s = math.Max(s, p.(okd.P).A().S())
+			s = math.Max(s, p.A().S())
 		}
 
 		b.Run(c.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				if _, err := Step(O{
-					T:        okd.Lift(c.t),
+				if _, err := Step(O[P]{
+					T:        c.t,
 					Tau:      1e-2,
 					F:        func(a agent.A) bool { return true },
 					PoolSize: c.size,
