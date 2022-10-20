@@ -36,7 +36,6 @@ import (
 	exampleagent "github.com/downflux/go-orca/examples/agent"
 	examplesdraw "github.com/downflux/go-orca/examples/draw"
 	examplesegment "github.com/downflux/go-orca/examples/segment"
-	okd "github.com/downflux/go-orca/kd"
 )
 
 const (
@@ -89,8 +88,6 @@ var (
 
 	// Interface checks to demonstrate the functionality P is fulfilling in
 	// the demo.
-
-	_ okd.P   = &P{}
 	_ point.P = &P{}
 
 	// margin is the minimum size of the rectangle drawn on screen.
@@ -105,13 +102,13 @@ func (p *P) P() vector.V { return vector.V((*exampleagent.A)(p).P()) }
 func rn(min float64, max float64) float64 { return rand.Float64()*(max-min) + min }
 
 type Env struct {
-	ps []point.P
+	ps []*P
 	ss []region.R
 }
 
 func New(data []byte) *Env {
 	c := config.Unmarshal(data)
-	points := make([]point.P, 0, len(c.Agents))
+	points := make([]*P, 0, len(c.Agents))
 	segments := make([]region.R, 0, len(c.Segments))
 
 	for _, o := range c.Agents {
@@ -130,7 +127,7 @@ func New(data []byte) *Env {
 	}
 }
 
-func (e *Env) Points() []point.P    { return e.ps }
+func (e *Env) Points() []*P         { return e.ps }
 func (e *Env) Segments() []region.R { return e.ss }
 
 // bound calculates the bounding rectangle around all agents.
@@ -216,7 +213,11 @@ func main() {
 	// variable -- in real applications, this tree is very useful for
 	// operations not strictly limited to ORCA, e.g. for calculating nearest
 	// neighbors for fog-of-war calculations.
-	tr, err := kd.New(env.Points())
+	tr := kd.New(kd.O[*P]{
+		Data: env.Points(),
+		K:    2,
+		N:    16,
+	})
 	if err != nil {
 		log.Fatalf("cannot create K-D tree")
 	}
@@ -235,7 +236,7 @@ func main() {
 		// Overwrite trail buffer
 		trailbuf[i%len(trailbuf)] = nil
 		for _, p := range env.Points() {
-			trailbuf[i%len(trailbuf)] = append(trailbuf[i%len(trailbuf)], p.(*P).A().P())
+			trailbuf[i%len(trailbuf)] = append(trailbuf[i%len(trailbuf)], p.A().P())
 		}
 
 		img := image.NewPaletted(
@@ -266,7 +267,7 @@ func main() {
 
 		// Draw agents.
 		for _, p := range env.Points() {
-			a := p.(*P).A().(*exampleagent.A)
+			a := p.A().(*exampleagent.A)
 
 			// Draw agent goal positions.
 			examplesdraw.Circle(img, v2d.Add(margin, a.G()), 2, green)
@@ -295,8 +296,8 @@ func main() {
 
 		// ORCA may be run at a slower rate than the tick rate.
 		if i%ORCAInterval == 0 {
-			res, err := orca.Step(orca.O{
-				T:   okd.Lift(tr),
+			res, err := orca.Step(orca.O[*P]{
+				T:   tr,
 				R:   env.Segments(),
 				Tau: Tau,
 				F:   func(a agent.A) bool { return true },
@@ -315,7 +316,7 @@ func main() {
 
 		// Run simulation for the current server tick.
 		for _, p := range env.Points() {
-			a := p.(*P).A().(*exampleagent.A)
+			a := p.A().(*exampleagent.A)
 			a.SetP(
 				v2d.Add(
 					a.P(),

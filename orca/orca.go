@@ -4,14 +4,16 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/downflux/go-geometry/nd/hyperrectangle"
 	"github.com/downflux/go-geometry/nd/hypersphere"
 	"github.com/downflux/go-geometry/nd/vector"
+	"github.com/downflux/go-kd/kd"
+	"github.com/downflux/go-kd/point"
 	"github.com/downflux/go-orca/agent"
 	"github.com/downflux/go-orca/internal/geometry/2d/constraint"
 	"github.com/downflux/go-orca/internal/solver"
 	"github.com/downflux/go-orca/internal/vo/agent/opt"
 	"github.com/downflux/go-orca/internal/vo/wall"
-	"github.com/downflux/go-orca/kd"
 	"github.com/downflux/go-orca/region"
 
 	c2d "github.com/downflux/go-geometry/2d/constraint"
@@ -25,19 +27,24 @@ type Mutation struct {
 	V v2d.V
 }
 
-func agents(ps []kd.P) []agent.A {
+type P interface {
+	point.P
+	A() agent.A
+}
+
+func agents[T P](ps []T) []agent.A {
 	agents := make([]agent.A, 0, len(ps))
 	for _, p := range ps {
-		agents = append(agents, p.(kd.P).A())
+		agents = append(agents, p.A())
 	}
 
 	return agents
 }
 
 // O is an options struct passed into the Step function.
-type O struct {
+type O[T P] struct {
 	// T is a K-D tree containing all agents.
-	T *kd.T
+	T *kd.KD[T]
 
 	// Tau is the lookahead time -- Step will avoid agent velocities which
 	// will lead to collisions within this time frame. More discussion on a
@@ -64,16 +71,31 @@ type result struct {
 	err error
 }
 
+func RadialFilter[T P](t *kd.KD[T], c hypersphere.C, f func(p P) bool) []T {
+	offset := vector.M(make([]float64, c.P().Dimension()))
+	for i := vector.D(0); i < c.P().Dimension(); i++ {
+		offset.SetX(i, c.R())
+	}
+
+	r := *hyperrectangle.New(
+		vector.Sub(c.P(), offset.V()),
+		vector.Add(c.P(), offset.V()),
+	)
+	return kd.RangeSearch(t, r, func(p T) bool {
+		return vector.SquaredMagnitude(vector.Sub(p.P(), c.P())) <= c.R()*c.R() && f(p)
+	})
+}
+
 // step calculates the ORCA velocity for a single agent.
-func step(a agent.A, t *kd.T, rs []region.R, f func(a agent.A) bool, tau float64) (Mutation, error) {
-	ps, err := kd.RadialFilter(
+func step[T P](a agent.A, t *kd.KD[T], rs []region.R, f func(a agent.A) bool, tau float64) (Mutation, error) {
+	ps := RadialFilter(
 		t,
+		// N.B.: RVO2 passes in a global state for this
+		// radius; see
+		// https://github.com/snape/RVO2/blob/a92e8cc858ab1884ee5de5eb3bc4a07f490d247a/src/Agent.cpp#L50
+		// for more information.
 		*hypersphere.New(
 			vector.V(a.P()),
-			// N.B.: RVO2 passes in a global state for this
-			// radius; see
-			// https://github.com/snape/RVO2/blob/a92e8cc858ab1884ee5de5eb3bc4a07f490d247a/src/Agent.cpp#L50
-			// for more information.
 			tau*a.S()+2*a.R(),
 		),
 		// TODO(minkezhang): Check for interface equality
@@ -82,16 +104,10 @@ func step(a agent.A, t *kd.T, rs []region.R, f func(a agent.A) bool, tau float64
 		//
 		// This technically may introduce a bug when multiple
 		// points are extremely close together.
-		func(p kd.P) bool {
-			return !vector.Within(
-				p.P(),
-				vector.V(a.P()),
-			) && f(p.(kd.P).A())
+		func(p P) bool {
+			return !vector.Within(p.P(), vector.V(a.P())) && f(p.(P).A())
 		},
 	)
-	if err != nil {
-		return Mutation{}, err
-	}
 
 	cs := make([]constraint.C, 0, len(ps))
 	for _, r := range rs {
@@ -116,7 +132,7 @@ func step(a agent.A, t *kd.T, rs []region.R, f func(a agent.A) bool, tau float64
 			*constraint.New(
 				c2d.C(
 					voagent.New(
-						p.(kd.P).A(),
+						p.A(),
 						opt.O{
 							Weight: opt.WeightEqual,
 							VOpt:   opt.VOptV,
@@ -153,7 +169,7 @@ func step(a agent.A, t *kd.T, rs []region.R, f func(a agent.A) bool, tau float64
 // adding an A.Immovable() bool to the interface.
 //
 // TODO(minkezhang): Brainstorm ways to introduce a linear "agent", i.e. wall.
-func Step(o O) ([]Mutation, error) {
+func Step[T P](o O[T]) ([]Mutation, error) {
 	if o.PoolSize == 0 {
 		panic("must specify Step with non-zero pool size")
 	}
