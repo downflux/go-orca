@@ -218,9 +218,6 @@ func main() {
 		K:    2,
 		N:    16,
 	})
-	if err != nil {
-		log.Fatalf("cannot create K-D tree")
-	}
 
 	var images []*image.Paletted
 	var delay []int
